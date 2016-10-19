@@ -79,7 +79,7 @@ class ICMio( object ):
 
             sgrp = self.fid.create_group( "METADATA/SRON_METADATA" )
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = self.pynadc_version()
+            sgrp.attrs['git_tag'] = self.pys5p_version()
             dtype = h5py.special_dtype(vlen=str)
             dset = sgrp.create_dataset( 'patched_datasets',
                                         (len(self.__patched_msm),), dtype=dtype)
@@ -90,17 +90,13 @@ class ICMio( object ):
 
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod
-    def pynadc_version():
+    def pys5p_version():
         '''
         Return S/W version
         '''
-        from importlib import util
+        from setuptools_scm import get_version
 
-        version_spec = util.find_spec( "pynadc.version" )
-        assert version_spec is not None
-
-        from pynadc import version
-        return version.__version__
+        return get_version()
 
     # ---------- Functions that work before MSM selection ----------
     def get_orbit(self):

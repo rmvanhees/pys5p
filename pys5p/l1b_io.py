@@ -72,7 +72,7 @@ class L1Bio( object ):
 
             sgrp = self.fid.create_group( "/METADATA/SRON_METADATA" )
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = self.pynadc_version()
+            sgrp.attrs['git_tag'] = self.pys5p_version()
             dtype = h5py.special_dtype(vlen=str)
             dset = sgrp.create_dataset('patched_datasets',
                                        (len(self.__patched_msm),),
@@ -84,11 +84,13 @@ class L1Bio( object ):
 
     # ---------- PUBLIC FUNCTIONS ----------
     @staticmethod
-    def pynadc_version():
+    def pys5p_version():
         '''
         Returns S/W version
         '''
-        return "0.0.1"
+        from setuptools_scm import get_version
+
+        return get_version()
 
     def get_orbit( self ):
         '''

@@ -63,17 +63,13 @@ class OCMio( object ):
 
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod
-    def pynadc_version():
+    def pys5p_version():
         '''
         Return S/W version
         '''
-        from importlib import util
+        from setuptools_scm import get_version
 
-        version_spec = util.find_spec( "pynadc.version" )
-        assert version_spec is not None
-
-        from pynadc import version
-        return version.__version__
+        return get_version()
 
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version( self ):
