@@ -25,34 +25,22 @@ class OCMio( object ):
     '''
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
-
-    Usage:
-    1) open file (new class initiated)
-    2) select group of a particular measurement
-    3) read data (median/averaged full frame(s), only)
-    .
-    . <user actions>
-    .
-    * back to step 2) or
-    5) close file
     '''
-    def __init__( self, ocm_product, verbose=False ):
+    def __init__( self, ocm_product ):
         '''
-        Initialize access to an ICM products
+        Initialize access to an OCAL Lx product
 
         Parameters
         ----------
         ocm_product :  string
-           Patch to on-ground calibration measurement
+           Full path to on-ground calibration measurement
 
-        Note that each band is stored in a seperate product: trl1brb?g.lx.nc
         '''
         assert os.path.isfile( ocm_product ), \
             '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
 
         # initialize class-attributes
         self.__product = ocm_product
-        self.__verbose = verbose
         self.__msm_path = None
         self.__patched_msm = []
         self.band = None
@@ -168,20 +156,20 @@ class OCMio( object ):
     #-------------------------
     def select( self, ic_id ):
         '''
+        Select a measurement as BAND%_<ic_id>_GROUP_%
+
         Parameters
         ----------
         ic_id  :  integer
           used as "BAND%/ICID_{}_GROUP_%".format(ic_id)
+          if ic_id is None then show available ICID's
 
         Returns
         -------
         Number of measurements found
 
         Updated object attributes:
-         - ref_time            : reference time of measurement (datetime-object)
-         - delta_time          : offset w.r.t. reference time (milli-seconds)
-         - instrument_settings : copy of instrument settings
-         - housekeeping_data   : copy of housekeeping data
+          - bands               : available spectral bands
         '''
         self.band = ''
         self.__msm_path = []
@@ -191,9 +179,15 @@ class OCMio( object ):
                 break
 
         if len(self.band) > 0:
-            grp_name = 'ICID_{:05}_GROUP'.format(ic_id)
             gid = self.fid['BAND{}'.format(self.band)]
-            self.__msm_path = [s for s in gid if s.startswith(grp_name)]
+            if ic_id is None:
+                grp_name = 'ICID_'
+                for kk in gid:
+                    if kk.startswith(grp_name):
+                        print(kk)
+            else:
+                grp_name = 'ICID_{:05}_GROUP'.format(ic_id)
+                self.__msm_path = [s for s in gid if s.startswith(grp_name)]
 
         return len(self.__msm_path)
 
@@ -204,8 +198,12 @@ class OCMio( object ):
 
         Parameters
         ----------
-        msm_dset   :  string
+        msm_dset    :  string
             name of measurement dataset
+            if msm_dset is None then show names of available datasets
+
+        fill_as_nan :  boolean
+            replace (float) FillValues with Nan's
 
         Returns
         -------
@@ -219,47 +217,97 @@ class OCMio( object ):
             return res
 
         grp = self.fid['BAND{}'.format(self.band)]
-        for msm in sorted(self.__msm_path):
-            ds_path = os.path.join(msm, 'OBSERVATIONS', msm_dset)
+        if msm_dset is None:
+            ds_path = os.path.join(self.__msm_path[0], 'OBSERVATIONS')
+            for kk in grp[ds_path]:
+                print(kk)
+        else:
+            for msm in sorted(self.__msm_path):
+                ds_path = os.path.join(msm, 'OBSERVATIONS', msm_dset)
 
-            data = np.squeeze(grp[ds_path])
-            if fill_as_nan and grp[ds_path].attrs['_FillValue'] == fillvalue:
-                data[(data == fillvalue)] = np.nan
-            res[msm] = data
+                data = np.squeeze(grp[ds_path])
+                if fill_as_nan \
+                   and grp[ds_path].attrs['_FillValue'] == fillvalue:
+                    data[(data == fillvalue)] = np.nan
+
+                res[msm] = data
 
         return res
 
 #--------------------------------------------------
-def test():
+def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):
     '''
     Perform some simple test to check the OCM_io class
     '''
-    if os.path.isdir('/Users/richardh'):
-        fl_path = '/Users/richardh/Data/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
-    elif os.path.isdir('/nfs/TROPOMI/ocal/proc_knmi'):
-        fl_path = '/nfs/TROPOMI/ocal/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
+    # open OCAL Lx poduct
+    ocm = OCMio( ocm_product )
+    res = ocm.get_processor_version()
+    if print_data:
+        print( res )
     else:
-        fl_path = '/data/richardh/Tropomi/ISRF/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
-    ocm_dir = 'after_strayl_l1b_val_SWIR_2'
-    ocm_product = os.path.join(fl_path, ocm_dir, 'trl1brb7g.lx.nc')
+        print('*** INFO: successfully obtained processor version')
+    res = ocm.get_coverage_time()
+    if print_data:
+        print( res )
+    else:
+        print('*** INFO: successfully obtained coverage-period of measurements')
 
-    ocm = OCMio( ocm_product, verbose=True )
-    print( ocm.get_processor_version() )
-    print( ocm.get_coverage_time() )
+    # select data of measurement(s) with given ICID
+    if ocm.select( msm_icid ) > 0:
+        res = ocm.get_ref_time()
+        if print_data:
+            print( res )
+        else:
+            print('*** INFO: successfully obtained reference time')
+        res = ocm.get_delta_time()
+        if print_data:
+            print( res )
+        else:
+            print('*** INFO: successfully obtained delta time')
+        res = ocm.get_instrument_settings()
+        if print_data:
+            print( res )
+        else:
+            print('*** INFO: successfully obtained instrument settings')
+        res = ocm.get_housekeeping_data()
+        if print_data:
+            print( res )
+        else:
+            print('*** INFO: successfully obtained housekeeping data')
 
-    ocm.select( 31524 )
-    for key in ocm:
-        print( '{}: {!r}'.format(key, ocm.__getattribute__(key)) )
-    print( ocm.get_ref_time() )
-    print( ocm.get_delta_time() )
-    instrument_settings = ocm.get_instrument_settings()
-    print( instrument_settings.keys() )
-    housekeeping_data = ocm.get_housekeeping_data()
-    print( housekeeping_data.keys() )
-    msm_data = ocm.get_msm_data( 'signal' )
-    print( msm_data.values() )
+        res = ocm.get_msm_data( msm_dset )
+        if print_data:
+            print( res )
+        else:
+            print('*** INFO: successfully obtained msm_data')
+
     del ocm
+
+def main():
+    '''
+    Let the user test the software!!!
+    '''
+    import argparse
+
+    # parse command-line parameters
+    parser = argparse.ArgumentParser(
+        description='run test-routines to check class OCMio' )
+    parser.add_argument( 'ocm_product', default=None,
+                         help='name of OCAL Lx product (full path)' )
+    parser.add_argument( '--msm_icid', default=None, type=int,
+                         help='define measurement by ICID' )
+    parser.add_argument( '--msm_dset', default=None,
+                         help='define measurement dataset to be read' )
+    parser.add_argument( '-d', '--data', action='store_true',
+                         default=False, help='Print the values of datasets' )
+    args = parser.parse_args()
+
+    if args.ocm_product is None:
+        parser.print_usage()
+        parser.exit()
+
+    test_rd_ocm( args.ocm_product, args.msm_icid, args.msm_dset, args.data )
 
 #--------------------------------------------------
 if __name__ == '__main__':
-    test()
+    main()
