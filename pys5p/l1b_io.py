@@ -1,5 +1,7 @@
 '''
-This file is part of s5p_l1b_patch
+This file is part of pys5p
+
+https://github.com/rmvanhees/pys5p.git
 
 The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
 offline level 1b products, resp. calibration, irradiance and radiance.
@@ -607,7 +609,7 @@ def main():
     import argparse
 
     # parse command-line parameters
-    parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser( 
         description='run test-routines to check class L1BioXXX' )
     parser.add_argument( 'l1b_product', default=None,
                          help='name of L1B product (full path)' )

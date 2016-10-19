@@ -4,7 +4,7 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
-setup(name='pysp5',
+setup(name='pys5p',
       use_scm_version=True,
       setup_requires=['setuptools_scm'],
       description='Software to access S5p Tropomi L1B (offline) products',
