@@ -92,7 +92,7 @@ class ICMio( object ):
     @staticmethod
     def pys5p_version():
         '''
-        Return S/W version
+        Returns S/W version
         '''
         from setuptools_scm import get_version
 
@@ -324,7 +324,8 @@ class ICMio( object ):
 
         Returns
         -------
-        String with spectral bands found in product
+        out  :  string
+           String with spectral bands found in product
 
         Updated object attributes:
          - bands               : available spectral bands
@@ -374,7 +375,8 @@ class ICMio( object ):
 
         Returns
         -------
-        Python list with an ndarrays for each band
+        out  :  list
+           Python list with an ndarrays for each band
 
         '''
         if self.__msm_path is None:
@@ -452,6 +454,9 @@ class ICMio( object ):
 def test_rd_icm( ):
     '''
     Perform some simple test to check the ICM_io class
+
+    Please use the code as tutorial
+
     '''
     import shutil
 

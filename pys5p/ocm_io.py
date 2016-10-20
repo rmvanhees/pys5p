@@ -162,7 +162,8 @@ class OCMio( object ):
 
         Returns
         -------
-        Number of measurements found
+        out  :  scalar
+           Number of measurements found
 
         Updated object attributes:
           - bands               : available spectral bands
@@ -203,7 +204,8 @@ class OCMio( object ):
 
         Returns
         -------
-        Python dictionary with msm_names as keys and their values
+        out   :   dictionary
+           Python dictionary with msm_names as keys and their values
 
         '''
         fillvalue = float.fromhex('0x1.ep+122')
@@ -234,6 +236,9 @@ class OCMio( object ):
 def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):
     '''
     Perform some simple test to check the OCM_io class
+
+    Please use the code as tutorial
+
     '''
     # open OCAL Lx poduct
     ocm = OCMio( ocm_product )
@@ -279,7 +284,7 @@ def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):
 
     del ocm
 
-def main():
+def _main():
     '''
     Let the user test the software!!!
     '''
@@ -306,4 +311,4 @@ def main():
 
 #--------------------------------------------------
 if __name__ == '__main__':
-    main()
+    _main()

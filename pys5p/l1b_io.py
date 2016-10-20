@@ -225,7 +225,8 @@ class L1BioCAL( L1Bio ):
 
         Returns
         -------
-        String with spectral bands found in product
+        out  :   string
+           String with spectral bands found in product
 
         Updated object attributes:
          - bands               : available spectral bands
@@ -349,7 +350,8 @@ class L1BioIRR( L1Bio ):
 
         Returns
         -------
-        String with spectral bands found in product
+        out  :  string
+           String with spectral bands found in product
 
         Updated object attributes:
          - bands               : available spectral bands
@@ -468,7 +470,8 @@ class L1BioRAD( L1Bio ):
 
         Returns
         -------
-        String with spectral bands found in product
+        out   :   string
+           String with spectral bands found in product
 
         Updated object attributes:
          - bands               : available spectral bands
@@ -604,7 +607,7 @@ def test_rd_rad( l1b_product, msm_type, msm_dset, verbose ):
     print( msm_dset, l1b.get_msm_data( msm_dset ).shape )
     del l1b
 
-def main():
+def _main():
     '''
     Let the user test the software!!!
     '''
@@ -661,4 +664,4 @@ def main():
 
 #-------------------------
 if __name__ == '__main__':
-    main()
+    _main()

@@ -3,10 +3,10 @@ This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
 
-The class L1Bpatch provides methods to patch Tropomi SWIR measurement data in 
+The class L1Bpatch provides methods to patch Tropomi SWIR measurement data in
 offline level 1b products (incl. calibration, irradiance and radiance).
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research 
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -15,50 +15,125 @@ License:  Standard 3-clause BSD
 from __future__ import print_function
 
 import numpy as np
-import h5py
+#import h5py
 
 #--------------------------------------------------
-class L1Bpatch( object ):
+def fill_constant( array, value ):
     '''
+    Basic test-operation: replace values in ndarray with a constant value.
+
+    Parameters
+    ----------
+    array  :  array-like
+       The data to be patched
+    value  :  scalar
+       Fill value
+
+    Returns
+    -------
+    out    :  ndarray
+       Return an array with each element set to value
     '''
-    def fill_constant( self, data, value ):
-        print( data.shape, value )
-        data[:] = value
-        return data
-    
-    def background( self ):
-        '''
-        '''
-        pass
+    return np.full_like( array, value )
 
-    def nonlinearity( self ):
-        '''
-        '''
-        pass
+def nonlinearity():
+    '''
+    Patch non-linearity correction.
 
-    def straylight( self ):
-        '''
-        '''
-        pass
+    Requires:
+     * reverse applied radiance calibration
+     * reverse applied stray-light correction
+     * reverse applied PRNU correction
+     * reverse applied dark-current correction
+     * apply alternative non-linearity correction
+     * apply (alternative) PRNU correction
+     * apply (alternative) stray-light correction
+     * apply (alternative) radiance calibration
 
-    def radiance( self ):
-        '''
-        '''
-        pass
-    
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def darkcurrent():
+    '''
+    Patch dark-current correction.
+
+    Requires:
+     * reverse applied radiance calibration
+     * reverse applied stray-light correction
+     * reverse applied PRNU correction
+     * reverse applied dark-current correction
+     * apply (alternative) dark-current correction
+     * apply (alternative) PRNU correction
+     * apply (alternative) stray-light correction
+     * apply (alternative) radiance calibration
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def straylight():
+    '''
+    Patch stray-light correction.
+
+    Requires:
+     * reverse applied radiance calibration
+     * reverse applied stray-light correction
+     * apply alternative stray-light correction
+     * apply (alternative) radiance calibration
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def radiance():
+    '''
+    Patch radiance calibration.
+
+    Requires:
+     * reverse applied radiance calibration
+     * apply alternative radiance calibration
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
 #--------------------------------------------------
-def main():
+def _main():
     '''
     Let the user test the software!!!
     '''
     import argparse
-    import shutil
     from pathlib import Path
 
-    from l1b_io import L1BioRAD
-        
+    from pys5p.l1b_io import L1BioRAD
+
     # parse command-line parameters
-    parser = argparse.ArgumentParser( 
+    parser = argparse.ArgumentParser(
         description='run test-routines to check class L1BioXXX' )
     parser.add_argument( 'l1b_product', default=None,
                          help='name of L1B product (full path)' )
@@ -81,7 +156,7 @@ def main():
         Path(args.output).mkdir(mode=0o755)
 
     l1b_patch = str(Path(args.output,
-                     Path(args.l1b_product.replace('_01_', '_02_')).name))
+                         Path(args.l1b_product.replace('_01_', '_02_')).name))
     print( args.l1b_product, l1b_patch )
     #shutil.copy( args.l1b_product, l1b_patch )
 
@@ -94,17 +169,20 @@ def main():
         if args.msm_dset is None:
             msm_dset = 'radiance'
         print('rad: ', msm_type, msm_dset)
+
+        # open L1B product and read dataset
         l1b = L1BioRAD( l1b_patch, readwrite=True )
         l1b.select( msm_type )
         data = l1b.get_msm_data( msm_dset )
-        print( data.shape )
-        patch = L1Bpatch()
-        data = patch.fill_constant( data, 7 )
-        print( data.shape )
+
+        # patch dataset
+        data = fill_constant( data, 7 )
+
+        # write patched data to L1B product
         l1b.set_msm_data( msm_dset, data )
-        print( data.shape )
+
+        # update meta-data of product and flush all changes to disk
         del l1b
-        del patch
 
 if __name__ == '__main__':
-    main()
+    _main()
