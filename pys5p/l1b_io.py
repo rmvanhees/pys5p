@@ -119,6 +119,20 @@ class L1Bio( object ):
         dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].decode('ascii')
 
+    def get_attr( self, attr_name ):
+        '''
+        Obtain value of an HDF5 file attribute
+
+        Parameters
+        ----------
+        attr_name : string
+           name of the attribute
+        '''
+        if attr_name in self.fid.attrs.keys():
+            return self.fid.attrs[attr_name]
+
+        return None
+
     def ref_time( self, msm_path ):
         '''
         Returns reference start time of measurements
@@ -166,6 +180,34 @@ class L1Bio( object ):
 
         grp = self.fid[os.path.join(msm_path,'INSTRUMENT')]
         return np.squeeze(grp['housekeeping_data'])
+
+    def msm_attr( self, msm_path, mem_dset, attr_name ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset   :  string
+            name of measurement dataset
+        attr_name : string
+            name of the attribute
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+        '''
+        if msm_path is None:
+            return None
+
+        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        if attr_name in self.fid[ds_path].attrs.keys():
+                attr = self.fid[ds_path].attrs['units']
+                if isinstance( attr, bytes ):
+                    return attr.decode('ascii')
+                else:
+                    return attr
+        return None
 
     def msm_data( self, msm_path, msm_dset, write_data=None ):
         '''
@@ -254,6 +296,12 @@ class L1BioCAL( L1Bio ):
     def get_ref_time( self, band=None ):
         '''
         Returns reference start time of measurements
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
         '''
         if band is None:
             band = self.bands[0]
@@ -263,6 +311,12 @@ class L1BioCAL( L1Bio ):
     def get_delta_time( self, band=None ):
         '''
         Returns offset from the reference start time of measurement
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
         '''
         if band is None:
             band = self.bands[0]
@@ -272,6 +326,12 @@ class L1BioCAL( L1Bio ):
     def get_instrument_settings( self, band=None ):
         '''
         Returns instrument settings of measurement
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
         '''
         if band is None:
             band = self.bands[0]
@@ -281,11 +341,43 @@ class L1BioCAL( L1Bio ):
     def get_housekeeping_data( self, band=None ):
         '''
         Returns housekeeping data of measurements
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
         '''
         if band is None:
             band = self.bands[0]
 
         return super().housekeeping_data(self.__msm_path.replace('%', band))
+
+    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset  :  string
+            name of measurement dataset
+        attr_name :  string
+            name of the attribute
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+
+        '''
+        if band is None:
+            band = self.bands[0]
+
+        return super().msm_attr( self.__msm_path.replace('%', band),
+                                 msm_dset, attr_name )
 
     def get_msm_data( self, msm_dset, band=None ):
         '''
@@ -295,7 +387,6 @@ class L1BioCAL( L1Bio ):
         ----------
         msm_dset   :  string
             name of measurement dataset
-
         band       :  None or {'1', '2', '3', ..., '8'}
             select data from one spectral band or all (Band is None)
         '''
@@ -407,6 +498,32 @@ class L1BioIRR( L1Bio ):
 
         return super().housekeeping_data(self.__msm_path.replace('%', band))
 
+    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset  :  string
+            name of measurement dataset
+        attr_name :  string
+            name of the attribute
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+
+        '''
+        if band is None:
+            band = self.bands[0]
+
+        return super().msm_attr( self.__msm_path.replace('%', band),
+                                 msm_dset, attr_name )
+
     def get_msm_data( self, msm_dset, band=None ):
         '''
         Returns data of measurement dataset "msm_dset"
@@ -512,6 +629,32 @@ class L1BioRAD( L1Bio ):
         Returns housekeeping data of measurements
         '''
         return super().housekeeping_data( self.__msm_path )
+
+    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset  :  string
+            name of measurement dataset
+        attr_name :  string
+            name of the attribute
+        band      :  None or {'1', '2', '3', ..., '8'}
+            select one of the band present in the product
+            default is to use the first available band
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+
+        '''
+        if band is None:
+            band = self.bands[0]
+
+        return super().msm_attr( self.__msm_path.replace('%', band),
+                                 msm_dset, attr_name )
 
     def get_msm_data( self, msm_dset ):
         '''

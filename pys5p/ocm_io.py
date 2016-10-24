@@ -85,6 +85,20 @@ class OCMio( object ):
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
+    def get_attr( self, attr_name ):
+        '''
+        Obtain value of an HDF5 file attribute
+
+        Parameters
+        ----------
+        attr_name : string
+           name of the attribute
+        '''
+        if attr_name in self.fid.attrs.keys():
+            return self.fid.attrs[attr_name]
+
+        return None
+
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time( self ):
         '''
@@ -189,6 +203,38 @@ class OCMio( object ):
         return len(self.__msm_path)
 
     #-------------------------
+    def get_msm_attr( self, msm_dset, attr_name ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset    :  string
+            name of measurement dataset
+        attr_name : string
+            name of the attribute
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+
+        '''
+        if len(self.__msm_path) == 0:
+            return ''
+
+        grp = self.fid['BAND{}'.format(self.band)]
+        for msm_path in self.__msm_path:
+            ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+
+            if attr_name in grp[ds_path].attrs.keys():
+                attr = grp[ds_path].attrs['units']
+                if isinstance( attr, bytes ):
+                    return attr.decode('ascii')
+                else:
+                    return attr
+        return None
+
     def get_msm_data( self, msm_dset, fill_as_nan=False ):
         '''
         Returns data of measurement dataset "msm_dset"
@@ -231,6 +277,95 @@ class OCMio( object ):
                 res[msm] = data
 
         return res
+
+    @staticmethod
+    def dict_to_array( dict_a, dict_b,
+                       skip_first=False, skip_last=False, mode=None ):
+        '''
+        Store data from a dictionary as returned by get_msm_data to a ndarray
+
+        Parameters
+        ----------
+        dict_a      :  dictionary
+        dict_b      :  dictionary
+        skip_first  :  boolean
+           default is False
+        skip_last   :  boolean
+           default is False
+        mode        :  list ['combined', 'median']
+           default is None
+        Returns
+        -------
+        out  :  ndarray
+           Data from dictionary stored in a numpy array
+
+        Notes
+        -----
+
+        Examples
+        --------
+        >>> data = ocm.dict_to_array( dict_a, dict_b,
+        mode=['combined', 'median']
+        >>>
+        '''
+        if dict_b is None:
+            dict_b = {}
+        if mode is None:
+            mode = []
+
+        data_a = None
+        data_b = None
+        for key in sorted(dict_a):
+            if skip_last:
+                if skip_first:
+                    buff = dict_a[key][1:-1, ...]
+                else:
+                    buff = dict_a[key][0:-1, ...]
+            else:
+                if skip_first:
+                    buff = dict_a[key][1:, ...]
+                else:
+                    buff = dict_a[key][0:, ...]
+
+            if 'combine' not in mode and 'median' in mode:
+                buff = np.nanmedian(buff, axis=0)
+
+            if data_a is None:
+                data_a = buff
+            else:
+                data_a = np.vstack((data_a, buff))
+
+        if 'combine' in mode and 'median' in mode:
+            data_a = np.nanmedian(data_a, axis=0)
+
+        for key in sorted(dict_b):
+            if skip_last:
+                if skip_first:
+                    buff = dict_b[key][1:-1, ...]
+                else:
+                    buff = dict_b[key][0:-1, ...]
+            else:
+                if skip_first:
+                    buff = dict_b[key][1:, ...]
+                else:
+                    buff = dict_b[key][0:, ...]
+
+            if 'combine' not in mode and 'median' in mode:
+                buff = np.nanmedian(buff, axis=0)
+
+            if data_b is None:
+                data_b = buff
+            else:
+                data_b = np.vstack((data_b, buff))
+
+        if 'combine' in mode and 'median' in mode:
+            data_b = np.nanmedian(data_b, axis=0)
+
+        if data_b is None:
+            return data_a
+        else:
+            return np.concatenate( (data_a, data_b),
+                                   axis=len(data_a.shape)-1 )
 
 #--------------------------------------------------
 def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):

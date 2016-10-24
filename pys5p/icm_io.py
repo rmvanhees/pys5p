@@ -126,6 +126,20 @@ class ICMio( object ):
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
+    def get_attr( self, attr_name ):
+        '''
+        Obtain value of an HDF5 file attribute
+
+        Parameters
+        ----------
+        attr_name : string
+           name of the attribute
+        '''
+        if attr_name in self.fid.attrs.keys():
+            return self.fid.attrs[attr_name]
+
+        return None
+    
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time( self ):
         '''
@@ -360,6 +374,38 @@ class ICMio( object ):
         return self.bands
 
     #-------------------------
+    def get_msm_attr( self, msm_dset, attr_name ):
+        '''
+        Returns value attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset    :  string
+            name of measurement dataset
+        attr_name : string
+            name of the attribute
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+
+        '''
+        if len(self.__msm_path) == 0:
+            return None
+
+        grp = self.fid['BAND{}'.format(self.band)]
+        for msm_path in self.__msm_path:
+            ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+
+            if attr_name in grp[ds_path].attrs.keys():
+                attr = grp[ds_path].attrs['units']
+                if isinstance( attr, bytes ):
+                    return attr.decode('ascii')
+                else:
+                    return attr
+        return None
+
     def get_msm_data( self, msm_dset, fill_as_nan=False ):
         '''
         Read datasets from a measurement selected by class-method "select"
