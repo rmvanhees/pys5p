@@ -40,7 +40,9 @@ def nonlinearity():
     '''
     Patch non-linearity correction.
 
-    Requires:
+    Low priority, small effect, hard to implement and validate
+
+    Requires (naive approach):
      * reverse applied radiance calibration
      * reverse applied stray-light correction
      * reverse applied PRNU correction
@@ -60,11 +62,13 @@ def nonlinearity():
     '''
     pass
 
-def darkcurrent():
+def prnu():
     '''
-    Patch dark-current correction.
+    Patch pixel response non-uniformity correction.
 
-    Requires:
+    High priority, introduces potentially spectral-features (swath dependent)
+
+    Requires (naive approach):
      * reverse applied radiance calibration
      * reverse applied stray-light correction
      * reverse applied PRNU correction
@@ -73,6 +77,9 @@ def darkcurrent():
      * apply (alternative) PRNU correction
      * apply (alternative) stray-light correction
      * apply (alternative) radiance calibration
+
+    Alternative: neglect impact stray-light, but apply patch to correct for 
+       spectral features
 
     Parameters
     ----------
@@ -86,13 +93,57 @@ def darkcurrent():
 
 def straylight():
     '''
-    Patch stray-light correction.
+    Patch in-of-band stray-light correction.
 
-    Requires:
+    High priority, correction implemented for the most important measured 
+    features, however, at low resolution. Met requirement within factor 3-6.
+    Spatial stray-light seems to be the biggest problem. Unclear how hard it
+    is to correct
+
+    Requires (naive approach):
      * reverse applied radiance calibration
      * reverse applied stray-light correction
      * apply alternative stray-light correction
      * apply (alternative) radiance calibration
+
+    Alternative: add correction of spatial stray-light
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def stray_oob():
+    '''
+    Patch out-of-band stray-light correction.
+
+    Low priority, but relatively easy to implement and verify
+
+    Requires:
+     * reverse applied radiance calibration
+     * apply alternative OOB stray-light correction
+     * apply (alternative) radiance calibration
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def nir_oob():
+    '''
+    Patch NIR out-of-band stray-light correction.
+
+    Low priority, task for KNMI
 
     Parameters
     ----------
@@ -108,9 +159,31 @@ def radiance():
     '''
     Patch radiance calibration.
 
+    Low priority: not discussed
+
     Requires:
      * reverse applied radiance calibration
      * apply alternative radiance calibration
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    '''
+    pass
+
+def irradiance():
+    '''
+    Patch irradiance calibration.
+
+    Low priority: not discussed
+
+    Requires:
+     * reverse applied irradiance calibration
+     * apply alternative irradiance calibration
 
     Parameters
     ----------
