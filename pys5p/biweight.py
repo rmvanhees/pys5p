@@ -22,7 +22,7 @@ def biweight(data, axis=None, spread=False):
 
     """
     if axis is None:
-        xx = data[data.isfinite()]
+        xx = data[np.isfinite(data)]
         med_xx = np.median(xx)
         deltas = xx - med_xx
         med_dd = np.median(np.abs(deltas))

@@ -19,6 +19,7 @@ License:  Standard 3-clause BSD
 
 '''
 import os.path
+from collections import OrderedDict
 
 import numpy as np
 
@@ -79,6 +80,7 @@ class S5Pplot(object):
     def __del__( self ):
         self.__pdf.close()
 
+    # --------------------------------------------------
     @staticmethod
     def __fig_info( fig, dict_info ):
         '''
@@ -97,6 +99,7 @@ class S5Pplot(object):
         fig.text(0.025, 0.875,
                  r'$\copyright$ SRON Netherlands Institute for Space Research')
 
+    # --------------------------------------------------
     def __frame( self, signal_in, signal_col_in, signal_row_in,
                  fig_info=None, title=None, sub_title=None,
                  data_label=None, data_unit=None ):
@@ -114,7 +117,7 @@ class S5Pplot(object):
         signal = np.copy(signal_in)
         signal_col = np.copy(signal_col_in)
         signal_row = np.copy(signal_row_in)
-        (p_10, p_90) = np.percentile( signal[signal.isfinite()], (10,90) )
+        (p_10, p_90) = np.percentile( signal[np.isfinite(signal)], (10,90) )
         if data_unit is None:
             label = '{}'.format(data_label)
         elif data_unit.find( 'electron' ) >= 0:
@@ -188,6 +191,7 @@ class S5Pplot(object):
         self.__pdf.savefig()
         plt.close()
 
+    # --------------------------------------------------
     def __hist( self, signal_in, error_in, fig_info,
                 data_label=None, data_unit=None,
                 error_label=None, error_unit=None,
@@ -199,23 +203,40 @@ class S5Pplot(object):
         from matplotlib import gridspec
 
         from pys5p import sron_colorschemes
+        from pys5p.biweight import biweight
 
         line_colors = sron_colorschemes.get_line_colors()
 
         if fig_info is None:
-            fig_info = {}
+            fig_info = OrderedDict({'num_sigma' : 3})
 
-        buff = np.copy(signal_in).reshape(-1)
-        if 'sign_median' in fig_info:
-            buff = buff[buff.isfinite()] - fig_info['sign_median']
-        buff_std = np.copy(error_in).reshape(-1)
-        if 'error_median' in fig_info:
-            buff_std = buff_std[buff_std.isfinite()] - fig_info['error_median']
+        signal = np.copy(signal_in[np.isfinite(signal_in)]).reshape(-1)
+        if 'sign_median' not in fig_info \
+            or 'sign_spread' not in fig_info:
+            (median, spread) = biweight(signal, spread=True)
+            fig_info.update({'sign_median' : median})
+            fig_info.update({'sign_spread' : spread})
+        signal -= fig_info['sign_median']
 
-        d_label = '{} [{}]'.format(data_label,
-                                   data_unit.replace('electron', 'e'))
-        e_label = '{} [{}]'.format(error_label,
-                                   error_unit.replace('electron', 'e'))
+        error  = np.copy(error_in[np.isfinite(error_in)]).reshape(-1)
+        if 'error_median' not in fig_info \
+            or 'error_spread' not in fig_info:
+            (median, spread) = biweight(error, spread=True)
+            fig_info.update({'error_median' : median})
+            fig_info.update({'error_spread' : spread})
+        error -= fig_info['error_median']
+
+        if data_unit is not None:
+            d_label = '{} [{}]'.format(data_label,
+                                       data_unit.replace('electron', 'e'))
+        else:
+            d_label = data_label
+
+        if error_unit is not None:
+            e_label = '{} [{}]'.format(error_label,
+                                       error_unit.replace('electron', 'e'))
+        else:
+            e_label = error_label
 
         fig = plt.figure(figsize=(18, 7.875))
         if title is not None:
@@ -223,8 +244,9 @@ class S5Pplot(object):
         gspec = gridspec.GridSpec(6,8)
 
         axx = plt.subplot(gspec[1:3,1:])
-        axx.hist( buff, range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
-                               fig_info['num_sigma'] * fig_info['sign_spread']],
+        axx.hist( signal,
+                  range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
+                         fig_info['num_sigma'] * fig_info['sign_spread']],
                   bins=15, color=line_colors[0] )
         axx.set_title( r'Histogram is centered at the median with range of ' \
                        r'$\pm 3 \sigma$' )
@@ -234,18 +256,19 @@ class S5Pplot(object):
             axx.set_title( sub_title )
 
         axx = plt.subplot(gspec[3:5,1:])
-        axx.hist( buff_std, range=[-fig_info['num_sigma'] * fig_info['error_spread'],
-                                   fig_info['num_sigma'] * fig_info['error_spread']],
+        axx.hist( error,
+                  range=[-fig_info['num_sigma'] * fig_info['error_spread'],
+                         fig_info['num_sigma'] * fig_info['error_spread']],
                   bins=15, color=line_colors[0] )
         axx.set_xlabel( e_label )
         axx.set_ylabel( 'count' )
 
-        if len(fig_info) > 0 :
-            self.__fig_info( fig, fig_info )
+        self.__fig_info( fig, fig_info )
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
 
+    # --------------------------------------------------
     def __quality( self, dpqm, low_thres=0.1, high_thres=0.8,
                    title=None, sub_title=None ):
         '''
@@ -309,16 +332,15 @@ class S5Pplot(object):
         axx.set_xlabel( 'column' )
         axx.grid(True)
 
-        fig_info = { 'thres_01' : thres_min,
-                     'thres_08' : thres_max,
-                     'dpqf_01' : np.sum(((dpqf >= 0) & (dpqf < thres_min))),
-                     'dpqf_08' : np.sum(((dpqf >= 0) & (dpqf < thres_max)))}
-        if fig_info is not None:
-            self.__fig_info( fig, fig_info )
+        fig_info = OrderedDict({'thres_01': low_thres})
+        fig_info.update({'dpqf_01': np.sum(((dpqf >= 0) & (dpqf < thres_min)))})
+        fig_info.update({'thres_08': high_thres})
+        fig_info.update({'dpqf_08': np.sum(((dpqf >= 0) & (dpqf < thres_max)))})
+
+        self.__fig_info( fig, fig_info )
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
-
 
     # --------------------------------------------------
     def draw_signal( self, data, data_col=None, data_row=None,
@@ -386,23 +408,6 @@ class S5Pplot(object):
         fig_info    :  dictionary
            Dictionary holding meta-data to be displayed in the figure
         '''
-        from pys5p.biweight import biweight
-
-        if fig_info is None:
-            fig_info = {'num_sigma' : 3}
-
-        if 'sign_median' not in fig_info \
-            or 'sign_spread' not in fig_info:
-            (median, spread) = biweight(signal, spread=True)
-            fig_info['sign_median'] = median
-            fig_info['sign_spread'] = spread
-
-        if 'error_median' not in fig_info \
-            or 'error_spread' not in fig_info:
-            (median, spread) = biweight(error, spread=True)
-            fig_info['error_median'] = median
-            fig_info['error_spread'] = spread
-
         self.__hist( signal, error, fig_info,
                      title=title, sub_title=r'{}'.format(sub_title),
                      data_label=data_label, error_label=error_label,
@@ -451,6 +456,7 @@ def test_frame():
     # select data of measurement(s) with given ICID
     if ocm7.select( icid ) > 0:
         dict_b7 = ocm7.get_msm_data( 'signal' )
+        dict_b7_std = ocm7.get_msm_data( 'signal_error_vals' )
 
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
@@ -462,12 +468,16 @@ def test_frame():
     # select data of measurement(s) with given ICID
     if ocm8.select( icid ) > 0:
         dict_b8 = ocm8.get_msm_data( 'signal' )
+        dict_b8_std = ocm8.get_msm_data( 'signal_error_vals' )
 
     # Combine band 7 & 8 data
     # del dict_b7['ICID_31524_GROUP_00000']
     # del dict_b8['ICID_31524_GROUP_00000']
     data = ocm7.dict_to_array( dict_b7, dict_b8, mode=['combine', 'median'],
                                skip_first=True, skip_last=True )
+    error = ocm7.dict_to_array( dict_b7_std, dict_b8_std,
+                                mode=['combine', 'median'],
+                                skip_first=True, skip_last=True )
 
     # Generate figure
     figname = os.path.basename(data_dir) + '.pdf'
@@ -479,6 +489,12 @@ def test_frame():
                       title=ocm7.get_attr('title'),
                       sub_title='ICID={}'.format(icid),
                       fig_info=None )
+    plot.draw_hist( data, error,
+                    data_label='error',
+                    data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
+                    title=ocm7.get_attr('title'),
+                    sub_title='ICID={}'.format(icid),
+                    fig_info=None )
     del plot
     del ocm7
     del ocm8
@@ -507,8 +523,8 @@ def test_ckd_dpqf():
     figname = 'ckd.dpqf.detector4.pdf'
     plot = S5Pplot( figname )
     plot.draw_quality( dpqm,
-                       title='dpqf_map',
-                       sub_title=None )
+                       title='ckd.dpqf.detector4.nc',
+                       sub_title='dpqf_map' )
     del plot
         
 #-------------------------
@@ -526,28 +542,38 @@ def test_icm_dpqf():
         data_dir = '/nfs/TROPOMI/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
     else:
         data_dir = '/data/richardh/Tropomi/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
-    fl_name = 'S5P_TEST_ICM_CA_SIR_20120918T131651_20120918T145629_01890_01_001101_20151002T140000.h5'
+    fl_name = 'S5P_TEST_ICM_CA_SIR_20120918T131651_20120918T145629_01890_01_001100_20151002T140000.h5'
     icm_product = os.path.join(data_dir, fl_name)
 
     # open ICM product
     icm = ICMio( icm_product )
     if len(icm.select('DPQF_MAP')) > 0:
         res = icm.get_msm_data( 'dpqf_map' )
-        print( len(res), res[0].shape )
         dpqm = np.hstack( (res[0], res[1]) )
-        print( dpqm.shape )
+
+        res = icm.get_msm_data( 'dpqm_dark_flux' )
+        dpqm_dark = np.hstack( (res[0], res[1]) )
+
+        res = icm.get_msm_data( 'dpqm_noise' )
+        dpqm_noise = np.hstack( (res[0], res[1]) )
 
     # generate figure
     figname = fl_name + '.pdf'
     plot = S5Pplot( figname )
     plot.draw_quality( dpqm,
-                       title='dpqf_map',
-                       sub_title=None )
+                       title=fl_name,
+                       sub_title='dpqf_map' )
+    plot.draw_quality( dpqm_dark,
+                       title=fl_name,
+                       sub_title='dpqm_dark_flux' )
+    plot.draw_quality( dpqm_noise,
+                       title=fl_name,
+                       sub_title='dpqm_noise' )
     del plot
     del icm
 
 #--------------------------------------------------
 if __name__ == '__main__':
-    #test_frame()
-    test_ckd_dpqf()
+    test_frame()
+    #test_ckd_dpqf()
     #test_icm_dpqf()
