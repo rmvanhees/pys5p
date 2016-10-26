@@ -41,9 +41,9 @@ def biweight(data, axis=None, spread=False):
     else:
         med_xx = np.nanmedian(data, axis=axis)
         xbi = med_xx
-        sbi = np.zeros( med_xx.shape, dtype=np.float64 )
+        sbi = np.zeros_like(med_xx)
 
-        deltas = data - np.expand_dims( med_xx, axis=axis )
+        deltas = data - np.expand_dims(med_xx, axis=axis)
 
         med_dd = np.nanmedian(np.abs(deltas), axis=axis)
         indices = (med_dd == 0)

@@ -203,7 +203,7 @@ def _main():
     import argparse
     from pathlib import Path
 
-    from pys5p.l1b_io import L1BioRAD
+    from l1b_io import L1BioRAD
 
     # parse command-line parameters
     parser = argparse.ArgumentParser(
