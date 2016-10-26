@@ -94,9 +94,9 @@ class ICMio( object ):
         '''
         Returns S/W version
         '''
-        from setuptools_scm import get_version
+        from pys5p import version
 
-        return get_version()
+        return version.__version__
 
     # ---------- Functions that work before MSM selection ----------
     def get_orbit(self):

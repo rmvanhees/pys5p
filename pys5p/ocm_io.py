@@ -67,9 +67,9 @@ class OCMio( object ):
         '''
         Return S/W version
         '''
-        from setuptools_scm import get_version
+        from pys5p import version
 
-        return get_version()
+        return version.__version__
 
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version( self ):

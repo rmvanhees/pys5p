@@ -88,9 +88,9 @@ class L1Bio( object ):
         '''
         Returns S/W version
         '''
-        from setuptools_scm import get_version
+        from pys5p import version
 
-        return get_version()
+        return version.__version__
 
     def get_orbit( self ):
         '''
