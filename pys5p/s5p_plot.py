@@ -8,7 +8,7 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
 -- generate figures --
  Public functions a page in the output PDF
  * draw_signal
- * draw_errors
+ * draw_trend
  * draw_hist
  * draw_quality
 
@@ -218,6 +218,56 @@ class S5Pplot(object):
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
+
+    # --------------------------------------------------
+    def draw_trend( self, dates, values, xdate=True, ydate=False,
+                    data_label=None, data_unit=None,
+                    title=None, sub_title=None, fig_info=None ):
+        '''
+        Display signal & its errors as histograms
+
+        Parameters
+        ----------
+        dates       :  list
+           list of type datetime 
+        values      :  ndarray
+           Numpy array (1D or 2D) holding the data to be displayed
+        xdate       :  {True, False}
+           If True, the x-axis will be labeled with dates
+        ydate       :  {True, False}
+           If True, the y-axis will be labeled with dates
+        data_label  :  string
+           Name of dataset
+        data_unit   :  string
+           Units of dataset
+        title       :  string
+           Title of the figure (use attribute "title" of product)
+        sub_title   :  string
+           Sub-title of the figure (use attribute "comment" of product)
+        fig_info    :  dictionary
+           Dictionary holding meta-data to be displayed in the figure
+
+        '''
+        from matplotlib import pyplot as plt
+        from matplotlib import gridspec
+
+        from sron_colorschemes import get_line_colors
+        from biweight import biweight
+
+        line_colors = get_line_colors()
+
+        if values.ndim == 1:
+            assert len(dates) == values.size
+        elif values.ndim == 2:
+            if xdate:
+                pass
+            else:
+                pass
+            assert
+        else:
+            print('*** Fatal: input data must be 1D or 2D')
+            pass
+
 
     # --------------------------------------------------
     def draw_hist( self, data_in, error_in,

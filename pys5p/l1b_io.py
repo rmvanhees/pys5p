@@ -698,7 +698,7 @@ def test_rd_calib( l1b_product, msm_type, msm_dset, verbose ):
 
     print( l1b.get_ref_time() )
     print( l1b.get_delta_time() )
-    #print( l1b.get_instrument_settings() )
+    print( l1b.get_instrument_settings() )
     print( l1b.get_housekeeping_data() )
     dset = l1b.get_msm_data( msm_dset )
     for key in sorted(dset):
@@ -775,7 +775,7 @@ def _main():
         parser.exit()
 
     prod_type = os.path.basename(args.l1b_product)[0:15]
-    if prod_type == 'S5P_OFFL_L1B_CA':
+    if prod_type == 'S5P_OFFL_L1B_CA' or prod_type == 'S5P_TEST_L1B_CA':
         msm_type = args.msm_type
         if args.msm_type is None:
             msm_type = 'DARK_MODE_1607'
@@ -784,7 +784,7 @@ def _main():
             msm_dset = 'signal'
         print('calib: ', msm_type, msm_dset)
         test_rd_calib( args.l1b_product, msm_type, msm_dset, args.verbose )
-    elif prod_type == 'S5P_OFFL_L1B_IR':
+    elif prod_type == 'S5P_OFFL_L1B_IR' or prod_type == 'S5P_TEST_L1B_IR':
         msm_type = args.msm_type
         if args.msm_type is None:
             msm_type = 'STANDARD_MODE'
@@ -793,7 +793,7 @@ def _main():
             msm_dset = 'irradiance'
         print('irrad: ', msm_type, msm_dset)
         test_rd_irrad( args.l1b_product, msm_type, msm_dset,  args.verbose )
-    elif prod_type == 'S5P_OFFL_L1B_RA':
+    elif prod_type == 'S5P_OFFL_L1B_RA' or prod_type == 'S5P_TEST_L1B_RA':
         msm_type = args.msm_type
         if args.msm_type is None:
             msm_type = 'STANDARD_MODE'

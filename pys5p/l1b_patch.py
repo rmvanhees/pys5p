@@ -62,7 +62,7 @@ def nonlinearity():
     '''
     pass
 
-def prnu():
+def prnu( array, prnu_orig, prnu_patch ):
     '''
     Patch pixel response non-uniformity correction.
 
@@ -83,13 +83,25 @@ def prnu():
 
     Parameters
     ----------
-    None
+    array      :  ndarray
+       SWIR detector data, band 7 & 8 combined
+    prnu_orig  :  ndarray
+       PRNU CKD used by the L01b processor
+    prnu_patch :  ndarray
+       newly developed PRNU CKD
 
     Returns
     -------
-    Nothing
+    out    :  ndarray
+       Returns array where the data is corrected with the newly developed PRNU
+
+    Notes
+    -----
+    It is assumed that for the PRNU correction the CKD has to be multiplied
+    with the pixel signals.
+
     '''
-    pass
+    return prnu_patch * array / prnu_orig
 
 def straylight():
     '''

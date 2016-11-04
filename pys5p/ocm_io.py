@@ -304,8 +304,8 @@ class OCMio( object ):
 
         Examples
         --------
-        >>> data = ocm.dict_to_array( dict_a, dict_b,
-        mode=['combined', 'median']
+        >>> data = ocm.dict_to_array(dict_a, dict_b,
+        mode=['combined', 'median'])
         >>>
         '''
         if dict_b is None:
