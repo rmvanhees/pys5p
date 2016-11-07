@@ -160,12 +160,12 @@ class L1Bio( object ):
         '''
         Returns instrument settings of measurement
 
-        FIXME: h5py crashes on reading instrument_settings from UVN
+        FIXME: h5py crahes on reading instrument_settings from UVN
         '''
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path,'INSTRUMENT')]
+        grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
         if grp['instrument_settings'].shape[0] == 1:
             return grp['instrument_settings'][0]
         else:
@@ -181,7 +181,7 @@ class L1Bio( object ):
         grp = self.fid[os.path.join(msm_path,'INSTRUMENT')]
         return np.squeeze(grp['housekeeping_data'])
 
-    def msm_attr( self, msm_path, mem_dset, attr_name ):
+    def msm_attr( self, msm_path, msm_dset, attr_name ):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
@@ -202,42 +202,77 @@ class L1Bio( object ):
 
         ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
         if attr_name in self.fid[ds_path].attrs.keys():
-                attr = self.fid[ds_path].attrs['units']
-                if isinstance( attr, bytes ):
-                    return attr.decode('ascii')
-                else:
-                    return attr
+            attr = self.fid[ds_path].attrs['units']
+            if isinstance( attr, bytes ):
+                return attr.decode('ascii')
+            else:
+                return attr
         return None
 
-    def msm_data( self, msm_path, msm_dset, write_data=None ):
+    def msm_data( self, msm_path, msm_dset, scan_index=None, write_data=None ):
         '''
-        Returns data of measurement dataset "msm_dset"
+        Reads or writes data from dataset "msm_dset" in group "msm_path"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
+            name of measurement dataset.
+        scan_index :  array-like
+            indices ot the scanlines to be read or written. If scan_index is
+            None, all data is read.
+        write_data :  array-like
+            data to be written with same dimensions as dataset "msm_dset", if
+            write_data is None, no date is written.
 
-        write_data : array-like
-            data to be written with same dimensions as dataset "msm_dset"
-            if None then
-               data of measurement dataset "msm_dset" is returned
-            else
-               data of measurement dataset "msm_dset" is overwritten
+        Returns
+        -------
+        out   :  values read from or written to dataset "msm_dset"
+
         '''
         if msm_path is None:
             return None
 
         ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        dset = self.fid[ds_path]
         if write_data is None:
-            return np.squeeze(self.fid[ds_path])
+            if scan_index is None:
+                return np.squeeze(dset)
+            else:
+                buff = np.concatenate(([scan_index[0]-10],
+                                       scan_index,
+                                       [scan_index[-1]+10]))
+                indx = np.where((buff[1:] - buff[0:-1]) != 1)[0]
 
+                res = None
+                for ii in range(len(indx)-1):
+                    data = dset[0,indx[ii]:indx[ii+1],:,:]
+                    if res is None:
+                        res = data
+                    else:
+                        res = np.append(res, data, axis=0)
+                return res
+
+        # we will overwrite existing data, thus readwrite access is required
         assert self.__rw
-        if self.fid[ds_path].shape[1:] != write_data.shape:
-            print( '*** Fatal: patch data has not same shape as original' )
-            return None
 
-        self.fid[ds_path][0,...] = write_data
+        # overwrite the data
+        if scan_index is None:
+            if dset.shape[1:] != write_data.shape:
+                print( '*** Fatal: patch data has not same shape as original' )
+                return None
+
+            dset[0,...] = write_data
+        else:
+            buff = np.concatenate(([scan_index[0]-10],
+                                   scan_index,
+                                   [scan_index[-1]+10]))
+            indx = np.where((buff[1:] - buff[0:-1]) != 1)[0]
+
+            for ii in range(len(indx)-1):
+                dset[0,indx[ii]:indx[ii+1],:,:] = \
+                                            write_data[indx[ii]:indx[ii+1],:,:]
+
+        # update patch logging
         self.__patched_msm.append(ds_path)
         return write_data
 
@@ -576,7 +611,7 @@ class L1BioRAD( L1Bio ):
         self.bands = ''
 
     #-------------------------
-    def select( self, msm_type ):
+    def select( self, msm_type='STANDARD_MODE' ):
         '''
         Select a measurement as <processing class>_<ic_id>
 
@@ -630,7 +665,7 @@ class L1BioRAD( L1Bio ):
         '''
         return super().housekeeping_data( self.__msm_path )
 
-    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+    def get_msm_attr( self, msm_dset, attr_name ):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
@@ -640,9 +675,6 @@ class L1BioRAD( L1Bio ):
             name of measurement dataset
         attr_name :  string
             name of the attribute
-        band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
 
         Returns
         -------
@@ -650,13 +682,65 @@ class L1BioRAD( L1Bio ):
            value of attribute "attr_name"
 
         '''
-        if band is None:
-            band = self.bands[0]
+        return super().msm_attr( self.__msm_path, msm_dset, attr_name )
 
-        return super().msm_attr( self.__msm_path.replace('%', band),
-                                 msm_dset, attr_name )
+    def get_scan_index( self, icid ):
+        '''
+        Select Radiance measurements on their ICID from instrument_configuration
 
-    def get_msm_data( self, msm_dset ):
+        Parameters
+        ----------
+        icid  :  integer {2, 4, 6, 8, 10}
+          valid radiance ICIDs are (2, 4, 6, 8, 10)
+
+        Returns
+        -------
+        out   :  array-like
+          ndarray with indices to selected scanline(s)
+        '''
+        if icid is None:
+            return None
+
+        grp = self.fid[os.path.join(self.__msm_path, 'INSTRUMENT')]
+        icid_list = np.squeeze(grp['instrument_configuration']['ic_id'])
+
+        return np.where(icid_list == icid)[0]
+
+    def get_geo_data( self, geo_dset='latitude,longitude', scan_index=None ):
+        '''
+        Returns data of selected datasets from the GEODATA group
+
+        Parameters
+        ----------
+        geo_dset  :  string
+           name(s) of datasets in the GEODATA group, comma separated
+
+        Returns
+        -------
+        out   :   array-like
+           compound array with data of selected datasets from the GEODATA group
+        '''
+        nrows = self.fid[self.__msm_path]['ground_pixel'].size
+        if scan_index is None:
+            nscans = self.fid[self.__msm_path]['scanline'].size
+        else:
+            nscans = len(scan_index)
+
+        dtype = []
+        for name in geo_dset.split(','):
+            dtype.append((name, 'f4'))
+        res = np.empty( (nscans,nrows), dtype=dtype )
+        
+        grp = self.fid[os.path.join(self.__msm_path, 'GEODATA')]
+        for name in geo_dset.split(','):
+            if scan_index is None:
+                res[name][...] = grp[name][0,:,:]
+            else:
+                res[name][...] = grp[name][0,scan_index,:]
+
+        return res
+
+    def get_msm_data( self, msm_dset, scan_index=None ):
         '''
         Returns data of measurement dataset "msm_dset"
 
@@ -664,8 +748,13 @@ class L1BioRAD( L1Bio ):
         ----------
         msm_dset  :  string
            name of measurement dataset
+
+        Returns
+        -------
+        out   :    array-like
+           data of measurement dataset "msm_dset"
         '''
-        return super().msm_data( self.__msm_path, msm_dset )
+        return super().msm_data( self.__msm_path, msm_dset, scan_index )
 
     def set_msm_data( self, msm_dset, data ):
         '''
@@ -729,7 +818,7 @@ def test_rd_irrad( l1b_product, msm_type, msm_dset, verbose ):
         print( key, dset[key].shape )
     del l1b
 
-def test_rd_rad( l1b_product, msm_type, msm_dset, verbose ):
+def test_rd_rad( l1b_product, icid, msm_dset, verbose ):
     '''
     Perform some simple tests to check the L01BioRAD classes
 
@@ -739,7 +828,7 @@ def test_rd_rad( l1b_product, msm_type, msm_dset, verbose ):
     print( l1b )
     print( 'orbit:   ', l1b.get_orbit() )
     print( 'version: ', l1b.get_processor_version() )
-    l1b.select( msm_type )
+    l1b.select()
     for key in l1b:
         print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
 
@@ -747,7 +836,10 @@ def test_rd_rad( l1b_product, msm_type, msm_dset, verbose ):
     print( l1b.get_delta_time() )
     #print( l1b.get_instrument_settings() )
     print( l1b.get_housekeeping_data() )
-    print( msm_dset, l1b.get_msm_data( msm_dset ).shape )
+    scan_index = l1b.get_scan_index( icid )
+    geo = l1b.get_geo_data( scan_index=scan_index )
+    print( geo.dtype.names, geo.shape )
+    print( msm_dset, l1b.get_msm_data( msm_dset, scan_index=scan_index ).shape )
     del l1b
 
 def _main():
@@ -757,12 +849,15 @@ def _main():
     import argparse
 
     # parse command-line parameters
-    parser = argparse.ArgumentParser( 
+    parser = argparse.ArgumentParser(
         description='run test-routines to check class L1BioXXX' )
     parser.add_argument( 'l1b_product', default=None,
                          help='name of L1B product (full path)' )
     parser.add_argument( '--msm_type', default=None,
                          help='define measurement type as <processing class>_<ic_id>' )
+    parser.add_argument( '--icid', default=None,
+                         type=int, choices=[2, 4, 6, 8, 10],
+                         help='define ic_id, only for radiance measurements' )
     parser.add_argument( '--msm_dset', default=None,
                          help='define measurement dataset to be read/patched' )
     parser.add_argument( '--quiet', dest='verbose', action='store_false',
@@ -794,14 +889,11 @@ def _main():
         print('irrad: ', msm_type, msm_dset)
         test_rd_irrad( args.l1b_product, msm_type, msm_dset,  args.verbose )
     elif prod_type == 'S5P_OFFL_L1B_RA' or prod_type == 'S5P_TEST_L1B_RA':
-        msm_type = args.msm_type
-        if args.msm_type is None:
-            msm_type = 'STANDARD_MODE'
         msm_dset = args.msm_dset
         if args.msm_dset is None:
             msm_dset = 'radiance'
-        print('rad: ', msm_type, msm_dset)
-        test_rd_rad( args.l1b_product, msm_type, msm_dset, args.verbose )
+        print('rad: ', args.icid, msm_dset)
+        test_rd_rad( args.l1b_product, args.icid, msm_dset, args.verbose )
     else:
         print( ' *** FATAL: unknown product type' )
 

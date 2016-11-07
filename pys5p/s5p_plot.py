@@ -263,7 +263,7 @@ class S5Pplot(object):
                 pass
             else:
                 pass
-            assert
+            #assert 
         else:
             print('*** Fatal: input data must be 1D or 2D')
             pass
@@ -499,7 +499,10 @@ def test_frame():
     # Combine band 7 & 8 data
     # del dict_b7['ICID_31524_GROUP_00000']
     # del dict_b8['ICID_31524_GROUP_00000']
-    data = ocm7.dict_to_array( dict_b7, dict_b8, mode=['combine', 'median'],
+    for key in dict_b7:
+        print( key, dict_b7[key].shape )
+    data = ocm7.dict_to_array( dict_b7, dict_b8,
+                               mode=['combine', 'median'],
                                skip_first=True, skip_last=True )
     error = ocm7.dict_to_array( dict_b7_std, dict_b8_std,
                                 mode=['combine', 'median'],
