@@ -21,12 +21,12 @@ import numpy as np
 import h5py
 
 #--------------------------------------------------
-class OCMio( object ):
+class OCMio(object):
     '''
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
     '''
-    def __init__( self, ocm_product ):
+    def __init__(self, ocm_product):
         '''
         Initialize access to an OCAL Lx product
 
@@ -48,7 +48,7 @@ class OCMio( object ):
         # open OCM product as HDF5 file
         self.fid = h5py.File( ocm_product, "r" )
 
-    def __repr__( self ):
+    def __repr__(self):
         class_name = type(self).__name__
         return '{}({!r})'.format( class_name, self.__product )
 
@@ -57,7 +57,7 @@ class OCMio( object ):
             if not attr.startswith("__"):
                 yield attr
 
-    def __del__( self ):
+    def __del__(self):
         self.band = None
         self.fid.close()
 
@@ -72,20 +72,20 @@ class OCMio( object ):
         return version.__version__
 
     # ---------- Functions that work before MSM selection ----------
-    def get_processor_version( self ):
+    def get_processor_version(self):
         '''
         Returns version of the L01b processor
         '''
         return self.fid.attrs['processor_version'].decode('ascii')
 
-    def get_coverage_time( self ):
+    def get_coverage_time(self):
         '''
         Returns start and end of the measurement coverage time
         '''
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
-    def get_attr( self, attr_name ):
+    def get_attr(self, attr_name):
         '''
         Obtain value of an HDF5 file attribute
 
@@ -100,7 +100,7 @@ class OCMio( object ):
         return None
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time( self ):
+    def get_ref_time(self):
         '''
         Returns reference start time of measurements
         '''
@@ -118,7 +118,7 @@ class OCMio( object ):
 
         return res
 
-    def get_delta_time( self ):
+    def get_delta_time(self):
         '''
         Returns offset from the reference start time of measurement
         '''
@@ -133,7 +133,7 @@ class OCMio( object ):
 
         return res
 
-    def get_instrument_settings( self ):
+    def get_instrument_settings(self):
         '''
         Returns instrument settings of measurement
         '''
@@ -148,7 +148,7 @@ class OCMio( object ):
 
         return res
 
-    def get_housekeeping_data( self ):
+    def get_housekeeping_data(self):
         '''
         Returns housekeeping data of measurements
         '''
@@ -164,7 +164,7 @@ class OCMio( object ):
         return res
 
     #-------------------------
-    def select( self, ic_id ):
+    def select(self, ic_id):
         '''
         Select a measurement as BAND%_<ic_id>_GROUP_%
 
@@ -203,7 +203,7 @@ class OCMio( object ):
         return len(self.__msm_path)
 
     #-------------------------
-    def get_msm_attr( self, msm_dset, attr_name ):
+    def get_msm_attr(self, msm_dset, attr_name):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
@@ -229,13 +229,13 @@ class OCMio( object ):
 
             if attr_name in grp[ds_path].attrs.keys():
                 attr = grp[ds_path].attrs['units']
-                if isinstance( attr, bytes ):
+                if isinstance( attr, bytes):
                     return attr.decode('ascii')
                 else:
                     return attr
         return None
 
-    def get_msm_data( self, msm_dset, fill_as_nan=False ):
+    def get_msm_data(self, msm_dset, fill_as_nan=False):
         '''
         Returns data of measurement dataset "msm_dset"
 
@@ -280,7 +280,7 @@ class OCMio( object ):
 
     @staticmethod
     def dict_to_array( dict_a, dict_b,
-                       skip_first=False, skip_last=False, mode=None ):
+                       skip_first=False, skip_last=False, mode=None):
         '''
         Store data from a dictionary as returned by get_msm_data to a ndarray
 

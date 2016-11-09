@@ -20,13 +20,13 @@ import numpy as np
 import h5py
 
 #--------------------------------------------------
-class L1Bio( object ):
+class L1Bio(object):
     '''
     super class with general function to access Tropomi offline L1b products
 
     inherited by the classes L1BioCAL, L1BioIRR and L1BioRAD
     '''
-    def __init__( self, l1b_product, readwrite=False ):
+    def __init__(self, l1b_product, readwrite=False):
         '''
         Initialize access to a Tropomi offline L1b product
         '''
@@ -44,7 +44,7 @@ class L1Bio( object ):
         else:
             self.fid = h5py.File( l1b_product, "r" )
 
-    def __repr__( self ):
+    def __repr__(self):
         class_name = type(self).__name__
         return '{}({!r}, readwrite={!r})'.format( class_name,
                                                   self.__product, self.__rw )
@@ -54,7 +54,7 @@ class L1Bio( object ):
             if not attr.startswith("__"):
                 yield attr
 
-    def __del__( self ):
+    def __del__(self):
         '''
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
@@ -92,26 +92,26 @@ class L1Bio( object ):
 
         return version.__version__
 
-    def get_orbit( self ):
+    def get_orbit(self):
         '''
         Returns absolute orbit number
         '''
         return int(self.fid.attrs['orbit'])
 
-    def get_processor_version( self ):
+    def get_processor_version(self):
         '''
         Returns version of the L01b processor
         '''
         return self.fid.attrs['processor_version'].decode('ascii')
 
-    def get_coverage_time( self ):
+    def get_coverage_time(self):
         '''
         Returns start and end of the measurement coverage time
         '''
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
-    def get_creation_time( self ):
+    def get_creation_time(self):
         '''
         Returns datetime when the L1b product was created
         '''
@@ -119,21 +119,21 @@ class L1Bio( object ):
         dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].decode('ascii')
 
-    def get_attr( self, attr_name ):
+    def get_attr(self, attr_name):
         '''
         Obtain value of an HDF5 file attribute
 
         Parameters
         ----------
         attr_name : string
-           name of the attribute
+           Name of the attribute
         '''
         if attr_name in self.fid.attrs.keys():
             return self.fid.attrs[attr_name]
 
         return None
 
-    def ref_time( self, msm_path ):
+    def ref_time(self, msm_path):
         '''
         Returns reference start time of measurements
         '''
@@ -146,7 +146,7 @@ class L1Bio( object ):
         return datetime(2010,1,1,0,0,0) \
             + timedelta(seconds=int(grp['time'][0]))
 
-    def delta_time( self, msm_path ):
+    def delta_time(self, msm_path):
         '''
         Returns offset from the reference start time of measurement
         '''
@@ -156,7 +156,7 @@ class L1Bio( object ):
         grp = self.fid[os.path.join(msm_path,'OBSERVATIONS')]
         return grp['delta_time'][0,:].astype(int)
 
-    def instrument_settings( self, msm_path ):
+    def instrument_settings(self, msm_path):
         '''
         Returns instrument settings of measurement
 
@@ -171,7 +171,7 @@ class L1Bio( object ):
         else:
             return grp['instrument_settings'][:]
 
-    def housekeeping_data( self, msm_path ):
+    def housekeeping_data(self, msm_path):
         '''
         Returns housekeeping data of measurements
         '''
@@ -181,21 +181,21 @@ class L1Bio( object ):
         grp = self.fid[os.path.join(msm_path,'INSTRUMENT')]
         return np.squeeze(grp['housekeeping_data'])
 
-    def msm_attr( self, msm_path, msm_dset, attr_name ):
+    def msm_attr(self, msm_path, msm_dset, attr_name):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
+            Name of measurement dataset
         attr_name : string
-            name of the attribute
+            Name of the attribute
 
         Returns
         -------
         out   :   scalar or numpy array
-           value of attribute "attr_name"
+            Value of attribute "attr_name"
         '''
         if msm_path is None:
             return None
@@ -209,20 +209,20 @@ class L1Bio( object ):
                 return attr
         return None
 
-    def msm_data( self, msm_path, msm_dset, scan_index=None, write_data=None ):
+    def msm_data(self, msm_path, msm_dset, scan_index=None, write_data=None):
         '''
         Reads or writes data from dataset "msm_dset" in group "msm_path"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset.
+            Name of measurement dataset.
         scan_index :  array-like
-            indices ot the scanlines to be read or written. If scan_index is
-            None, all data is read.
+            Indices ot the scanlines to be read or written. If scan_index is
+            None, then all data is read.
         write_data :  array-like
-            data to be written with same dimensions as dataset "msm_dset", if
-            write_data is None, no date is written.
+            Data to be written with same dimensions as dataset "msm_dset". If
+            write_data is None, then no date is written.
 
         Returns
         -------
@@ -277,11 +277,14 @@ class L1Bio( object ):
         return write_data
 
 #--------------------------------------------------
-class L1BioCAL( L1Bio ):
+class L1BioCAL(L1Bio):
     '''
     class with function to access Tropomi offline L1b calibration products
+
+    The L1b calibration products are available for UVN (band 1-6) 
+    and SWIR (band 7-8).
     '''
-    def __init__( self, l1b_product, readwrite=False, verbose=False ):
+    def __init__(self, l1b_product, readwrite=False, verbose=False):
         super().__init__( l1b_product, readwrite=readwrite )
 
         # initialize class-attributes
@@ -291,14 +294,14 @@ class L1BioCAL( L1Bio ):
         self.bands = ''
 
     #-------------------------
-    def select( self, msm_type ):
+    def select(self, msm_type):
         '''
-        Select a measurement as <processing class>_<ic_id>
+        Select a calibration measurement as <processing class>_<ic_id>
 
         Parameters
         ----------
         msm_type :  string
-          name of measurement group as <processing class>_<ic_id>
+          Name of calibration measurement group as <processing class>_<ic_id>
 
         Returns
         -------
@@ -309,13 +312,13 @@ class L1BioCAL( L1Bio ):
          - bands               : available spectral bands
         '''
         self.bands = ''
-        grp_list = [ 'ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
+        grp_list = [ 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
         for name in grp_list:
             for ii in '12345678':
                 grp_path = os.path.join('BAND{}_{}'.format(ii, name), msm_type)
                 if grp_path in self.fid:
                     if self.__verbose:
-                        print( grp_path, grp_path in self.fid )
+                        print( '*** INFO: found: ', grp_path )
                     self.bands += ii
 
             if len(self.bands) > 0:
@@ -328,85 +331,84 @@ class L1BioCAL( L1Bio ):
         return self.bands
 
     #-------------------------
-    def get_ref_time( self, band=None ):
+    def get_ref_time(self, band=None):
         '''
         Returns reference start time of measurements
 
         Parameters
         ----------
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
         '''
         if band is None:
             band = self.bands[0]
 
         return super().ref_time(self.__msm_path.replace('%', band))
 
-    def get_delta_time( self, band=None ):
+    def get_delta_time(self, band=None):
         '''
         Returns offset from the reference start time of measurement
 
         Parameters
         ----------
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
         '''
         if band is None:
             band = self.bands[0]
 
         return super().delta_time(self.__msm_path.replace('%',self.bands[0]))
 
-    def get_instrument_settings( self, band=None ):
+    def get_instrument_settings(self, band=None):
         '''
         Returns instrument settings of measurement
 
         Parameters
         ----------
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
         '''
         if band is None:
             band = self.bands[0]
 
         return super().instrument_settings(self.__msm_path.replace('%', band))
 
-    def get_housekeeping_data( self, band=None ):
+    def get_housekeeping_data(self, band=None):
         '''
         Returns housekeeping data of measurements
 
         Parameters
         ----------
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
         '''
         if band is None:
             band = self.bands[0]
 
         return super().housekeeping_data(self.__msm_path.replace('%', band))
 
-    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+    def get_msm_attr(self, msm_dset, attr_name, band=None):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset  :  string
-            name of measurement dataset
+            Name of measurement dataset
         attr_name :  string
-            name of the attribute
+            Name of the attribute
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
 
         Returns
         -------
         out   :   scalar or numpy array
            value of attribute "attr_name"
-
         '''
         if band is None:
             band = self.bands[0]
@@ -414,48 +416,90 @@ class L1BioCAL( L1Bio ):
         return super().msm_attr( self.__msm_path.replace('%', band),
                                  msm_dset, attr_name )
 
-    def get_msm_data( self, msm_dset, band=None ):
+    def get_geo_data(self,  band=None,
+                     geo_dset='satellite_latitude,satellite_longitude'):
+        '''
+        Returns data of selected datasets from the GEODATA group
+
+        Parameters
+        ----------
+        geo_dset  :  string
+            Name(s) of datasets in the GEODATA group, comma separated
+            Default is 'satellite_latitude,satellite_longitude'
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
+
+        Returns
+        -------
+        out   :   array-like
+           Compound array with data of selected datasets from the GEODATA group
+        '''
+        if band is None:
+            band = self.bands[0]
+
+        nscans = self.fid[self.__msm_path.replace('%', band)]['scanline'].size
+
+        dtype = []
+        for name in geo_dset.split(','):
+            dtype.append((name, 'f4'))
+        res = np.empty( (nscans,), dtype=dtype )
+        
+        grp = self.fid[os.path.join(self.__msm_path.replace('%', band),
+                                    'GEODATA')]
+        for name in geo_dset.split(','):
+            res[name][...] = grp[name][0, :]
+
+        return res
+
+    def get_msm_data(self, msm_dset, band=None):
         '''
         Returns data of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
+            Name of measurement dataset
         band       :  None or {'1', '2', '3', ..., '8'}
-            select data from one spectral band or all (Band is None)
+            Select data from one spectral band
+            Default is 'None' which returns the data of all available bands
+
+        Returns
+        -------
+        out   :    dictionary
+           Data of measurement dataset "msm_dset", band index is dictionary key
         '''
+        res = {}
         if band is None:
-            res = {}
             for ii in self.bands:
                 res[ii] = super().msm_data( self.__msm_path.replace('%', ii),
                                             msm_dset )
-            return res
         else:
-            return super().msm_data( self.__msm_path.replace('%', band),
-                                     msm_dset )
+            res[band] = super().msm_data( self.__msm_path.replace('%', band),
+                                          msm_dset )
+        return res
 
-    def set_msm_data( self, msm_dset, data_dict ):
+    def set_msm_data(self, msm_dset, data_dict):
         '''
         writes data to measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
+            Name of measurement dataset
         data_dict  :  dictionary with band ID as key and data to be written
-             holds data to be written with same dimensions as dataset "msm_dset"
+            Holds data to be written with same dimensions as dataset "msm_dset"
         '''
         for ii in data_dict:
             return super().msm_data( self.__msm_path.replace('%', ii),
                                      msm_dset, write_data=data_dict[ii] )
 
 #--------------------------------------------------
-class L1BioIRR( L1Bio ):
+class L1BioIRR(L1Bio):
     '''
     class with function to access Tropomi offline L1b irradiance products
     '''
-    def __init__( self, l1b_product, readwrite=False, verbose=False ):
+    def __init__(self, l1b_product, readwrite=False, verbose=False):
         super().__init__( l1b_product, readwrite=readwrite )
 
         # initialize class-attributes
@@ -465,20 +509,22 @@ class L1BioIRR( L1Bio ):
         self.bands = ''
 
     #-------------------------
-    def select( self, msm_type ):
+    def select(self, msm_type='STANDARD_MODE'):
         '''
-        Select a measurement as <processing class>_<ic_id>
+        Select an irradiance measurement group
 
         Parameters
         ----------
         msm_type :  string
-          name of measurement group as <processing class>_<ic_id>
+           Name of irradiance measurement group, default: "STANDARD_MODE"
 
         Returns
         -------
         out  :  string
            String with spectral bands found in product
 
+        Notes
+        -----
         Updated object attributes:
          - bands               : available spectral bands
         '''
@@ -487,17 +533,16 @@ class L1BioIRR( L1Bio ):
             grp_path = os.path.join('BAND{}_IRRADIANCE'.format(ii), msm_type)
             if grp_path in self.fid:
                 if self.__verbose:
-                    print( grp_path, grp_path in self.fid )
+                    print( '*** INFO: found: ', grp_path )
                 self.bands += ii
 
         if len(self.bands) > 0:
-            grp_path = os.path.join('BAND%_IRRADIANCE', msm_type)
-            self.__msm_path = grp_path
+            self.__msm_path = os.path.join('BAND%_IRRADIANCE', msm_type)
 
         return self.bands
 
     #-------------------------
-    def get_ref_time( self, band=None ):
+    def get_ref_time(self, band=None):
         '''
         Returns reference start time of measurements
         '''
@@ -506,7 +551,7 @@ class L1BioIRR( L1Bio ):
 
         return super().ref_time(self.__msm_path.replace('%', band))
 
-    def get_delta_time( self, band=None ):
+    def get_delta_time(self, band=None):
         '''
         Returns offset from the reference start time of measurement
         '''
@@ -515,7 +560,7 @@ class L1BioIRR( L1Bio ):
 
         return super().delta_time(self.__msm_path.replace('%',self.bands[0]))
 
-    def get_instrument_settings( self, band=None ):
+    def get_instrument_settings(self, band=None):
         '''
         Returns instrument settings of measurement
         '''
@@ -524,7 +569,7 @@ class L1BioIRR( L1Bio ):
 
         return super().instrument_settings(self.__msm_path.replace('%', band))
 
-    def get_housekeeping_data( self, band=None ):
+    def get_housekeeping_data(self, band=None):
         '''
         Returns housekeeping data of measurements
         '''
@@ -533,25 +578,24 @@ class L1BioIRR( L1Bio ):
 
         return super().housekeeping_data(self.__msm_path.replace('%', band))
 
-    def get_msm_attr( self, msm_dset, attr_name, band=None ):
+    def get_msm_attr(self, msm_dset, attr_name, band=None):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset  :  string
-            name of measurement dataset
+            Name of measurement dataset
         attr_name :  string
-            name of the attribute
+            Name of the attribute
         band      :  None or {'1', '2', '3', ..., '8'}
-            select one of the band present in the product
-            default is to use the first available band
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
 
         Returns
         -------
         out   :   scalar or numpy array
-           value of attribute "attr_name"
-
+            Value of attribute "attr_name"
         '''
         if band is None:
             band = self.bands[0]
@@ -559,29 +603,34 @@ class L1BioIRR( L1Bio ):
         return super().msm_attr( self.__msm_path.replace('%', band),
                                  msm_dset, attr_name )
 
-    def get_msm_data( self, msm_dset, band=None ):
+    def get_msm_data(self, msm_dset, band=None):
         '''
         Returns data of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
-
+            Name of measurement dataset
         band       :  None or {'1', '2', '3', ..., '8'}
-            select data from one spectral band or all (Band is None)
+            Select data from one spectral band
+            Default is 'None' which returns data of all available bands 
+
+        Returns
+        -------
+        out   :    dictionary
+            Data of measurement dataset "msm_dset", band index is dictionary key
         '''
+        res = {}
         if band is None:
-            res = {}
             for ii in self.bands:
                 res[ii] = super().msm_data( self.__msm_path.replace('%', ii),
                                             msm_dset )
-            return res
         else:
-            return super().msm_data( self.__msm_path.replace('%', band),
-                                     msm_dset )
+            res[band] = super().msm_data( self.__msm_path.replace('%', band),
+                                          msm_dset )
+        return res
 
-    def set_msm_data( self, msm_dset, data_dict ):
+    def set_msm_data(self, msm_dset, data_dict):
         '''
         writes data to measurement dataset "msm_dset"
 
@@ -597,11 +646,11 @@ class L1BioIRR( L1Bio ):
                                      msm_dset, write_data=data_dict[ii] )
 
 #--------------------------------------------------
-class L1BioRAD( L1Bio ):
+class L1BioRAD(L1Bio):
     '''
     class with function to access Tropomi offline L1b radiance products
     '''
-    def __init__( self, l1b_product, readwrite=False, verbose=False ):
+    def __init__(self, l1b_product, readwrite=False, verbose=False):
         super().__init__( l1b_product, readwrite=readwrite )
 
         # initialize class-attributes
@@ -611,20 +660,22 @@ class L1BioRAD( L1Bio ):
         self.bands = ''
 
     #-------------------------
-    def select( self, msm_type='STANDARD_MODE' ):
+    def select(self, msm_type='STANDARD_MODE'):
         '''
-        Select a measurement as <processing class>_<ic_id>
+        Select a radiance measurement group
 
         Parameters
         ----------
         msm_type :  string
-          name of measurement group as <processing class>_<ic_id>
+          name of radiance measurement group, default: "STANDARD_MODE"
 
         Returns
         -------
         out   :   string
            String with spectral bands found in product
 
+        Notes
+        -----
         Updated object attributes:
          - bands               : available spectral bands
         '''
@@ -632,8 +683,10 @@ class L1BioRAD( L1Bio ):
         for ii in '12345678':
             grp_path = os.path.join('BAND{}_RADIANCE'.format(ii), msm_type)
             if grp_path in self.fid:
-                self.bands += ii
-                break
+                if self.__verbose:
+                    print( '*** INFO: found: ', grp_path )
+                self.bands = ii
+                break              # only one band per product
 
         if len(self.bands) > 0:
             self.__msm_path = grp_path
@@ -641,62 +694,62 @@ class L1BioRAD( L1Bio ):
         return self.bands
 
     #-------------------------
-    def get_ref_time( self ):
+    def get_ref_time(self):
         '''
         Returns reference start time of measurements
         '''
         return super().ref_time( self.__msm_path )
 
-    def get_delta_time( self ):
+    def get_delta_time(self):
         '''
         Returns offset from the reference start time of measurement
         '''
         return super().delta_time( self.__msm_path )
 
-    def get_instrument_settings( self ):
+    def get_instrument_settings(self):
         '''
         Returns instrument settings of measurement
         '''
         return super().instrument_settings( self.__msm_path )
 
-    def get_housekeeping_data( self ):
+    def get_housekeeping_data(self):
         '''
         Returns housekeeping data of measurements
         '''
         return super().housekeeping_data( self.__msm_path )
 
-    def get_msm_attr( self, msm_dset, attr_name ):
+    def get_msm_attr(self, msm_dset, attr_name):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset  :  string
-            name of measurement dataset
+            Name of measurement dataset
         attr_name :  string
-            name of the attribute
+            Name of the attribute
 
         Returns
         -------
         out   :   scalar or numpy array
-           value of attribute "attr_name"
+            Value of attribute "attr_name"
 
         '''
         return super().msm_attr( self.__msm_path, msm_dset, attr_name )
 
-    def get_scan_index( self, icid ):
+    def get_scan_index(self, icid):
         '''
         Select Radiance measurements on their ICID from instrument_configuration
 
         Parameters
         ----------
         icid  :  integer {2, 4, 6, 8, 10}
-          valid radiance ICIDs are (2, 4, 6, 8, 10)
+           Valid radiance ICIDs are (2, 4, 6, 8, 10)
 
         Returns
         -------
         out   :  array-like
-          ndarray with indices to selected scanline(s)
+           A ndarray with indices to selected scanline(s)
         '''
         if icid is None:
             return None
@@ -706,19 +759,19 @@ class L1BioRAD( L1Bio ):
 
         return np.where(icid_list == icid)[0]
 
-    def get_geo_data( self, geo_dset='latitude,longitude', scan_index=None ):
+    def get_geo_data(self, geo_dset='latitude,longitude', scan_index=None):
         '''
         Returns data of selected datasets from the GEODATA group
 
         Parameters
         ----------
         geo_dset  :  string
-           name(s) of datasets in the GEODATA group, comma separated
+           Name(s) of datasets in the GEODATA group, comma separated
 
         Returns
         -------
         out   :   array-like
-           compound array with data of selected datasets from the GEODATA group
+           Compound array with data of selected datasets from the GEODATA group
         '''
         nrows = self.fid[self.__msm_path]['ground_pixel'].size
         if scan_index is None:
@@ -729,43 +782,43 @@ class L1BioRAD( L1Bio ):
         dtype = []
         for name in geo_dset.split(','):
             dtype.append((name, 'f4'))
-        res = np.empty( (nscans,nrows), dtype=dtype )
+        res = np.empty( (nscans, nrows), dtype=dtype )
         
         grp = self.fid[os.path.join(self.__msm_path, 'GEODATA')]
         for name in geo_dset.split(','):
             if scan_index is None:
-                res[name][...] = grp[name][0,:,:]
+                res[name][...] = grp[name][0, :, :]
             else:
-                res[name][...] = grp[name][0,scan_index,:]
+                res[name][...] = grp[name][0, scan_index, :]
 
         return res
 
-    def get_msm_data( self, msm_dset, scan_index=None ):
+    def get_msm_data(self, msm_dset, scan_index=None):
         '''
         Returns data of measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset  :  string
-           name of measurement dataset
+           Name of measurement dataset
 
         Returns
         -------
         out   :    array-like
-           data of measurement dataset "msm_dset"
+           Data of measurement dataset "msm_dset"
         '''
         return super().msm_data( self.__msm_path, msm_dset, scan_index )
 
-    def set_msm_data( self, msm_dset, data ):
+    def set_msm_data(self, msm_dset, data):
         '''
         writes data to measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset  :  string
-           name of measurement dataset
+           Name of measurement dataset
         data      :  array-like
-           data to be written with same dimensions as dataset "msm_dset"
+           Data to be written with same dimensions as dataset "msm_dset"
         '''
         return super().msm_data( self.__msm_path, msm_dset, write_data=data )
 
@@ -789,6 +842,8 @@ def test_rd_calib( l1b_product, msm_type, msm_dset, verbose ):
     print( l1b.get_delta_time() )
     print( l1b.get_instrument_settings() )
     print( l1b.get_housekeeping_data() )
+    geo = l1b.get_geo_data()
+    print( geo.dtype.names, geo.shape )
     dset = l1b.get_msm_data( msm_dset )
     for key in sorted(dset):
         print( key, dset[key].shape )

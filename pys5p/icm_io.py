@@ -20,7 +20,7 @@ import numpy as np
 import h5py
 
 #--------------------------------------------------
-class ICMio( object ):
+class ICMio(object):
     '''
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
@@ -105,13 +105,20 @@ class ICMio( object ):
         '''
         return int(self.fid.attrs['reference_orbit'])
 
-    def get_processor_version( self ):
+    def get_processor_version(self):
         '''
         Returns version of the L01b processor
         '''
         return self.fid.attrs['processor_version'].decode('ascii')
 
-    def get_creation_time( self ):
+    def get_coverage_time(self):
+        '''
+        Returns start and end of the measurement coverage time
+        '''
+        return (self.fid.attrs['time_coverage_start'].decode('ascii'),
+                self.fid.attrs['time_coverage_end'].decode('ascii'))
+
+    def get_creation_time(self):
         '''
         Returns version of the L01b processor
         '''
@@ -119,14 +126,7 @@ class ICMio( object ):
         dset  = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
 
-    def get_coverage_time( self ):
-        '''
-        Returns start and end of the measurement coverage time
-        '''
-        return (self.fid.attrs['time_coverage_start'].decode('ascii'),
-                self.fid.attrs['time_coverage_end'].decode('ascii'))
-
-    def get_attr( self, attr_name ):
+    def get_attr(self, attr_name):
         '''
         Obtain value of an HDF5 file attribute
 
@@ -139,26 +139,34 @@ class ICMio( object ):
             return self.fid.attrs[attr_name]
 
         return None
-    
+
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time( self ):
+    def get_ref_time(self, band=None):
         '''
         Returns reference start time of measurements
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
         '''
         from datetime import datetime, timedelta
 
         if self.__msm_path is None:
             return None
 
-        ii = str(self.bands[0])
-        msm_path = self.__msm_path.replace('%', ii)
+        if band is None:
+            band = self.bands[0]
+
+        msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
@@ -171,7 +179,7 @@ class ICMio( object ):
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
@@ -184,15 +192,23 @@ class ICMio( object ):
                         + timedelta(seconds=int(sgrp['time'][0])))
         return ref_time
 
-    def get_delta_time( self ):
+    def get_delta_time(self, band=None):
         '''
         Returns offset from the reference start time of measurement
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
         '''
         if self.__msm_path is None:
             return None
 
-        ii = str(self.bands[0])
-        msm_path = self.__msm_path.replace('%', ii)
+        if band is None:
+            band = self.bands[0]
+
+        msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
 
         res = None
@@ -201,7 +217,7 @@ class ICMio( object ):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
@@ -216,7 +232,7 @@ class ICMio( object ):
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
@@ -231,15 +247,23 @@ class ICMio( object ):
 
         return res
 
-    def get_instrument_settings( self ):
+    def get_instrument_settings(self, band=None):
         '''
         Returns instrument settings of measurement
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
         '''
         if self.__msm_path is None:
             return None
 
-        ii = str(self.bands[0])
-        msm_path = self.__msm_path.replace('%', ii)
+        if band is None:
+            band = self.bands[0]
+
+        msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
 
         res = None
@@ -248,7 +272,7 @@ class ICMio( object ):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
@@ -263,7 +287,7 @@ class ICMio( object ):
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
@@ -277,15 +301,23 @@ class ICMio( object ):
 
         return res
 
-    def get_housekeeping_data( self ):
+    def get_housekeeping_data(self, band=None):
         '''
         Returns housekeeping data of measurements
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
         '''
         if self.__msm_path is None:
             return None
 
-        ii = str(self.bands[0])
-        msm_path = self.__msm_path.replace('%', ii)
+        if band is None:
+            band = self.bands[0]
+
+        msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
 
         res = None
@@ -294,7 +326,7 @@ class ICMio( object ):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
@@ -309,7 +341,7 @@ class ICMio( object ):
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(ii),
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
                                          name.decode('ascii') )
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
@@ -324,7 +356,7 @@ class ICMio( object ):
         return res
 
     #-------------------------
-    def select( self, msm_type, msm_path=None ):
+    def select(self, msm_type, msm_path=None):
         '''
         Select a measurement as <processing class>_<ic_id>
 
@@ -374,39 +406,115 @@ class ICMio( object ):
         return self.bands
 
     #-------------------------
-    def get_msm_attr( self, msm_dset, attr_name ):
+    def get_msm_attr(self, msm_dset, attr_name, band=None):
         '''
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
-        msm_dset    :  string
-            name of measurement dataset
-        attr_name : string
-            name of the attribute
+        msm_dset  :  string
+            Name of measurement dataset
+        attr_name :  string
+            Name of the attribute
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
 
         Returns
         -------
         out   :   scalar or numpy array
            value of attribute "attr_name"
-
         '''
         if len(self.__msm_path) == 0:
             return None
 
-        grp = self.fid['BAND{}'.format(self.band)]
-        for msm_path in self.__msm_path:
-            ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        if band is None:
+            band = self.bands[0]
 
-            if attr_name in grp[ds_path].attrs.keys():
-                attr = grp[ds_path].attrs['units']
+        for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+            ds_path = os.path.join( self.__msm_path.replace('%', band),
+                                    dset_grp, msm_dset )
+            if ds_path not in self.fid:
+                continue
+
+            if attr_name in self.fid[ds_path].attrs.keys():
+                attr = self.fid[ds_path].attrs[attr_name]
                 if isinstance( attr, bytes ):
                     return attr.decode('ascii')
                 else:
                     return attr
+
         return None
 
-    def get_msm_data( self, msm_dset, fill_as_nan=False ):
+    def get_geo_data(self, band=None,
+                     geo_dset='satellite_latitude,satellite_longitude'):
+        '''
+        Returns data of selected datasets from the GEODATA group
+
+        Parameters
+        ----------
+        geo_dset  :  string
+            Name(s) of datasets in the GEODATA group, comma separated
+            Default is 'satellite_latitude,satellite_longitude'
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
+
+        Returns
+        -------
+        out   :   array-like
+           Compound array with data of selected datasets from the GEODATA group
+        '''
+        if self.__msm_path is None:
+            return None
+
+        if band is None:
+            band = str(self.bands[0])
+        msm_path = self.__msm_path.replace('%', band)
+        msm_type = os.path.basename(self.__msm_path)
+
+        res = None
+        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+            grp = self.fid[msm_path]
+            dset = grp[msm_type.lower() + '_group_keys']
+            group_keys = dset['group'][:]
+            for name in group_keys:
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
+                                         name.decode('ascii') )
+                grp = self.fid[grp_path]
+                sgrp = grp['GEODATA']
+                for key in geo_dset.split(','):
+                    if res is None:
+                        res = np.squeeze(sgrp[key])
+                    else:
+                        res = np.append(res, np.squeeze(sgrp[key]))
+        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+            grp_path = os.path.join(os.path.dirname(msm_path),
+                                    'ANALOG_OFFSET_SWIR' )
+            grp = self.fid[grp_path]
+            dset = grp['analog_offset_swir_group_keys']
+            group_keys = dset['group'][:]
+            for name in group_keys:
+                grp_path = os.path.join( 'BAND{}_CALIBRATION'.format(band),
+                                         name.decode('ascii') )
+                grp = self.fid[grp_path]
+                sgrp = grp['GEODATA']
+                for key in geo_dset.split(','):
+                    if res is None:
+                        res = np.squeeze(sgrp[key])
+                    else:
+                        res = np.append(res, np.squeeze(sgrp[key]))
+        else:
+            grp = self.fid[os.path.join(msm_path, 'GEODATA')]
+            for key in geo_dset.split(','):
+                if res is None:
+                    res = np.squeeze(grp[key])
+                else:
+                    res = np.append(res, np.squeeze(grp[key]))
+
+        return res
+
+    def get_msm_data(self, msm_dset, band=None, fill_as_nan=False):
         '''
         Read datasets from a measurement selected by class-method "select"
 
@@ -416,26 +524,39 @@ class ICMio( object ):
             name of measurement dataset
             if msm_dset is None then show names of available datasets
 
+        band       :  None or scalar {'1', '2', '3', ..., '8'}
+            Select data from one spectral band
+            Default is 'None' which returns the data of all available bands
         fill_as_nan :  boolean
-            replace (float) FillValues with Nan's
+            Replace (float) FillValues with Nan's, when True
 
         Returns
         -------
-        out  :  list
-           Python list with an ndarrays for each band
-
+        out  :  dictionary
+           Data of measurement dataset "msm_dset", band index is dictionary key
         '''
         if self.__msm_path is None:
             return None
 
         fillvalue = float.fromhex('0x1.ep+122')
 
-        grp_list = ['OBSERVATIONS', 'ANALYSIS', '']
+        res = {}
+        if band is None:
+            for ii in self.bands:
+                for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+                    ds_path = os.path.join( self.__msm_path.replace('%', ii),
+                                            dset_grp, msm_dset )
+                    if ds_path not in self.fid:
+                        continue
 
-        res = None
-        for ii in self.bands:
-            for dset_grp in grp_list:
-                ds_path = os.path.join( self.__msm_path.replace('%', ii),
+                    data = np.squeeze(self.fid[ds_path])
+                    if fill_as_nan \
+                       and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
+                        data[(data == fillvalue)] = np.nan
+                    res[ii] = data
+        else:
+            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+                ds_path = os.path.join( self.__msm_path.replace('%', band),
                                         dset_grp, msm_dset )
                 if ds_path not in self.fid:
                     continue
@@ -444,15 +565,12 @@ class ICMio( object ):
                 if fill_as_nan \
                    and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
                     data[(data == fillvalue)] = np.nan
-                if res is None:
-                    res = [data]
-                else:
-                    res.append(data)
+                res[band] = data
 
         return res
 
     #-------------------------
-    def set_msm_data( self, msm_dset, data ):
+    def set_msm_data(self, msm_dset, data_dict):
         '''
         Alter dataset from a measurement selected using function "select"
 
@@ -461,11 +579,10 @@ class ICMio( object ):
         msm_dset   :  string
             name of measurement dataset
 
-        data : array-like
+        data-dict  :  dictionary
             data to be written with same dimensions as dataset "msm_dset"
             requires a list with ndarrays alike the one returned by
             function "get_msm_data"
-
         '''
         if self.__msm_path is None:
             return None
@@ -474,30 +591,25 @@ class ICMio( object ):
 
         fillvalue = float.fromhex('0x1.ep+122')
 
-        grp_list = ['OBSERVATIONS', 'ANALYSIS', '']
-
-        kk = 0
-        for ii in self.bands:
-            for dset_grp in grp_list:
+        for ii in data_dict:
+            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
                 ds_path = os.path.join( self.__msm_path.replace('%', ii),
                                         dset_grp, msm_dset )
                 if ds_path not in self.fid:
                     continue
 
                 if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                    data[kk][np.isnan(data[kk])] = fillvalue
+                    data_dict[ii][np.isnan(data_dict[ii])] = fillvalue
 
-                if self.fid[ds_path].shape[1:] != data[kk].shape:
+                if self.fid[ds_path].shape[1:] != data_dict[ii].shape:
                     print( '*** Fatal: patch data has not same shape as original' )
                     return None
 
-                self.fid[ds_path][0,...] = data[kk]
+                self.fid[ds_path][0,...] = data_dict[ii]
                 self.__patched_msm.append(ds_path)
 
-            kk += 1
-
 #--------------------------------------------------
-def test_rd_icm( ):
+def test_rd_icm():
     '''
     Perform some simple test to check the ICM_io class
 
@@ -524,8 +636,10 @@ def test_rd_icm( ):
         #print( icm.get_delta_time() )
         #print( icm.get_instrument_settings() )
         #print( icm.get_housekeeping_data() )
+        print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'analog_offset_swir_value' )
-        print( len(res), res[0].shape )
+        print( len(res), res.keys(), res['7'].shape )
+        print(icm.get_msm_attr( 'analog_offset_swir_value', 'units' ))
 
     if len(icm.select('BACKGROUND_MODE_1063',
                       msm_path='BAND%_CALIBRATION')) > 0:
@@ -533,27 +647,35 @@ def test_rd_icm( ):
         #print( icm.get_delta_time() )
         #print( icm.get_instrument_settings() )
         #print( icm.get_housekeeping_data() )
+        print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'signal_avg' )
-        print( len(res), res[0].shape )
+        print( len(res), res['8'].shape )
+        print(icm.get_msm_attr( 'signal_avg', 'units' ))
 
+        print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'biweight_value' )
-        print( len(res), res[0].shape )
+        print( len(res), res['7'].shape )
+        print(icm.get_msm_attr( 'biweight_value', 'units' ))
 
     if len(icm.select( 'SOLAR_IRRADIANCE_MODE_0202' )) > 0:
         #print( icm.get_ref_time() )
         #print( icm.get_delta_time() )
         #print( icm.get_instrument_settings() )
         #print( icm.get_housekeeping_data() )
+        print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'irradiance_avg' )
-        print( len(res), res[0].shape )
+        print( len(res), res['8'].shape )
+        print(icm.get_msm_attr( 'irradiance_avg', 'units' ))
 
     if len(icm.select( 'EARTH_RADIANCE_MODE_0004' )) > 0:
         #print( icm.get_ref_time() )
         #print( icm.get_delta_time() )
         #print( icm.get_instrument_settings() )
         #print( icm.get_housekeeping_data() )
+        print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'radiance_avg_row' )
-        print( len(res), res[0].shape )
+        print( len(res), res['7'].shape )
+        print(icm.get_msm_attr( 'radiance_avg_row', 'units' ))
 
     if os.path.isdir('/Users/richardh'):
         fl_path2 = '/Users/richardh/Data/S5P_ICM_CA_SIR/001000/2012/09/18'
@@ -565,8 +687,8 @@ def test_rd_icm( ):
     icm = ICMio( os.path.join(fl_path2, fl_name2), readwrite=True )
     icm.select( 'BACKGROUND_MODE_1063' )
     res = icm.get_msm_data( 'signal_avg' )
-    res[0][:,:] = 2
-    res[1][:,:] = 3
+    res['7'][:,:] = 2
+    res['8'][:,:] = 3
     icm.set_msm_data( 'signal_avg', res )
 
     del icm
