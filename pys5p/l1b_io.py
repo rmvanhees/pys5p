@@ -125,7 +125,7 @@ class L1Bio(object):
 
         Parameters
         ----------
-        attr_name : string
+        attr_name :  string
            Name of the attribute
         '''
         if attr_name in self.fid.attrs.keys():
@@ -136,6 +136,11 @@ class L1Bio(object):
     def ref_time(self, msm_path):
         '''
         Returns reference start time of measurements
+
+        Parameters
+        ----------
+        msm_path  :  string
+           Full path to measurement group
         '''
         from datetime import datetime, timedelta
 
@@ -149,6 +154,11 @@ class L1Bio(object):
     def delta_time(self, msm_path):
         '''
         Returns offset from the reference start time of measurement
+
+        Parameters
+        ----------
+        msm_path  :  string
+           Full path to measurement group
         '''
         if msm_path is None:
             return None
@@ -160,20 +170,34 @@ class L1Bio(object):
         '''
         Returns instrument settings of measurement
 
-        FIXME: h5py crahes on reading instrument_settings from UVN
+        Parameters
+        ----------
+        msm_path  :  string
+           Full path to measurement group
         '''
         if msm_path is None:
             return None
-
+        #
+        # The module h5py can not read the UVN instrument settings directy:
+        #    KeyError: 'Unable to open object (Component not found)'.
+        # This is a workaround
+        #
         grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
-        if grp['instrument_settings'].shape[0] == 1:
-            return grp['instrument_settings'][0]
-        else:
-            return grp['instrument_settings'][:]
+        instr = np.empty( grp['instrument_settings'].shape,
+                          dtype=grp['instrument_settings'].dtype )
+        for name in grp['instrument_settings'].dtype.names:
+            instr[name][:] = grp['instrument_settings'][name]
+
+        return instr
 
     def housekeeping_data(self, msm_path):
         '''
         Returns housekeeping data of measurements
+
+        Parameters
+        ----------
+        msm_path  :  string
+           Full path to measurement group
         '''
         if msm_path is None:
             return None
@@ -187,7 +211,9 @@ class L1Bio(object):
 
         Parameters
         ----------
-        msm_dset   :  string
+        msm_path  :  string
+           Full path to measurement group
+        msm_dset  :  string
             Name of measurement dataset
         attr_name : string
             Name of the attribute
@@ -215,6 +241,8 @@ class L1Bio(object):
 
         Parameters
         ----------
+        msm_path   :  string
+           Full path to measurement group
         msm_dset   :  string
             Name of measurement dataset.
         scan_index :  array-like
