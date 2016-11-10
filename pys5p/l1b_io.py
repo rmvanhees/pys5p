@@ -838,12 +838,12 @@ def test_rd_calib( l1b_product, msm_type, msm_dset, verbose ):
     for key in l1b:
         print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
 
-    print( l1b.get_ref_time() )
-    print( l1b.get_delta_time() )
-    print( l1b.get_instrument_settings() )
-    print( l1b.get_housekeeping_data() )
+    print( 'reference time: ', l1b.get_ref_time() )
+    print( 'delta time: ', l1b.get_delta_time() )
+    print( 'instrument settings: ', l1b.get_instrument_settings() )
+    print( 'housekeeping data: ', l1b.get_housekeeping_data() )
     geo = l1b.get_geo_data()
-    print( geo.dtype.names, geo.shape )
+    print( 'geodata: ', geo.dtype.names, geo.shape )
     dset = l1b.get_msm_data( msm_dset )
     for key in sorted(dset):
         print( key, dset[key].shape )
@@ -864,10 +864,10 @@ def test_rd_irrad( l1b_product, msm_type, msm_dset, verbose ):
     for key in l1b:
         print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
 
-    print( l1b.get_ref_time() )
-    print( l1b.get_delta_time() )
-    print( l1b.get_instrument_settings() )
-    print( l1b.get_housekeeping_data() )
+    print( 'reference time: ', l1b.get_ref_time() )
+    print( 'delta time: ', l1b.get_delta_time() )
+    print( 'instrument settings: ', l1b.get_instrument_settings() )
+    print( 'housekeeping data: ', l1b.get_housekeeping_data() )
     dset = l1b.get_msm_data( msm_dset )
     for key in sorted(dset):
         print( key, dset[key].shape )
@@ -887,13 +887,13 @@ def test_rd_rad( l1b_product, icid, msm_dset, verbose ):
     for key in l1b:
         print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
 
-    print( l1b.get_ref_time() )
-    print( l1b.get_delta_time() )
-    #print( l1b.get_instrument_settings() )
-    print( l1b.get_housekeeping_data() )
+    print( 'reference time: ', l1b.get_ref_time() )
+    print( 'delta time: ', l1b.get_delta_time() )
+    print( 'instrument settings: ', l1b.get_instrument_settings() )
+    print( 'housekeeping data: ', l1b.get_housekeeping_data() )
     scan_index = l1b.get_scan_index( icid )
     geo = l1b.get_geo_data( scan_index=scan_index )
-    print( geo.dtype.names, geo.shape )
+    print( 'geodata: ', geo.dtype.names, geo.shape )
     print( msm_dset, l1b.get_msm_data( msm_dset, scan_index=scan_index ).shape )
     del l1b
 
