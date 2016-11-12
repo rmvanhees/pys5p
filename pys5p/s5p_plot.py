@@ -501,12 +501,12 @@ def test_frame():
     # del dict_b8['ICID_31524_GROUP_00000']
     for key in dict_b7:
         print( key, dict_b7[key].shape )
-    data = ocm7.dict_to_array( dict_b7, dict_b8,
+    data = ocm7.band2channel( dict_b7, dict_b8,
+                              mode=['combine', 'median'],
+                              skip_first=True, skip_last=True )
+    error = ocm7.band2channel( dict_b7_std, dict_b8_std,
                                mode=['combine', 'median'],
                                skip_first=True, skip_last=True )
-    error = ocm7.dict_to_array( dict_b7_std, dict_b8_std,
-                                mode=['combine', 'median'],
-                                skip_first=True, skip_last=True )
 
     # Generate figure
     figname = os.path.basename(data_dir) + '.pdf'
@@ -584,14 +584,11 @@ def test_icm_dpqf():
     # open ICM product
     icm = ICMio( icm_product )
     if len(icm.select('DPQF_MAP')) > 0:
-        res = icm.get_msm_data( 'dpqf_map' )
-        dpqm = np.hstack( (res[0], res[1]) )
+        dpqm = icm.get_msm_data( 'dpqf_map', band='78' )
 
-        res = icm.get_msm_data( 'dpqm_dark_flux' )
-        dpqm_dark = np.hstack( (res[0], res[1]) )
+        dpqm_dark = icm.get_msm_data( 'dpqm_dark_flux', band='78' )
 
-        res = icm.get_msm_data( 'dpqm_noise' )
-        dpqm_noise = np.hstack( (res[0], res[1]) )
+        dpqm_noise = icm.get_msm_data( 'dpqm_noise', band='78' )
 
     # generate figure
     figname = fl_name + '.pdf'

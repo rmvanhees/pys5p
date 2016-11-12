@@ -514,7 +514,7 @@ class ICMio(object):
 
         return res
 
-    def get_msm_data(self, msm_dset, band=None, fill_as_nan=False):
+    def get_msm_data(self, msm_dset, band='78', fill_as_nan=False):
         '''
         Read datasets from a measurement selected by class-method "select"
 
@@ -523,40 +523,30 @@ class ICMio(object):
         msm_dset    :  string
             name of measurement dataset
             if msm_dset is None then show names of available datasets
-
-        band       :  None or scalar {'1', '2', '3', ..., '8'}
-            Select data from one spectral band
-            Default is 'None' which returns the data of all available bands
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
         Returns
         -------
-        out  :  dictionary
-           Data of measurement dataset "msm_dset", band index is dictionary key
+        out  :  array
+           Data of measurement dataset "msm_dset"
         '''
         if self.__msm_path is None:
             return None
 
+        assert len(band) > 0 and len(band) <= 2
+        if len(band) == 2:
+            assert band == '12' or band == '34' or band == '56' or band == '78'
+
         fillvalue = float.fromhex('0x1.ep+122')
 
-        res = {}
-        if band is None:
-            for ii in self.bands:
-                for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                    ds_path = os.path.join( self.__msm_path.replace('%', ii),
-                                            dset_grp, msm_dset )
-                    if ds_path not in self.fid:
-                        continue
-
-                    data = np.squeeze(self.fid[ds_path])
-                    if fill_as_nan \
-                       and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                        data[(data == fillvalue)] = np.nan
-                    res[ii] = data
-        else:
+        res = None
+        for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                ds_path = os.path.join( self.__msm_path.replace('%', band),
+                ds_path = os.path.join( self.__msm_path.replace('%', ii),
                                         dset_grp, msm_dset )
                 if ds_path not in self.fid:
                     continue
@@ -565,12 +555,16 @@ class ICMio(object):
                 if fill_as_nan \
                    and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
                     data[(data == fillvalue)] = np.nan
-                res[band] = data
+
+                if res is None:
+                    res = data
+                else:
+                    res = np.hstack((res, data))
 
         return res
 
     #-------------------------
-    def set_msm_data(self, msm_dset, data_dict):
+    def set_msm_data(self, msm_dset, data, band='78'):
         '''
         Alter dataset from a measurement selected using function "select"
 
@@ -578,34 +572,39 @@ class ICMio(object):
         ----------
         msm_dset   :  string
             name of measurement dataset
-
-        data-dict  :  dictionary
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
+        data       :  array-like
             data to be written with same dimensions as dataset "msm_dset"
-            requires a list with ndarrays alike the one returned by
-            function "get_msm_data"
+
         '''
+        assert self.__rw
+
         if self.__msm_path is None:
             return None
 
-        assert self.__rw
-
+        init = True
         fillvalue = float.fromhex('0x1.ep+122')
 
-        for ii in data_dict:
+        col = 0
+        for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
                 ds_path = os.path.join( self.__msm_path.replace('%', ii),
                                         dset_grp, msm_dset )
                 if ds_path not in self.fid:
                     continue
 
-                if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                    data_dict[ii][np.isnan(data_dict[ii])] = fillvalue
+                dim = self.fid[ds_path].shape
+                if init:
+                    if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
+                        data[np.isnan(data)] = fillvalue
+                    self.fid[ds_path][0,...] = data[...,col:col+dim[-1]]
+                    col += dim[-1]
+                    init = False
+                else:
+                    self.fid[ds_path][0,...] = data[...,col:col+dim[-1]]
 
-                if self.fid[ds_path].shape[1:] != data_dict[ii].shape:
-                    print( '*** Fatal: patch data has not same shape as original' )
-                    return None
-
-                self.fid[ds_path][0,...] = data_dict[ii]
                 self.__patched_msm.append(ds_path)
 
 #--------------------------------------------------
@@ -638,7 +637,7 @@ def test_rd_icm():
         #print( icm.get_housekeeping_data() )
         print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'analog_offset_swir_value' )
-        print( len(res), res.keys(), res['7'].shape )
+        print( 'analog_offset_swir_value: ', res.shape )
         print(icm.get_msm_attr( 'analog_offset_swir_value', 'units' ))
 
     if len(icm.select('BACKGROUND_MODE_1063',
@@ -649,12 +648,12 @@ def test_rd_icm():
         #print( icm.get_housekeeping_data() )
         print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'signal_avg' )
-        print( len(res), res['8'].shape )
+        print( 'signal_avg: ', res.shape )
         print(icm.get_msm_attr( 'signal_avg', 'units' ))
 
         print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'biweight_value' )
-        print( len(res), res['7'].shape )
+        print( 'biweight_value: ', res.shape )
         print(icm.get_msm_attr( 'biweight_value', 'units' ))
 
     if len(icm.select( 'SOLAR_IRRADIANCE_MODE_0202' )) > 0:
@@ -664,7 +663,7 @@ def test_rd_icm():
         #print( icm.get_housekeeping_data() )
         print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'irradiance_avg' )
-        print( len(res), res['8'].shape )
+        print( 'irradiance_avg: ', res.shape )
         print(icm.get_msm_attr( 'irradiance_avg', 'units' ))
 
     if len(icm.select( 'EARTH_RADIANCE_MODE_0004' )) > 0:
@@ -674,7 +673,7 @@ def test_rd_icm():
         #print( icm.get_housekeeping_data() )
         print( 'GEO: ', icm.get_geo_data().shape )
         res = icm.get_msm_data( 'radiance_avg_row' )
-        print( len(res), res['7'].shape )
+        print( 'radiance_avg_row: ', res.shape )
         print(icm.get_msm_attr( 'radiance_avg_row', 'units' ))
 
     if os.path.isdir('/Users/richardh'):
@@ -686,10 +685,14 @@ def test_rd_icm():
                  os.path.join(fl_path2, fl_name2) )
     icm = ICMio( os.path.join(fl_path2, fl_name2), readwrite=True )
     icm.select( 'BACKGROUND_MODE_1063' )
-    res = icm.get_msm_data( 'signal_avg' )
-    res['7'][:,:] = 2
-    res['8'][:,:] = 3
-    icm.set_msm_data( 'signal_avg', res )
+    res = icm.get_msm_data( 'signal_avg', '7' )
+    print( 'signal_avg[7]: ', res.shape )
+    res[:,:] = 2
+    icm.set_msm_data( 'signal_avg', res, band='7' )
+    res = icm.get_msm_data( 'signal_avg', '8' )
+    print( 'signal_avg[8]: ', res.shape )
+    res[:,:] = 3
+    icm.set_msm_data( 'signal_avg', res, band='8' )
 
     del icm
 

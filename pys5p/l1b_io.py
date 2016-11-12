@@ -147,7 +147,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path,'OBSERVATIONS')]
+        grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
         return datetime(2010,1,1,0,0,0) \
             + timedelta(seconds=int(grp['time'][0]))
 
@@ -163,7 +163,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path,'OBSERVATIONS')]
+        grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
         return grp['delta_time'][0,:].astype(int)
 
     def instrument_settings(self, msm_path):
@@ -178,15 +178,17 @@ class L1Bio(object):
         if msm_path is None:
             return None
         #
-        # The module h5py can not read the UVN instrument settings directy:
+        # Due to a bug in python module h5py (v2.6.0), it fails to read
+        # the UVN instrument settings directy, with exception:
         #    KeyError: 'Unable to open object (Component not found)'.
-        # This is a workaround
+        # This is my workaround
         #
         grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
         instr = np.empty( grp['instrument_settings'].shape,
                           dtype=grp['instrument_settings'].dtype )
-        for name in grp['instrument_settings'].dtype.names:
-            instr[name][:] = grp['instrument_settings'][name]
+        grp['instrument_settings'].read_direct(instr)
+        #for name in grp['instrument_settings'].dtype.names:
+        #    instr[name][:] = grp['instrument_settings'][name]
 
         return instr
 
@@ -202,8 +204,30 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path,'INSTRUMENT')]
+        grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
         return np.squeeze(grp['housekeeping_data'])
+
+    def msm_dims(self, msm_path, msm_dset):
+        '''
+        Return dimensions of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_path  :  string
+           Full path to measurement group
+        msm_dset  :  string
+            Name of measurement dataset
+
+        Returns
+        -------
+        out   :   array-like
+            Dimensions of msm_dset
+        '''
+        if msm_path is None:
+            return None
+
+        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        return self.fid[ds_path].shape
 
     def msm_attr(self, msm_path, msm_dset, attr_name):
         '''
@@ -480,7 +504,7 @@ class L1BioCAL(L1Bio):
 
         return res
 
-    def get_msm_data(self, msm_dset, band=None):
+    def get_msm_data(self, msm_dset, band='78'):
         '''
         Returns data of measurement dataset "msm_dset"
 
@@ -488,26 +512,31 @@ class L1BioCAL(L1Bio):
         ----------
         msm_dset   :  string
             Name of measurement dataset
-        band       :  None or {'1', '2', '3', ..., '8'}
-            Select data from one spectral band
-            Default is 'None' which returns the data of all available bands
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
 
         Returns
         -------
-        out   :    dictionary
-           Data of measurement dataset "msm_dset", band index is dictionary key
+        out   :    array-like
+           Data of measurement dataset "msm_dset"
         '''
-        res = {}
-        if band is None:
-            for ii in self.bands:
-                res[ii] = super().msm_data( self.__msm_path.replace('%', ii),
-                                            msm_dset )
-        else:
-            res[band] = super().msm_data( self.__msm_path.replace('%', band),
-                                          msm_dset )
+        assert len(band) > 0 and len(band) <= 2
+        if len(band) == 2:
+            assert band == '12' or band == '34' or band == '56' or band == '78'
+
+        res = None
+        for ii in band:
+            data = super().msm_data( self.__msm_path.replace('%', ii),
+                                     msm_dset )
+            if res is None:
+                res = data
+            else:
+                res = np.concatenate((res, data), axis=data.ndim-1)
+
         return res
 
-    def set_msm_data(self, msm_dset, data_dict):
+    def set_msm_data(self, msm_dset, data, band='78'):
         '''
         writes data to measurement dataset "msm_dset"
 
@@ -515,12 +544,18 @@ class L1BioCAL(L1Bio):
         ----------
         msm_dset   :  string
             Name of measurement dataset
-        data_dict  :  dictionary with band ID as key and data to be written
-            Holds data to be written with same dimensions as dataset "msm_dset"
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
+        data       :  array-like
+            data to be written with same dimensions as dataset "msm_dset"
         '''
-        for ii in data_dict:
-            return super().msm_data( self.__msm_path.replace('%', ii),
-                                     msm_dset, write_data=data_dict[ii] )
+        col = 0
+        for ii in band:
+            dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
+            super().msm_data( self.__msm_path.replace('%', ii),
+                              msm_dset, write_data=data[...,col:col+dim[-1]] )
+            col += dim[-1]
 
 #--------------------------------------------------
 class L1BioIRR(L1Bio):
@@ -631,7 +666,7 @@ class L1BioIRR(L1Bio):
         return super().msm_attr( self.__msm_path.replace('%', band),
                                  msm_dset, attr_name )
 
-    def get_msm_data(self, msm_dset, band=None):
+    def get_msm_data(self, msm_dset, band='78'):
         '''
         Returns data of measurement dataset "msm_dset"
 
@@ -639,39 +674,50 @@ class L1BioIRR(L1Bio):
         ----------
         msm_dset   :  string
             Name of measurement dataset
-        band       :  None or {'1', '2', '3', ..., '8'}
-            Select data from one spectral band
-            Default is 'None' which returns data of all available bands 
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
 
         Returns
         -------
-        out   :    dictionary
-            Data of measurement dataset "msm_dset", band index is dictionary key
+        out   :    array-like
+            Data of measurement dataset "msm_dset"
         '''
-        res = {}
-        if band is None:
-            for ii in self.bands:
-                res[ii] = super().msm_data( self.__msm_path.replace('%', ii),
-                                            msm_dset )
-        else:
-            res[band] = super().msm_data( self.__msm_path.replace('%', band),
-                                          msm_dset )
+        assert len(band) > 0 and len(band) <= 2
+        if len(band) == 2:
+            assert band == '12' or band == '34' or band == '56' or band == '78'
+
+        res = None
+        for ii in band:
+            data = super().msm_data( self.__msm_path.replace('%', ii),
+                                     msm_dset )
+            if res is None:
+                res = data
+            else:
+                res = np.concatenate((res, data), axis=data.ndim-1)
+
         return res
 
-    def set_msm_data(self, msm_dset, data_dict):
+    def set_msm_data(self, msm_dset, data, band='78'):
         '''
         writes data to measurement dataset "msm_dset"
 
         Parameters
         ----------
         msm_dset   :  string
-            name of measurement dataset
-        data_dict  :  dictionary with band ID as key and data to be written
-             holds data to be written with same dimensions as dataset "msm_dset"
+            Name of measurement dataset
+        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+            Select data from one spectral band or channel
+            Default is '78' which combines band 7/8 to SWIR detector layout
+        data       :  array-like
+            data to be written with same dimensions as dataset "msm_dset"
         '''
-        for ii in data_dict:
-            return super().msm_data( self.__msm_path.replace('%', ii),
-                                     msm_dset, write_data=data_dict[ii] )
+        col = 0
+        for ii in band:
+            dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
+            super().msm_data( self.__msm_path.replace('%', ii),
+                              msm_dset, write_data=data[...,col:col+dim[-1]] )
+            col += dim[-1]
 
 #--------------------------------------------------
 class L1BioRAD(L1Bio):
@@ -873,8 +919,7 @@ def test_rd_calib( l1b_product, msm_type, msm_dset, verbose ):
     geo = l1b.get_geo_data()
     print( 'geodata: ', geo.dtype.names, geo.shape )
     dset = l1b.get_msm_data( msm_dset )
-    for key in sorted(dset):
-        print( key, dset[key].shape )
+    print( '{}: {}'.format(msm_dset, dset.shape) )
     del l1b
 
 def test_rd_irrad( l1b_product, msm_type, msm_dset, verbose ):
@@ -897,8 +942,7 @@ def test_rd_irrad( l1b_product, msm_type, msm_dset, verbose ):
     print( 'instrument settings: ', l1b.get_instrument_settings() )
     print( 'housekeeping data: ', l1b.get_housekeeping_data() )
     dset = l1b.get_msm_data( msm_dset )
-    for key in sorted(dset):
-        print( key, dset[key].shape )
+    print( '{}: {}'.format(msm_dset, dset.shape) )
     del l1b
 
 def test_rd_rad( l1b_product, icid, msm_dset, verbose ):

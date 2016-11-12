@@ -279,8 +279,8 @@ class OCMio(object):
         return res
 
     @staticmethod
-    def dict_to_array( dict_a, dict_b,
-                       skip_first=False, skip_last=False, mode=None):
+    def band2channel( dict_a, dict_b,
+                      skip_first=False, skip_last=False, mode=None):
         '''
         Store data from a dictionary as returned by get_msm_data to a ndarray
 
@@ -304,7 +304,7 @@ class OCMio(object):
 
         Examples
         --------
-        >>> data = ocm.dict_to_array(dict_a, dict_b,
+        >>> data = ocm.band2channel(dict_a, dict_b,
         mode=['combined', 'median'])
         >>>
         '''
