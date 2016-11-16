@@ -105,7 +105,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_signal( self, data, data_col=None, data_row=None,
-                     data_label=None, data_unit=None,
+                     data_label='signal', data_unit=None, time_axis=None,
                      title=None, sub_title=None, fig_info=None ):
         '''
         Display 2D array data as image and averaged column/row signal plots
@@ -121,15 +121,20 @@ class S5Pplot(object):
            Numpy array (1D) row averaged values of data
            Default is calculated as biweight(data, axis=0)
         data_label :  string
-           Name of dataset
+           Name of dataset. Default is 'signal'
         data_unit  :  string
-           Units of dataset
+           Units of dataset. Default is None
+        time_axis  :  tuple {None, ('x', t_intg), ('y', t_intg)}
+           Defines if one of the axis is a time-axis. Default is None
+           Where t_intg is the time between succesive readouts (in seconds)
         title      :  string
-           Title of the figure (use attribute "title" of product)
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
         sub_title  :  string
-           Sub-title of the figure (use attribute "comment" of product)
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
         fig_info   :  dictionary
-           Dictionary holding meta-data to be displayed in the figure
+           OrderedDict holding meta-data to be displayed in the figure
 
         '''
         from matplotlib import pyplot as plt
@@ -147,66 +152,128 @@ class S5Pplot(object):
         if data_row is None:
             data_row = np.nanmedian( data, axis=0 )
 
-        # scale data to keep the axis labels readable
+        # determine aspect-ratio of data and set sizes of figure and sub-plots
+        dims = data.shape
+        if time_axis is None:                      # band or detector lay-out
+            aspect = int(np.round(dims[1] / dims[0]))
+        else:                                      # trend data
+            aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
+
+        if aspect == 1:
+            figsize = (16.5001, 15)
+            gdim = np.array([( 1, 12, 2, 8), ( 1, 12, 8, 28),
+                             ( 12, 15, 8, 28), (1, 15, 28, 31)],
+                            dtype=[('xmn','u2'),('xmx','u2'),
+                                   ('ymn','u2'),('ymx','u2')])
+        elif aspect == 2:
+            figsize = (13.5001, 8)
+            gdim = np.array([( 1, 5, 2, 8), ( 1, 5, 8, 22),
+                             ( 5, 8, 8, 22), (1, 8, 22, 25)],
+                            dtype=[('xmn','u2'),('xmx','u2'),
+                                   ('ymn','u2'),('ymx','u2')])
+        elif aspect == 4:
+            figsize = (20.5001, 8)
+            gdim = np.array([( 1, 5, 2, 8), ( 1, 5, 8, 36),
+                             ( 5, 8, 8, 36), (1, 8, 36, 39)],
+                            dtype=[('xmn','u2'),('xmx','u2'),
+                                   ('ymn','u2'),('ymx','u2')])
+        else:
+            print( '*** FATAL: aspect ratio not implemented, exit' )
+            return
+
+        # set label and range of X/Y axis
+        xlabel = 'column'
+        ylabel = 'row'
+        xdata = np.arange(data_row.size, dtype=float)
+        xmax = data_row.size
+        ydata = np.arange(data_col.size, dtype=float)
+        ymax = data_col.size
+        if time_axis is not None:
+            if time_axis[0] == 'y':
+                ylabel = 'time(s)'
+                ydata *= time_axis[1]
+                ymax *= time_axis[1]
+            elif time_axis[0] == 'x':
+                xlabel = 'time(s)'
+                xdata *= time_axis[1]
+                xmax *= time_axis[1]
+        extent = [0, xmax, 0, ymax]
+
+        # scale data to keep reduce number of significant digits small to
+        # the axis-label and tickmarks readable
         dscale = 1.0
         (p_10, p_90) = np.percentile( data[np.isfinite(data)], (10, 90) )
         if data_unit is None:
-            label = '{}'.format(data_label)
+            zlabel = '{}'.format(data_label)
         elif data_unit.find( 'electron' ) >= 0:
             max_value = max(abs(p_10), abs(p_90))
+
             if max_value > 1000000000:
                 dscale = 1e9
-                label = '{} [{}]'.format(data_label,
-                                         data_unit.replace('electron', 'Ge'))
+                zlabel = '{} [{}]'.format(data_label,
+                                          data_unit.replace('electron', 'Ge'))
             elif max_value > 1000000:
                 dscale = 1e6
-                label = '{} [{}]'.format(data_label,
-                                         data_unit.replace('electron', 'Me'))
+                zlabel = '{} [{}]'.format(data_label,
+                                          data_unit.replace('electron', 'Me'))
             elif max_value > 1000:
                 dscale = 1e3
-                label = '{} [{}]'.format(data_label,
-                                         data_unit.replace('electron', 'ke'))
+                zlabel = '{} [{}]'.format(data_label,
+                                          data_unit.replace('electron', 'ke'))
             else:
-                label = '{} [{}]'.format(data_label,
-                                         data_unit.replace('electron', 'e'))
+                zlabel = '{} [{}]'.format(data_label,
+                                          data_unit.replace('electron', 'e'))
         else:
-            label = '{} [{}]'.format(data_label, data_unit)
+            zlabel = '{} [{}]'.format(data_label, data_unit)
 
-        # draw the figures
-        fig = plt.figure(figsize=(18, 7.875))
+        # inititalize figure
+        fig = plt.figure(figsize=figsize)
         if title is not None:
             fig.suptitle( title, fontsize=24 )
-        gspec = gridspec.GridSpec(6,16)
+        gspec = gridspec.GridSpec(np.rint(figsize[1]).astype(int),
+                                  np.rint(2 * figsize[0]).astype(int))
 
-        axx = plt.subplot(gspec[1:4,0:2])
-        axx.plot(data_col / dscale, np.arange(data_col.size),
-                 lw=0.5, color=line_colors[0])
-        axx.set_xlabel( label )
-        axx.set_ylim( [0, data_col.size-1] )
-        axx.locator_params(axis='x', nbins=3)
-        axx.set_ylabel( 'row' )
+        # draw sub-plot 1
+        axx = plt.subplot(gspec[gdim[0]['xmn']:gdim[0]['xmx'],
+                                gdim[0]['ymn']:gdim[0]['ymx']])
+        axx.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
+        axx.set_ylim([0, ymax])
+        axx.locator_params(axis='x', nbins=4)
+        axx.set_xlabel(zlabel)
+        axx.set_ylabel(ylabel)
+        print( 'Figure 1' )
 
-        axx = plt.subplot(gspec[1:4,2:14])
-        axx.imshow( data / dscale, cmap=self.__cmap,
+        # draw sub-plot 2
+        axx = plt.subplot(gspec[gdim[1]['xmn']:gdim[1]['xmx'],
+                                gdim[1]['ymn']:gdim[1]['ymx']])
+        axx.imshow( data / dscale, cmap=self.__cmap, extent=extent,
                     vmin=p_10 / dscale, vmax=p_90 / dscale,
-                    aspect=1, interpolation='none', origin='lower' )
+                    aspect='auto', interpolation='none', origin='lower' )
         if sub_title is not None:
             axx.set_title( sub_title )
+        print( 'Figure 2' )
 
-        axx = plt.subplot(gspec[4:6,2:14])
-        axx.plot(np.arange(data_row.size), data_row / dscale,
-                 lw=0.5, color=line_colors[0])
-        axx.set_ylabel( label )
-        axx.set_xlim( [0, data_row.size-1] )
-        axx.set_xlabel( 'column' )
+        # draw sub-plot 3
+        axx = plt.subplot(gspec[gdim[2]['xmn']:gdim[2]['xmx'],
+                                gdim[2]['ymn']:gdim[2]['ymx']])
+        axx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
+        axx.set_xlim([0, xmax])
+        axx.locator_params(axis='y', nbins=6)
+        axx.set_xlabel(xlabel)
+        axx.set_ylabel(zlabel)
+        print( 'Figure 3' )
 
-        axx = plt.subplot(gspec[1:6,14])
+        # draw sub-plot 4
+        axx = plt.subplot(gspec[gdim[3]['xmn']:gdim[3]['xmx'],
+                                gdim[3]['ymn']:gdim[3]['ymx']])
         norm = mpl.colors.Normalize(vmin=p_10 / dscale, vmax=p_90 / dscale)
         cb1 = mpl.colorbar.ColorbarBase( axx, cmap=self.__cmap, norm=norm,
                                          orientation='vertical' )
         if data_unit is not None:
-            cb1.set_label( label )
+            cb1.set_label(zlabel)
+        print( 'Figure 4' )
 
+        # add annotation
         if fig_info is None:
             from biweight import biweight
 
@@ -215,59 +282,12 @@ class S5Pplot(object):
             fig_info.update({'spread' : spread})
 
         self.__fig_info( fig, fig_info )
+
+        # save and close figure
+        self.__fig_info( fig, fig_info )
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
-
-    # --------------------------------------------------
-    def draw_trend( self, dates, values, xdate=True, ydate=False,
-                    data_label=None, data_unit=None,
-                    title=None, sub_title=None, fig_info=None ):
-        '''
-        Display signal & its errors as histograms
-
-        Parameters
-        ----------
-        dates       :  list
-           list of type datetime 
-        values      :  ndarray
-           Numpy array (1D or 2D) holding the data to be displayed
-        xdate       :  {True, False}
-           If True, the x-axis will be labeled with dates
-        ydate       :  {True, False}
-           If True, the y-axis will be labeled with dates
-        data_label  :  string
-           Name of dataset
-        data_unit   :  string
-           Units of dataset
-        title       :  string
-           Title of the figure (use attribute "title" of product)
-        sub_title   :  string
-           Sub-title of the figure (use attribute "comment" of product)
-        fig_info    :  dictionary
-           Dictionary holding meta-data to be displayed in the figure
-
-        '''
-        from matplotlib import pyplot as plt
-        from matplotlib import gridspec
-
-        from sron_colorschemes import get_line_colors
-        from biweight import biweight
-
-        line_colors = get_line_colors()
-
-        if values.ndim == 1:
-            assert len(dates) == values.size
-        elif values.ndim == 2:
-            if xdate:
-                pass
-            else:
-                pass
-            #assert 
-        else:
-            print('*** Fatal: input data must be 1D or 2D')
-            pass
-
 
     # --------------------------------------------------
     def draw_hist( self, data_in, error_in,
@@ -543,17 +563,17 @@ def test_ckd_dpqf():
     Please use the code as tutorial
     '''
     import h5py
-    
+
     if os.path.isdir('/Users/richardh'):
         data_dir = '/Users/richardh/Data'
     else:
-        data_dir ='/nfs/TROPOMI/ocal/ckd/ckd_release_swir/dpqf' 
+        data_dir ='/nfs/TROPOMI/ocal/ckd/ckd_release_swir/dpqf'
     dpqm_fl = os.path.join(data_dir, 'ckd.dpqf.detector4.nc')
-    
+
     with h5py.File( dpqm_fl, 'r' ) as fid:
-        b7 = fid['BAND7/dpqf_map'][:-1,:]
-        b8 = fid['BAND8/dpqf_map'][:-1,:]
-        dpqm = np.hstack( (b7, b8) )
+        band7 = fid['BAND7/dpqf_map'][:-1,:]
+        band8 = fid['BAND8/dpqf_map'][:-1,:]
+        dpqm = np.hstack( (band7, band8) )
 
     # generate figure
     figname = 'ckd.dpqf.detector4.pdf'
@@ -562,7 +582,7 @@ def test_ckd_dpqf():
                        title='ckd.dpqf.detector4.nc',
                        sub_title='dpqf_map' )
     del plot
-        
+
 #-------------------------
 def test_icm_dpqf():
     '''
@@ -609,7 +629,7 @@ def test_icm_dpqf():
 if __name__ == '__main__':
     print( '*** Info: call function test_frame()')
     test_frame()
-    print( '*** Info: call function test_ckd_dpqf()')
-    test_ckd_dpqf()
+    #print( '*** Info: call function test_ckd_dpqf()')
+    #test_ckd_dpqf()
     print( '*** Info: call function test_icm_dpqf()')
     test_icm_dpqf()
