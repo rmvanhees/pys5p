@@ -8,9 +8,9 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
 -- generate figures --
  Public functions a page in the output PDF
  * draw_signal
- * draw_trend
  * draw_hist
  * draw_quality
+ * draw_geo
 
 Copyright (c) 2016 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -41,6 +41,7 @@ mpl.use('TkAgg')
 #   db_version   : version of the monitoring database (SRON)
 #   l1b_version  : L1b processor version
 #   icm_version  : ICM processor version
+#   msm_date     : Datetime of first frame
 # * Data in detector coordinates or column/row averaged as function of time
 #   sign_median  : (biweight) median of signals
 #   sign_spread  : (biweight) spread of signals
@@ -96,11 +97,11 @@ class S5Pplot(object):
             else:
                 info_str += '\n{} : {}'.format(key, dict_info[key])
 
-        fig.text(0.015, 0.075, info_str,
+        fig.text(0.025, 0.075, info_str,
                  verticalalignment='bottom', horizontalalignment='left',
                  bbox={'facecolor':'white', 'pad':10},
                  fontsize=8, style='italic')
-        fig.text(0.025, 0.875,
+        fig.text(0.02, 0.875,
                  r'$\copyright$ SRON Netherlands Institute for Space Research')
 
     # --------------------------------------------------
@@ -474,9 +475,130 @@ class S5Pplot(object):
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
+
+    # --------------------------------------------------
+    def draw_geolocation( self, lats, lons, subsatellite=False, proj='hammer',
+                          title=None, sub_title=None, fig_info=None ):
+        '''
+        Display footprint of sub-satellite coordinates project on the globe
+
+        Parameters
+        ----------
+        lats         :  ndarray
+           Latitude coordinates
+        lons         :  ndarray
+           Longitude coordinates
+        subsatellite :  boolean
+           Coordinates are given for sub-satellite point. Default is False
+        proj         :  string
+           Projection, see toolkit basemap. Default is 'hammer'
+        title        :  string
+           Title of the figure (use attribute "title" of product)
+        sub_title    :  string
+           Sub-title of the figure (use attribute "comment" of product)
+
+        '''
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+
+        from mpl_toolkits.basemap import Basemap
+
+        import sron_colorschemes
+
+        sron_colorschemes.register_cmap_rainbow()
+        line_colors = sron_colorschemes.get_line_colors()
+
+        # convert coordinates to footprint
+        if not subsatellite:
+            lats = np.concatenate((lats[0, :], lats[1:-1, -1],
+                                   lats[-1, ::-1], lats[1:-1:-1, 0]))
+            lons = np.concatenate((lons[0, :], lons[1:-1, -1],
+                                   lons[-1, ::-1], lons[1:-1:-1, 0]))
+
+            if lons.max() - lons.min() > 180:
+                if np.sum( lons > 0 ) > np.sum( lons < 0 ):
+                    lons[lons < 0] += 360
+                else:
+                    lons[lons > 0] -= 360
+        lon_0 = np.around(np.mean(lons), decimals=-1)
+
+        # inititalize figure
+        fig = plt.figure(figsize=(13, 8))
+        if title is not None:
+            fig.suptitle( title, fontsize=24 )
+
+        # draw worldmap
+        m = Basemap(projection=proj, lon_0=lon_0, resolution='l')
+        m.drawparallels(np.arange(-90.,120.,30.))
+        m.drawmeridians(np.arange(0.,420.,60.))
+        #m.drawcoastlines()
+        m.drawmapboundary(fill_color=line_colors[1])
+        m.fillcontinents(color=line_colors[2], lake_color=line_colors[1])
+
+        # draw footprint
+        if not subsatellite:
+            (x, y) = m(lons, lats)
+            xy = np.squeeze(np.dstack((x,y)))
+            poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
+            plt.gca().add_patch(poly)
+            
+        # draw sub-satellite coordinates
+        if subsatellite:
+            (x, y) = m(lons, lats)
+            m.scatter(x, y, 4, marker='o', color=line_colors[4])
+
+        if fig_info is None:
+            fig_info = OrderedDict({'lon0': lon_0})
+
+        self.__fig_info( fig, fig_info )
+        plt.tight_layout()
+        self.__pdf.savefig()
+        plt.close()
 ##
 ## --------------------------------------------------
 ##
+def test_geo():
+    '''
+    Let the user test the software!!!
+
+    Please use the code as tutorial
+    '''
+    import h5py
+
+    plot = S5Pplot( 'test_geo.pdf' )
+
+    # test footprint mode
+    if os.path.isdir('/Users/richardh'):
+        data_dir = '/Users/richardh/Data/L1B-RADIANCE'
+    else:
+        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-RADIANCE'
+    fl_name = 'S5P_OFFL_L1B_RA_BD7_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
+    with h5py.File( os.path.join(data_dir, fl_name) ) as fid:
+        grp = fid['/BAND7_RADIANCE/STANDARD_MODE/OBSERVATIONS']
+        delta_time = np.squeeze(grp['delta_time'])
+        grp = fid['/BAND7_RADIANCE/STANDARD_MODE/GEODATA']
+        lats = grp['latitude'][0,500:2000,:]
+        lons = grp['longitude'][0,500:2000,:]
+
+    plot.draw_geolocation( lats, lons )
+
+    # test subsatellite mode
+    if os.path.isdir('/Users/richardh'):
+        data_dir = '/Users/richardh/Data/L1B-CALIBRATION'
+    else:
+        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-RADIANCE'
+    fl_name = 'S5P_OFFL_L1B_CA_SIR_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
+    with h5py.File( os.path.join(data_dir, fl_name) ) as fid:
+        grp = fid['/BAND7_CALIBRATION/BACKGROUND_RADIANCE_MODE_0005/OBSERVATIONS']
+        delta_time = np.squeeze(grp['delta_time'])
+        grp = fid['/BAND7_CALIBRATION/BACKGROUND_RADIANCE_MODE_0005/GEODATA']
+        lats = np.squeeze(grp['satellite_latitude'])
+        lons = np.squeeze(grp['satellite_longitude'])
+
+    plot.draw_geolocation( lats, lons, subsatellite=True )
+
+    del plot
+    
 def test_frame():
     '''
     Let the user test the software!!!
@@ -627,9 +749,11 @@ def test_icm_dpqf():
 
 #--------------------------------------------------
 if __name__ == '__main__':
+    print( '*** Info: call function test_geo()')
+    test_geo()
     print( '*** Info: call function test_frame()')
     test_frame()
-    #print( '*** Info: call function test_ckd_dpqf()')
-    #test_ckd_dpqf()
+    print( '*** Info: call function test_ckd_dpqf()')
+    test_ckd_dpqf()
     print( '*** Info: call function test_icm_dpqf()')
     test_icm_dpqf()
