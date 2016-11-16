@@ -586,7 +586,7 @@ def test_geo():
     if os.path.isdir('/Users/richardh'):
         data_dir = '/Users/richardh/Data/L1B-CALIBRATION'
     else:
-        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-RADIANCE'
+        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-CALIBRATION'
     fl_name = 'S5P_OFFL_L1B_CA_SIR_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
     with h5py.File( os.path.join(data_dir, fl_name) ) as fid:
         grp = fid['/BAND7_CALIBRATION/BACKGROUND_RADIANCE_MODE_0005/OBSERVATIONS']
