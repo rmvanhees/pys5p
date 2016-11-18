@@ -477,7 +477,8 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_geolocation( self, lats, lons, subsatellite=False, proj='hammer',
+    def draw_geolocation( self, lats, lons, sequence=None,
+                          subsatellite=False, proj='hammer',
                           title=None, sub_title=None, fig_info=None ):
         '''
         Display footprint of sub-satellite coordinates project on the globe
@@ -508,18 +509,12 @@ class S5Pplot(object):
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
 
-        # convert coordinates to footprint
-        if not subsatellite:
-            lats = np.concatenate((lats[0, :], lats[1:-1, -1],
-                                   lats[-1, ::-1], lats[1:-1:-1, 0]))
-            lons = np.concatenate((lons[0, :], lons[1:-1, -1],
-                                   lons[-1, ::-1], lons[1:-1:-1, 0]))
-
-            if lons.max() - lons.min() > 180:
-                if np.sum( lons > 0 ) > np.sum( lons < 0 ):
-                    lons[lons < 0] += 360
-                else:
-                    lons[lons > 0] -= 360
+        # determine central longitude
+        if lons.max() - lons.min() > 180:
+            if np.sum( lons > 0 ) > np.sum( lons < 0 ):
+                lons[lons < 0] += 360
+            else:
+                lons[lons > 0] -= 360
         lon_0 = np.around(np.mean(lons), decimals=-1)
 
         # inititalize figure
@@ -537,11 +532,34 @@ class S5Pplot(object):
 
         # draw footprint
         if not subsatellite:
-            (x, y) = m(lons, lats)
-            xy = np.squeeze(np.dstack((x,y)))
-            poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
-            plt.gca().add_patch(poly)
-            
+            if sequence is None:
+                lat = np.concatenate((lats[0, :], lats[1:-1, -1],
+                                      lats[-1, ::-1], lats[1:-1:-1, 0]))
+                lon = np.concatenate((lons[0, :], lons[1:-1, -1],
+                                      lons[-1, ::-1], lons[1:-1:-1, 0]))
+
+                (x, y) = m(lon, lat)
+                xy = np.squeeze(np.dstack((x,y)))
+                poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
+                plt.gca().add_patch(poly)
+            else:
+                for ii in np.unique(sequence):
+                    indx = np.unique(np.where(sequence == ii)[0])
+                    indx_rev = indx[::-1]
+                    lat = np.concatenate((lats[indx[0], :],
+                                          lats[indx, -1],
+                                          lats[indx[-1], ::-1],
+                                          lats[indx_rev, 0]))
+                    lon = np.concatenate((lons[indx[0], :],
+                                          lons[indx, -1],
+                                          lons[indx[-1], ::-1],
+                                          lons[indx_rev, 0]))
+
+                    (x, y) = m(lon, lat)
+                    xy = np.squeeze(np.dstack((x,y)))
+                    poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
+                    plt.gca().add_patch(poly)
+                
         # draw sub-satellite coordinates
         if subsatellite:
             (x, y) = m(lons, lats)
@@ -563,7 +581,7 @@ def test_geo():
 
     Please use the code as tutorial
     '''
-    import h5py
+    from l1b_io import L1BioCAL, L1BioRAD
 
     plot = S5Pplot( 'test_geo.pdf' )
 
@@ -573,14 +591,13 @@ def test_geo():
     else:
         data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-RADIANCE'
     fl_name = 'S5P_OFFL_L1B_RA_BD7_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    with h5py.File( os.path.join(data_dir, fl_name) ) as fid:
-        grp = fid['/BAND7_RADIANCE/STANDARD_MODE/OBSERVATIONS']
-        delta_time = np.squeeze(grp['delta_time'])
-        grp = fid['/BAND7_RADIANCE/STANDARD_MODE/GEODATA']
-        lats = grp['latitude'][0,500:2000,:]
-        lons = grp['longitude'][0,500:2000,:]
+    l1b = L1BioRAD( os.path.join(data_dir, fl_name) )
+    l1b.select()
+    geo = l1b.get_geo_data( icid=4 )
+    del l1b
 
-    plot.draw_geolocation( lats, lons )
+    plot.draw_geolocation( geo['latitude'], geo['longitude'],
+                           sequence=geo['sequence'] )
 
     # test subsatellite mode
     if os.path.isdir('/Users/richardh'):
@@ -588,17 +605,20 @@ def test_geo():
     else:
         data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-CALIBRATION'
     fl_name = 'S5P_OFFL_L1B_CA_SIR_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    with h5py.File( os.path.join(data_dir, fl_name) ) as fid:
-        grp = fid['/BAND7_CALIBRATION/BACKGROUND_RADIANCE_MODE_0005/OBSERVATIONS']
-        delta_time = np.squeeze(grp['delta_time'])
-        grp = fid['/BAND7_CALIBRATION/BACKGROUND_RADIANCE_MODE_0005/GEODATA']
-        lats = np.squeeze(grp['satellite_latitude'])
-        lons = np.squeeze(grp['satellite_longitude'])
+    l1b = L1BioCAL( os.path.join(data_dir, fl_name) )
+    l1b.select('BACKGROUND_RADIANCE_MODE_0005')
+    geo = l1b.get_geo_data()
+    print( 'geodata: ', geo.dtype.names, geo.shape )
+    del l1b
 
-    plot.draw_geolocation( lats, lons, subsatellite=True )
+    plot.draw_geolocation( geo['satellite_latitude'],
+                           geo['satellite_longitude'],
+                           sequence=geo['sequence'],
+                           subsatellite=True )
 
     del plot
     
+#-------------------------
 def test_frame():
     '''
     Let the user test the software!!!
