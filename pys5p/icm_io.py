@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -10,7 +10,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 from __future__ import print_function
 from __future__ import division
 
@@ -21,12 +21,12 @@ import h5py
 
 #--------------------------------------------------
 class ICMio(object):
-    '''
+    """
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
-    '''
+    """
     def __init__(self, icm_product, readwrite=False):
-        '''
+        """
         Initialize access to an ICM product
 
         Parameters
@@ -35,7 +35,7 @@ class ICMio(object):
            full path to in-flight calibration measurement product
         readwrite   :  boolean
            open product in read-write mode (default is False)
-        '''
+        """
         assert os.path.isfile( icm_product ), \
             '*** Fatal, can not find ICM_CA_SIR file: {}'.format(icm_product)
 
@@ -63,7 +63,7 @@ class ICMio(object):
                 yield attr
 
     def __del__(self):
-        '''
+        """
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
@@ -73,7 +73,7 @@ class ICMio(object):
          - Git-version of S/W
          - list of patched datasets
          - auxiliary datasets used by patch-routines
-        '''
+        """
         if len(self.__patched_msm) > 0:
             from datetime import datetime
 
@@ -91,50 +91,50 @@ class ICMio(object):
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod
     def pys5p_version():
-        '''
+        """
         Returns S/W version
-        '''
+        """
         from pys5p import version
 
         return version.__version__
 
     # ---------- Functions that work before MSM selection ----------
     def get_orbit(self):
-        '''
+        """
         Returns reference orbit number
-        '''
+        """
         return int(self.fid.attrs['reference_orbit'])
 
     def get_processor_version(self):
-        '''
+        """
         Returns version of the L01b processor
-        '''
+        """
         return self.fid.attrs['processor_version'].decode('ascii')
 
     def get_coverage_time(self):
-        '''
+        """
         Returns start and end of the measurement coverage time
-        '''
+        """
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
     def get_creation_time(self):
-        '''
+        """
         Returns version of the L01b processor
-        '''
+        """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset  = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
 
     def get_attr(self, attr_name):
-        '''
+        """
         Obtain value of an HDF5 file attribute
 
         Parameters
         ----------
         attr_name : string
            name of the attribute
-        '''
+        """
         if attr_name in self.fid.attrs.keys():
             return self.fid.attrs[attr_name]
 
@@ -142,7 +142,7 @@ class ICMio(object):
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self, band=None):
-        '''
+        """
         Returns reference start time of measurements
 
         Parameters
@@ -150,7 +150,7 @@ class ICMio(object):
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
-        '''
+        """
         from datetime import datetime, timedelta
 
         if self.__msm_path is None:
@@ -193,7 +193,7 @@ class ICMio(object):
         return ref_time
 
     def get_delta_time(self, band=None):
-        '''
+        """
         Returns offset from the reference start time of measurement
 
         Parameters
@@ -201,7 +201,7 @@ class ICMio(object):
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
-        '''
+        """
         if self.__msm_path is None:
             return None
 
@@ -248,7 +248,7 @@ class ICMio(object):
         return res
 
     def get_instrument_settings(self, band=None):
-        '''
+        """
         Returns instrument settings of measurement
 
         Parameters
@@ -256,7 +256,7 @@ class ICMio(object):
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
-        '''
+        """
         if self.__msm_path is None:
             return None
 
@@ -302,7 +302,7 @@ class ICMio(object):
         return res
 
     def get_housekeeping_data(self, band=None):
-        '''
+        """
         Returns housekeeping data of measurements
 
         Parameters
@@ -310,7 +310,7 @@ class ICMio(object):
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
-        '''
+        """
         if self.__msm_path is None:
             return None
 
@@ -357,7 +357,7 @@ class ICMio(object):
 
     #-------------------------
     def select(self, msm_type, msm_path=None):
-        '''
+        """
         Select a measurement as <processing class>_<ic_id>
 
         Parameters
@@ -375,7 +375,7 @@ class ICMio(object):
 
         Updated object attributes:
          - bands               : available spectral bands
-        '''
+        """
         self.bands = ''
         self.__msm_path = None
 
@@ -407,7 +407,7 @@ class ICMio(object):
 
     #-------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
-        '''
+        """
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
@@ -424,7 +424,7 @@ class ICMio(object):
         -------
         out   :   scalar or numpy array
            value of attribute "attr_name"
-        '''
+        """
         if len(self.__msm_path) == 0:
             return None
 
@@ -448,7 +448,7 @@ class ICMio(object):
 
     def get_geo_data(self, band=None,
                      geo_dset='satellite_latitude,satellite_longitude'):
-        '''
+        """
         Returns data of selected datasets from the GEODATA group
 
         Parameters
@@ -464,7 +464,7 @@ class ICMio(object):
         -------
         out   :   array-like
            Compound array with data of selected datasets from the GEODATA group
-        '''
+        """
         if self.__msm_path is None:
             return None
 
@@ -515,7 +515,7 @@ class ICMio(object):
         return res
 
     def get_msm_data(self, msm_dset, band='78', fill_as_nan=False):
-        '''
+        """
         Read datasets from a measurement selected by class-method "select"
 
         Parameters
@@ -533,7 +533,7 @@ class ICMio(object):
         -------
         out  :  array
            Data of measurement dataset "msm_dset"
-        '''
+        """
         if self.__msm_path is None:
             return None
 
@@ -565,7 +565,7 @@ class ICMio(object):
 
     #-------------------------
     def set_msm_data(self, msm_dset, data, band='78'):
-        '''
+        """
         Alter dataset from a measurement selected using function "select"
 
         Parameters
@@ -578,7 +578,7 @@ class ICMio(object):
         data       :  array-like
             data to be written with same dimensions as dataset "msm_dset"
 
-        '''
+        """
         assert self.__rw
 
         if self.__msm_path is None:
@@ -609,12 +609,12 @@ class ICMio(object):
 
 #--------------------------------------------------
 def test_rd_icm():
-    '''
+    """
     Perform some simple test to check the ICM_io class
 
     Please use the code as tutorial
 
-    '''
+    """
     import shutil
 
     if os.path.isdir('/Users/richardh'):

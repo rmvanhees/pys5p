@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -17,7 +17,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 import os.path
 from collections import OrderedDict
 
@@ -62,12 +62,12 @@ mpl.use('TkAgg')
 
 # pylint: disable=too-many-arguments, too-many-locals
 class S5Pplot(object):
-    '''
+    """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports
 
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
-    '''
+    """
     def __init__( self, figname, cmap="Rainbow", mode='frame' ):
         from matplotlib.backends.backend_pdf import PdfPages
 
@@ -83,12 +83,13 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     @staticmethod
-    def __fig_info( fig, dict_info ):
-        '''
+    def __fig_info( fig, dict_info, aspect=4 ):
+        """
         Add meta-information in the current figure
-        '''
+        """
         from datetime import datetime
 
+        copy_str = r'$\copyright$ SRON Netherlands Institute for Space Research'
         info_str = 'date : ' + datetime.utcnow().isoformat(' ')[0:19]
         for key in dict_info:
             if isinstance(dict_info[key], float) \
@@ -97,18 +98,48 @@ class S5Pplot(object):
             else:
                 info_str += '\n{} : {}'.format(key, dict_info[key])
 
-        fig.text(0.025, 0.075, info_str,
-                 verticalalignment='bottom', horizontalalignment='left',
-                 bbox={'facecolor':'white', 'pad':10},
-                 fontsize=8, style='italic')
-        fig.text(0.02, 0.875,
-                 r'$\copyright$ SRON Netherlands Institute for Space Research')
-
-    # --------------------------------------------------
+        if aspect == 1:
+            fig.text(0.2, 0.18, info_str,
+                     fontsize=12, style='italic',
+                     verticalalignment='top',
+                     horizontalalignment='right',
+                     multialignment='left',
+                     bbox={'facecolor':'white', 'pad':10})
+            fig.text(0.975, 0.025, copy_str,
+                     fontsize=10, family='monospace',
+                     rotation='vertical',
+                     verticalalignment='bottom',
+                     horizontalalignment='left')
+        elif aspect == 2:
+            fig.text(0.225, 0.35, info_str,
+                     fontsize=12, style='italic',
+                     verticalalignment='top',
+                     horizontalalignment='right',
+                     multialignment='left',
+                     bbox={'facecolor':'white', 'pad':10})
+            fig.text(0.02, 0.875, copy_str,
+                     fontsize=9, family='monospace',
+                     rotation='horizontal',
+                     verticalalignment='bottom',
+                     horizontalalignment='left')
+        else:
+            fig.text(0.15, 0.35, info_str,
+                     fontsize=12, style='italic',
+                     verticalalignment='top',
+                     horizontalalignment='right',
+                     multialignment='left',
+                     bbox={'facecolor':'white', 'pad':10})
+            fig.text(0.02, 0.875, copy_str,
+                     fontsize=9, family='monospace',
+                     rotation='horizontal',
+                     verticalalignment='bottom',
+                     horizontalalignment='left')
+                
+            # --------------------------------------------------
     def draw_signal( self, data, data_col=None, data_row=None,
                      data_label='signal', data_unit=None, time_axis=None,
                      title=None, sub_title=None, fig_info=None ):
-        '''
+        """
         Display 2D array data as image and averaged column/row signal plots
 
         Parameters
@@ -137,11 +168,11 @@ class S5Pplot(object):
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
-        '''
+        """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        import sron_colorschemes
+        from pys5p import sron_colorschemes
 
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
@@ -181,6 +212,7 @@ class S5Pplot(object):
         else:
             print( '*** FATAL: aspect ratio not implemented, exit' )
             return
+        #print( 'aspect: {}'.format(aspect) )
 
         # set label and range of X/Y axis
         xlabel = 'column'
@@ -239,10 +271,10 @@ class S5Pplot(object):
                                 gdim[0]['ymn']:gdim[0]['ymx']])
         axx.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
         axx.set_ylim([0, ymax])
+        axx.grid(linestyle=':')
         axx.locator_params(axis='x', nbins=4)
         axx.set_xlabel(zlabel)
         axx.set_ylabel(ylabel)
-        print( 'Figure 1' )
 
         # draw sub-plot 2
         axx = plt.subplot(gspec[gdim[1]['xmn']:gdim[1]['xmx'],
@@ -252,17 +284,16 @@ class S5Pplot(object):
                     aspect='auto', interpolation='none', origin='lower' )
         if sub_title is not None:
             axx.set_title( sub_title )
-        print( 'Figure 2' )
 
         # draw sub-plot 3
         axx = plt.subplot(gspec[gdim[2]['xmn']:gdim[2]['xmx'],
                                 gdim[2]['ymn']:gdim[2]['ymx']])
         axx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
         axx.set_xlim([0, xmax])
+        axx.grid(linestyle=':')
         axx.locator_params(axis='y', nbins=6)
         axx.set_xlabel(xlabel)
         axx.set_ylabel(zlabel)
-        print( 'Figure 3' )
 
         # draw sub-plot 4
         axx = plt.subplot(gspec[gdim[3]['xmn']:gdim[3]['xmx'],
@@ -272,20 +303,17 @@ class S5Pplot(object):
                                          orientation='vertical' )
         if data_unit is not None:
             cb1.set_label(zlabel)
-        print( 'Figure 4' )
 
         # add annotation
         if fig_info is None:
-            from biweight import biweight
+            from pys5p.biweight import biweight
 
             (median, spread) = biweight( data, spread=True)
             fig_info = OrderedDict({'median' : median})
             fig_info.update({'spread' : spread})
 
-        self.__fig_info( fig, fig_info )
-
         # save and close figure
-        self.__fig_info( fig, fig_info )
+        self.__fig_info( fig, fig_info, aspect )
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
@@ -295,7 +323,7 @@ class S5Pplot(object):
                    data_label=None, data_unit=None,
                    error_label=None, error_unit=None,
                    title=None, sub_title=None, fig_info=None ):
-        '''
+        """
         Display signal & its errors as histograms
 
         Parameters
@@ -319,12 +347,12 @@ class S5Pplot(object):
         fig_info    :  dictionary
            Dictionary holding meta-data to be displayed in the figure
 
-        '''
+        """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from sron_colorschemes import get_line_colors
-        from biweight import biweight
+        from pys5p.sron_colorschemes import get_line_colors
+        from pys5p.biweight import biweight
 
         line_colors = get_line_colors()
 
@@ -392,7 +420,7 @@ class S5Pplot(object):
     # --------------------------------------------------
     def draw_quality( self, dpqm, low_thres=0.1, high_thres=0.8,
                       title=None, sub_title=None, fig_info=None ):
-        '''
+        """
         Display pixel quality data
 
         Parameters
@@ -404,7 +432,7 @@ class S5Pplot(object):
         sub_title   :  string
            Sub-title of the figure (use attribute "comment" of product)
 
-        '''
+        """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
@@ -480,7 +508,7 @@ class S5Pplot(object):
     def draw_geolocation( self, lats, lons, sequence=None,
                           subsatellite=False, proj='hammer',
                           title=None, sub_title=None, fig_info=None ):
-        '''
+        """
         Display footprint of sub-satellite coordinates project on the globe
 
         Parameters
@@ -498,13 +526,13 @@ class S5Pplot(object):
         sub_title    :  string
            Sub-title of the figure (use attribute "comment" of product)
 
-        '''
+        """
         import matplotlib.pyplot as plt
         from matplotlib.patches import Polygon
 
         from mpl_toolkits.basemap import Basemap
 
-        import sron_colorschemes
+        from pys5p import sron_colorschemes
 
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
@@ -576,11 +604,11 @@ class S5Pplot(object):
 ## --------------------------------------------------
 ##
 def test_geo():
-    '''
+    """
     Let the user test the software!!!
 
     Please use the code as tutorial
-    '''
+    """
     from l1b_io import L1BioCAL, L1BioRAD
 
     plot = S5Pplot( 'test_geo.pdf' )
@@ -608,7 +636,6 @@ def test_geo():
     l1b = L1BioCAL( os.path.join(data_dir, fl_name) )
     l1b.select('BACKGROUND_RADIANCE_MODE_0005')
     geo = l1b.get_geo_data()
-    print( 'geodata: ', geo.dtype.names, geo.shape )
     del l1b
 
     plot.draw_geolocation( geo['satellite_latitude'],
@@ -620,11 +647,11 @@ def test_geo():
     
 #-------------------------
 def test_frame():
-    '''
+    """
     Let the user test the software!!!
 
     Please use the code as tutorial
-    '''
+    """
     from ocm_io import OCMio
 
     if os.path.isdir('/Users/richardh'):
@@ -699,11 +726,11 @@ def test_frame():
 
 #-------------------------
 def test_ckd_dpqf():
-    '''
+    """
     Let the user test the software!!!
 
     Please use the code as tutorial
-    '''
+    """
     import h5py
 
     if os.path.isdir('/Users/richardh'):
@@ -727,11 +754,11 @@ def test_ckd_dpqf():
 
 #-------------------------
 def test_icm_dpqf():
-    '''
+    """
     Let the user test the software!!!
 
     Please use the code as tutorial
-    '''
+    """
     from icm_io import ICMio
 
     if os.path.isdir('/Users/richardh'):

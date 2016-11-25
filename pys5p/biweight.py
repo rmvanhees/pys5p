@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -10,7 +10,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 from __future__ import division
 
 import numpy as np
@@ -19,6 +19,16 @@ def biweight(data, axis=None, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
+
+    Parameters
+    ----------
+    data   :   
+    axis   :   
+    spread :   
+    Returns
+    -------
+    out    :  
+       biweight median and biweight spread if function argument "spread" is True
 
     """
     if axis is None:

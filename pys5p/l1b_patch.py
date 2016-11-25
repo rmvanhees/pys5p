@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -11,7 +11,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 from __future__ import print_function
 
 import numpy as np
@@ -19,7 +19,7 @@ import numpy as np
 
 #--------------------------------------------------
 def fill_constant( array, value ):
-    '''
+    """
     Basic test-operation: replace values in ndarray with a constant value.
 
     Parameters
@@ -33,11 +33,11 @@ def fill_constant( array, value ):
     -------
     out    :  ndarray
        Return an array with each element set to value
-    '''
+    """
     return np.full_like( array, value )
 
 def nonlinearity():
-    '''
+    """
     Patch non-linearity correction.
 
     Low priority, small effect, hard to implement and validate
@@ -59,11 +59,11 @@ def nonlinearity():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 def prnu( array, prnu_orig, prnu_patch ):
-    '''
+    """
     Patch pixel response non-uniformity correction.
 
     High priority, introduces potentially spectral-features (swath dependent)
@@ -100,11 +100,11 @@ def prnu( array, prnu_orig, prnu_patch ):
     It is assumed that for the PRNU correction the CKD has to be multiplied
     with the pixel signals.
 
-    '''
+    """
     return prnu_patch * array / prnu_orig
 
 def straylight():
-    '''
+    """
     Patch in-of-band stray-light correction.
 
     High priority, correction implemented for the most important measured 
@@ -127,11 +127,11 @@ def straylight():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 def stray_oob():
-    '''
+    """
     Patch out-of-band stray-light correction.
 
     Low priority, but relatively easy to implement and verify
@@ -148,11 +148,11 @@ def stray_oob():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 def nir_oob():
-    '''
+    """
     Patch NIR out-of-band stray-light correction.
 
     Low priority, task for KNMI
@@ -164,11 +164,11 @@ def nir_oob():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 def radiance():
-    '''
+    """
     Patch radiance calibration.
 
     Low priority: not discussed
@@ -184,11 +184,11 @@ def radiance():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 def irradiance():
-    '''
+    """
     Patch irradiance calibration.
 
     Low priority: not discussed
@@ -204,14 +204,14 @@ def irradiance():
     Returns
     -------
     Nothing
-    '''
+    """
     pass
 
 #--------------------------------------------------
 def _main():
-    '''
+    """
     Let the user test the software!!!
-    '''
+    """
     import argparse
     from pathlib import Path
 

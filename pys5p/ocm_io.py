@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -11,7 +11,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 from __future__ import print_function
 from __future__ import division
 
@@ -22,12 +22,12 @@ import h5py
 
 #--------------------------------------------------
 class OCMio(object):
-    '''
+    """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
-    '''
+    """
     def __init__(self, ocm_product):
-        '''
+        """
         Initialize access to an OCAL Lx product
 
         Parameters
@@ -35,7 +35,7 @@ class OCMio(object):
         ocm_product :  string
            Full path to on-ground calibration measurement
 
-        '''
+        """
         assert os.path.isfile( ocm_product ), \
             '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
 
@@ -64,36 +64,36 @@ class OCMio(object):
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod
     def pys5p_version():
-        '''
+        """
         Return S/W version
-        '''
+        """
         from pys5p import version
 
         return version.__version__
 
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self):
-        '''
+        """
         Returns version of the L01b processor
-        '''
+        """
         return self.fid.attrs['processor_version'].decode('ascii')
 
     def get_coverage_time(self):
-        '''
+        """
         Returns start and end of the measurement coverage time
-        '''
+        """
         return (self.fid.attrs['time_coverage_start'].decode('ascii'),
                 self.fid.attrs['time_coverage_end'].decode('ascii'))
 
     def get_attr(self, attr_name):
-        '''
+        """
         Obtain value of an HDF5 file attribute
 
         Parameters
         ----------
         attr_name : string
            name of the attribute
-        '''
+        """
         if attr_name in self.fid.attrs.keys():
             return self.fid.attrs[attr_name]
 
@@ -101,9 +101,9 @@ class OCMio(object):
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self):
-        '''
+        """
         Returns reference start time of measurements
-        '''
+        """
         from datetime import datetime, timedelta
 
         res = {}
@@ -119,9 +119,9 @@ class OCMio(object):
         return res
 
     def get_delta_time(self):
-        '''
+        """
         Returns offset from the reference start time of measurement
-        '''
+        """
         res = {}
         if len(self.__msm_path) == 0:
             return res
@@ -134,9 +134,9 @@ class OCMio(object):
         return res
 
     def get_instrument_settings(self):
-        '''
+        """
         Returns instrument settings of measurement
-        '''
+        """
         res = {}
         if len(self.__msm_path) == 0:
             return res
@@ -149,9 +149,9 @@ class OCMio(object):
         return res
 
     def get_housekeeping_data(self):
-        '''
+        """
         Returns housekeeping data of measurements
-        '''
+        """
         res = {}
         if len(self.__msm_path) == 0:
             return res
@@ -165,7 +165,7 @@ class OCMio(object):
 
     #-------------------------
     def select(self, ic_id):
-        '''
+        """
         Select a measurement as BAND%_<ic_id>_GROUP_%
 
         Parameters
@@ -181,7 +181,7 @@ class OCMio(object):
 
         Updated object attributes:
           - bands               : available spectral bands
-        '''
+        """
         self.band = ''
         self.__msm_path = []
         for ii in '12345678':
@@ -204,7 +204,7 @@ class OCMio(object):
 
     #-------------------------
     def get_msm_attr(self, msm_dset, attr_name):
-        '''
+        """
         Returns value attribute of measurement dataset "msm_dset"
 
         Parameters
@@ -219,7 +219,7 @@ class OCMio(object):
         out   :   scalar or numpy array
            value of attribute "attr_name"
 
-        '''
+        """
         if len(self.__msm_path) == 0:
             return ''
 
@@ -236,7 +236,7 @@ class OCMio(object):
         return None
 
     def get_msm_data(self, msm_dset, fill_as_nan=False):
-        '''
+        """
         Returns data of measurement dataset "msm_dset"
 
         Parameters
@@ -253,7 +253,7 @@ class OCMio(object):
         out   :   dictionary
            Python dictionary with msm_names as keys and their values
 
-        '''
+        """
         fillvalue = float.fromhex('0x1.ep+122')
 
         res = {}
@@ -281,7 +281,7 @@ class OCMio(object):
     @staticmethod
     def band2channel( dict_a, dict_b,
                       skip_first=False, skip_last=False, mode=None):
-        '''
+        """
         Store data from a dictionary as returned by get_msm_data to a ndarray
 
         Parameters
@@ -307,7 +307,7 @@ class OCMio(object):
         >>> data = ocm.band2channel(dict_a, dict_b,
         mode=['combined', 'median'])
         >>>
-        '''
+        """
         if dict_b is None:
             dict_b = {}
         if mode is None:
@@ -369,12 +369,12 @@ class OCMio(object):
 
 #--------------------------------------------------
 def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):
-    '''
+    """
     Perform some simple test to check the OCM_io class
 
     Please use the code as tutorial
 
-    '''
+    """
     # open OCAL Lx poduct
     ocm = OCMio( ocm_product )
     res = ocm.get_processor_version()
@@ -420,9 +420,9 @@ def test_rd_ocm( ocm_product, msm_icid, msm_dset, print_data=False ):
     del ocm
 
 def _main():
-    '''
+    """
     Let the user test the software!!!
-    '''
+    """
     import argparse
 
     # parse command-line parameters

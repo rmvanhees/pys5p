@@ -1,4 +1,4 @@
-'''
+"""
 This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
@@ -22,15 +22,15 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 
-'''
+"""
 import matplotlib.pyplot as plt
 
 def add_outlier_colors(cdict):
-    '''
+    """
     Add outlier colors to existing color map.
      - low outliers are indicated with "brown"
      - high outliers are indicated with "pink"
-    '''
+    """
     color_high_outliers = {
         "red": 0x72/255., "green": 0x19/255., "blue": 0x0e/255.} # brown
     color_low_outliers = {
@@ -47,13 +47,13 @@ def add_outlier_colors(cdict):
     return new_cdict
 
 def register_cmap_rainbow( with_outliers=False ):
-    '''
+    """
     Register the "Rainbow" color-map
 
     Parameters
     ----------
       with_outliers : add colors for outliers (default = False)
-   '''
+   """
     cdict = {
         'red'  :  ((0., 0.472, 0.472),        (0.05, 0.326495, 0.326495),
                    (0.1, 0.269004, 0.269004), (0.15, 0.248446, 0.248446),
@@ -95,13 +95,13 @@ def register_cmap_rainbow( with_outliers=False ):
         plt.register_cmap(name='Rainbow', data=cdict)
 
 def register_cmap_rainbowbands( with_outliers=False ):
-    '''
+    """
     Register the "RainbowBands" color-map
 
     Parameters
     ----------
       with_outliers : add colors for outliers (default = False)
-    '''
+    """
     cdict = {
         'red'  :  ((0., 0.909804, 0.909804),
                    (0.0434783, 0.909804, 0.85098),
@@ -182,13 +182,13 @@ def register_cmap_rainbowbands( with_outliers=False ):
         plt.register_cmap(name='RainbowBands', data=cdict)
 
 def register_cmap_extendedrainbow( with_outliers=False ):
-    '''
+    """
     Register the "ExtendedRainbow" color-map
 
     Parameters
     ----------
       with_outliers : add colors for outliers (default = False)
-    '''
+    """
     cdict = {
         'red'  :  ((0., 0.907917, 0.907917),
                    (0.0344828, 0.866928, 0.866928),
@@ -288,13 +288,13 @@ def register_cmap_extendedrainbow( with_outliers=False ):
         plt.register_cmap(name='ExtendedRainbow', data=cdict)
 
 def register_cmap_warpedextendedrainbow( with_outliers=False ):
-    '''
+    """
     Register the "WrapedExtendedRainbow" color-map
 
     Parameters
     ----------
       with_outliers : add colors for outliers (default = False)
-    '''
+    """
     cdict = {
         'red'  :  ((0., 0.907917, 0.907917),
                    (0.0344828, 0.79788, 0.79788),
@@ -395,14 +395,14 @@ def register_cmap_warpedextendedrainbow( with_outliers=False ):
 
 
 def get_line_colors():
-    '''
+    """
     Alternative color scheme for qualitative data
 
     Defines 8 colors: Blue, Cyan, Green, Yellow, Red, Pink, Grey and Black
     Usage:
       - For 5 or more colors: use colors as defined in list
       - For 4 or less: use Blue (0), Red(4), Green(2) and Yellow(3)
-    '''
+    """
     return [ '#4477AA',   # blue
              '#66CCEE',   # cyan
              '#228833',   # green
