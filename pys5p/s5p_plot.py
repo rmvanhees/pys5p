@@ -90,6 +90,12 @@ class S5Pplot(object):
     def __fig_info( fig, dict_info, aspect=4 ):
         """
         Add meta-information in the current figure
+
+        Parameters
+        ----------
+        fig       :  Matplotlib Figure instance
+        dict_info :  dictionary or sortedDict
+           legenda parameters to be displayed in the figure
         """
         from datetime import datetime
 
@@ -142,7 +148,8 @@ class S5Pplot(object):
             # --------------------------------------------------
     def draw_signal( self, data, data_col=None, data_row=None,
                      data_label='signal', data_unit=None, time_axis=None,
-                     title=None, sub_title=None, fig_info=None ):
+                     title=None, sub_title=None, fig_info=None,
+                     vperc=[1., 99.], vrange=None ):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -156,6 +163,12 @@ class S5Pplot(object):
         data_row   :  ndarray
            Numpy array (1D) row averaged values of data
            Default is calculated as biweight(data, axis=0)
+        vrange     :  float in range of [vmin,vmax]
+           Range to normalize luminance data between min and max. Note that is 
+           you pass a vrange instance then vperc wil be ignored
+        vperc      :  float in range of [0,100]
+           Range to normalize luminance data between percentiles min and max of 
+           array data. Default is [1., 99.]
         data_label :  string
            Name of dataset. Default is 'signal'
         data_unit  :  string
@@ -239,28 +252,33 @@ class S5Pplot(object):
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
         dscale = 1.0
-        (p_10, p_90) = np.percentile( data[np.isfinite(data)], (10, 90) )
+        if vrange is None:
+            assert len(vperc) == 2
+            (vmin, vmax) = np.percentile( data[np.isfinite(data)], vperc )
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
+        
         if data_unit is None:
+            zunit = None
             zlabel = '{}'.format(data_label)
         elif data_unit.find( 'electron' ) >= 0:
-            max_value = max(abs(p_10), abs(p_90))
+            max_value = max(abs(vmin), abs(vmax))
 
             if max_value > 1000000000:
                 dscale = 1e9
-                zlabel = '{} [{}]'.format(data_label,
-                                          data_unit.replace('electron', 'Ge'))
+                zunit = data_unit.replace('electron', 'Ge')
             elif max_value > 1000000:
                 dscale = 1e6
-                zlabel = '{} [{}]'.format(data_label,
-                                          data_unit.replace('electron', 'Me'))
+                zunit = data_unit.replace('electron', 'Me')
             elif max_value > 1000:
                 dscale = 1e3
-                zlabel = '{} [{}]'.format(data_label,
-                                          data_unit.replace('electron', 'ke'))
+                zunit = data_unit.replace('electron', 'ke')
             else:
-                zlabel = '{} [{}]'.format(data_label,
-                                          data_unit.replace('electron', 'e'))
+                zunit = data_unit.replace('electron', 'e')
+            zlabel = '{} [{}]'.format(data_label, zunit)
         else:
+            zunit = data_unit
             zlabel = '{} [{}]'.format(data_label, data_unit)
 
         # inititalize figure
@@ -284,7 +302,7 @@ class S5Pplot(object):
         axx = plt.subplot(gspec[gdim[1]['xmn']:gdim[1]['xmx'],
                                 gdim[1]['ymn']:gdim[1]['ymx']])
         axx.imshow( data / dscale, cmap=self.__cmap, extent=extent,
-                    vmin=p_10 / dscale, vmax=p_90 / dscale,
+                    vmin=vmin / dscale, vmax=vmax / dscale,
                     aspect='auto', interpolation='none', origin='lower' )
         if sub_title is not None:
             axx.set_title( sub_title )
@@ -302,19 +320,25 @@ class S5Pplot(object):
         # draw sub-plot 4
         axx = plt.subplot(gspec[gdim[3]['xmn']:gdim[3]['xmx'],
                                 gdim[3]['ymn']:gdim[3]['ymx']])
-        norm = mpl.colors.Normalize(vmin=p_10 / dscale, vmax=p_90 / dscale)
+        norm = mpl.colors.Normalize(vmin=vmin / dscale, vmax=vmax / dscale)
         cb1 = mpl.colorbar.ColorbarBase( axx, cmap=self.__cmap, norm=norm,
                                          orientation='vertical' )
-        if data_unit is not None:
-            cb1.set_label(zlabel)
+        cb1.set_label(zlabel)
 
         # add annotation
         if fig_info is None:
             from .biweight import biweight
 
             (median, spread) = biweight( data, spread=True)
-            fig_info = OrderedDict({'median' : median})
-            fig_info.update({'spread' : spread})
+            if zunit is not None:
+                median_str = '{:.5g} {}'.format(median / dscale, zunit)
+                spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+            else:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
+
+            fig_info = OrderedDict({'median' : median_str})
+            fig_info.update({'spread' : spread_str})
 
         # save and close figure
         self.__fig_info( fig, fig_info, aspect )
@@ -531,7 +555,7 @@ class S5Pplot(object):
            Sub-title of the figure (use attribute "comment" of product)
 
         """
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
 
         from mpl_toolkits.basemap import Basemap
