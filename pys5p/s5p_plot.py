@@ -557,8 +557,7 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
-
-        from mpl_toolkits.basemap import Basemap
+        import cartopy.crs as ccrs
 
         from . import sron_colorschemes
 
@@ -574,17 +573,17 @@ class S5Pplot(object):
         lon_0 = np.around(np.mean(lons), decimals=-1)
 
         # inititalize figure
-        fig = plt.figure(figsize=(13, 8))
+        fig = plt.figure(figsize=(15, 10))
         if title is not None:
-            fig.suptitle( title, fontsize=24 )
+            fig.suptitle(title, fontsize=24)
 
         # draw worldmap
-        m = Basemap(projection=proj, lon_0=lon_0, resolution='l')
-        m.drawparallels(np.arange(-90.,120.,30.))
-        m.drawmeridians(np.arange(0.,420.,60.))
-        #m.drawcoastlines()
-        m.drawmapboundary(fill_color=line_colors[1])
-        m.fillcontinents(color=line_colors[2], lake_color=line_colors[1])
+        ax = plt.axes(projection=ccrs.Mollweide(central_longitude=lon_0))
+        ax.set_global()
+        ax.coastlines(resolution='110m')
+        ax.gridlines()
+        #m.drawmapboundary(fill_color=line_colors[1])
+        #m.fillcontinents(color=line_colors[2], lake_color=line_colors[1])
 
         # draw footprint
         if not subsatellite:
@@ -594,10 +593,10 @@ class S5Pplot(object):
                 lon = np.concatenate((lons[0, :], lons[1:-1, -1],
                                       lons[-1, ::-1], lons[1:-1:-1, 0]))
 
-                (x, y) = m(lon, lat)
-                xy = np.squeeze(np.dstack((x,y)))
-                poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
-                plt.gca().add_patch(poly)
+                poly = Polygon( xy=list(zip(lon, lat)), closed=True,
+                                alpha=0.2, facecolor=line_colors[3], 
+                                transform=ccrs.PlateCarree() )
+                ax.add_patch(poly)
             else:
                 for ii in np.unique(sequence):
                     indx = np.unique(np.where(sequence == ii)[0])
@@ -611,15 +610,15 @@ class S5Pplot(object):
                                           lons[indx[-1], ::-1],
                                           lons[indx_rev, 0]))
 
-                    (x, y) = m(lon, lat)
-                    xy = np.squeeze(np.dstack((x,y)))
-                    poly = Polygon(xy, facecolor=line_colors[3], alpha=0.6)
-                    plt.gca().add_patch(poly)
+                    poly = Polygon( xy=list(zip(lon, lat)), closed=True,
+                                    alpha=0.2, facecolor=line_colors[3], 
+                                    transform=ccrs.PlateCarree() )
+                    ax.add_patch(poly)
                 
         # draw sub-satellite coordinates
         if subsatellite:
-            (x, y) = m(lons, lats)
-            m.scatter(x, y, 4, marker='o', color=line_colors[4])
+            ax.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
+                       marker='o', color=line_colors[4])
 
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
@@ -628,207 +627,3 @@ class S5Pplot(object):
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
-##
-## --------------------------------------------------
-##
-def test_geo():
-    """
-    Let the user test the software!!!
-
-    Please use the code as tutorial
-    """
-    from l1b_io import L1BioCAL, L1BioRAD
-
-    plot = S5Pplot( 'test_geo.pdf' )
-
-    # test footprint mode
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/L1B-RADIANCE'
-    else:
-        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-RADIANCE'
-    fl_name = 'S5P_OFFL_L1B_RA_BD7_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    l1b = L1BioRAD( os.path.join(data_dir, fl_name) )
-    l1b.select()
-    geo = l1b.get_geo_data( icid=4 )
-    del l1b
-
-    plot.draw_geolocation( geo['latitude'], geo['longitude'],
-                           sequence=geo['sequence'] )
-
-    # test subsatellite mode
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/L1B-CALIBRATION'
-    else:
-        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058/L1B-CALIBRATION'
-    fl_name = 'S5P_OFFL_L1B_CA_SIR_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    l1b = L1BioCAL( os.path.join(data_dir, fl_name) )
-    l1b.select('BACKGROUND_RADIANCE_MODE_0005')
-    geo = l1b.get_geo_data()
-    del l1b
-
-    plot.draw_geolocation( geo['satellite_latitude'],
-                           geo['satellite_longitude'],
-                           sequence=geo['sequence'],
-                           subsatellite=True )
-
-    del plot
-    
-#-------------------------
-def test_frame():
-    """
-    Let the user test the software!!!
-
-    Please use the code as tutorial
-    """
-    from ocm_io import OCMio
-
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
-    else:
-        data_dir ='/nfs/TROPOMI/ocal/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
-
-    icid = 31523
-
-    # Read BAND7 product
-    product_b7 = 'trl1brb7g.lx.nc'
-    ocm_product = os.path.join( data_dir, 'before_strayl_l1b_val_SWIR_2',
-                                product_b7 )
-    # open OCAL Lx poduct
-    ocm7 = OCMio( ocm_product )
-
-    # select data of measurement(s) with given ICID
-    if ocm7.select( icid ) > 0:
-        dict_b7 = ocm7.get_msm_data( 'signal' )
-        dict_b7_std = ocm7.get_msm_data( 'signal_error_vals' )
-
-    # Read BAND8 product
-    product_b8 = 'trl1brb8g.lx.nc'
-    ocm_product = os.path.join( data_dir, 'before_strayl_l1b_val_SWIR_2',
-                                product_b8 )
-    # open OCAL Lx poduct
-    ocm8 = OCMio( ocm_product )
-
-    # select data of measurement(s) with given ICID
-    if ocm8.select( icid ) > 0:
-        dict_b8 = ocm8.get_msm_data( 'signal' )
-        dict_b8_std = ocm8.get_msm_data( 'signal_error_vals' )
-
-    # Combine band 7 & 8 data
-    # del dict_b7['ICID_31524_GROUP_00000']
-    # del dict_b8['ICID_31524_GROUP_00000']
-    for key in dict_b7:
-        print( key, dict_b7[key].shape )
-    data = ocm7.band2channel( dict_b7, dict_b8,
-                              mode=['combine', 'median'],
-                              skip_first=True, skip_last=True )
-    error = ocm7.band2channel( dict_b7_std, dict_b8_std,
-                               mode=['combine', 'median'],
-                               skip_first=True, skip_last=True )
-
-    # Generate figure
-    figname = os.path.basename(data_dir) + '.pdf'
-    plot = S5Pplot( figname )
-    plot.draw_signal( data,
-                      data_label='signal',
-                      data_unit=ocm7.get_msm_attr('signal', 'units'),
-                      title=ocm7.get_attr('title'),
-                      sub_title='ICID={}'.format(icid),
-                      fig_info=None )
-    plot.draw_signal( error,
-                      data_label='signal_error_vals',
-                      data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
-                      title=ocm7.get_attr('title'),
-                      sub_title='ICID={}'.format(icid),
-                      fig_info=None )
-    plot.draw_hist( data, error,
-                    data_label='signal',
-                    data_unit=ocm7.get_msm_attr('signal', 'units'),
-                    error_label='signal_error_vals',
-                    error_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
-                    title=ocm7.get_attr('title'),
-                    sub_title='ICID={}'.format(icid),
-                    fig_info=None )
-    del plot
-    del ocm7
-    del ocm8
-
-#-------------------------
-def test_ckd_dpqf():
-    """
-    Let the user test the software!!!
-
-    Please use the code as tutorial
-    """
-    import h5py
-
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data'
-    else:
-        data_dir ='/nfs/TROPOMI/ocal/ckd/ckd_release_swir/dpqf'
-    dpqm_fl = os.path.join(data_dir, 'ckd.dpqf.detector4.nc')
-
-    with h5py.File( dpqm_fl, 'r' ) as fid:
-        band7 = fid['BAND7/dpqf_map'][:-1,:]
-        band8 = fid['BAND8/dpqf_map'][:-1,:]
-        dpqm = np.hstack( (band7, band8) )
-
-    # generate figure
-    figname = 'ckd.dpqf.detector4.pdf'
-    plot = S5Pplot( figname )
-    plot.draw_quality( dpqm,
-                       title='ckd.dpqf.detector4.nc',
-                       sub_title='dpqf_map' )
-    del plot
-
-#-------------------------
-def test_icm_dpqf():
-    """
-    Let the user test the software!!!
-
-    Please use the code as tutorial
-    """
-    from icm_io import ICMio
-
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/S5P_ICM_CA_SIR/001000/2012/09/18'
-    elif os.path.isdir('/nfs/TROPOMI/ical/'):
-        data_dir = '/nfs/TROPOMI/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
-    else:
-        data_dir = '/data/richardh/Tropomi/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
-    fl_name = 'S5P_TEST_ICM_CA_SIR_20120918T131651_20120918T145629_01890_01_001100_20151002T140000.h5'
-    icm_product = os.path.join(data_dir, fl_name)
-
-    # open ICM product
-    icm = ICMio( icm_product )
-    if len(icm.select('DPQF_MAP')) > 0:
-        dpqm = icm.get_msm_data( 'dpqf_map', band='78' )
-
-        dpqm_dark = icm.get_msm_data( 'dpqm_dark_flux', band='78' )
-
-        dpqm_noise = icm.get_msm_data( 'dpqm_noise', band='78' )
-
-    # generate figure
-    figname = fl_name + '.pdf'
-    plot = S5Pplot( figname )
-    plot.draw_quality( dpqm,
-                       title=fl_name,
-                       sub_title='dpqf_map' )
-    plot.draw_quality( dpqm_dark,
-                       title=fl_name,
-                       sub_title='dpqm_dark_flux' )
-    plot.draw_quality( dpqm_noise,
-                       title=fl_name,
-                       sub_title='dpqm_noise' )
-    del plot
-    del icm
-
-#--------------------------------------------------
-if __name__ == '__main__':
-    print( '*** Info: call function test_geo()')
-    test_geo()
-    print( '*** Info: call function test_frame()')
-    test_frame()
-    print( '*** Info: call function test_ckd_dpqf()')
-    test_ckd_dpqf()
-    print( '*** Info: call function test_icm_dpqf()')
-    test_icm_dpqf()
