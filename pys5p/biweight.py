@@ -22,12 +22,15 @@ def biweight(data, axis=None, spread=False):
 
     Parameters
     ----------
-    data   :   
-    axis   :   
-    spread :   
+    data   :   array_like
+       Input array.
+    axis   :   int, optional
+       Axis along which the biweight medians are computed.
+    spread :   bool
+       If True, then compute the biweight spread
     Returns
     -------
-    out    :  
+    out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
 
     """

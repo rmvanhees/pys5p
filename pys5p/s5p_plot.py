@@ -22,7 +22,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os.path
 from collections import OrderedDict
 
 import numpy as np
@@ -144,12 +143,12 @@ class S5Pplot(object):
                      rotation='horizontal',
                      verticalalignment='bottom',
                      horizontalalignment='left')
-                
-            # --------------------------------------------------
+
+    # --------------------------------------------------
     def draw_signal( self, data, data_col=None, data_row=None,
                      data_label='signal', data_unit=None, time_axis=None,
                      title=None, sub_title=None, fig_info=None,
-                     vperc=[1., 99.], vrange=None ):
+                     vperc=None, vrange=None ):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -164,10 +163,10 @@ class S5Pplot(object):
            Numpy array (1D) row averaged values of data
            Default is calculated as biweight(data, axis=0)
         vrange     :  float in range of [vmin,vmax]
-           Range to normalize luminance data between min and max. Note that is 
-           you pass a vrange instance then vperc wil be ignored
+           Range to normalize luminance data between vmin and vmax.
+           Note that is you pass a vrange instance then vperc wil be ignored
         vperc      :  float in range of [0,100]
-           Range to normalize luminance data between percentiles min and max of 
+           Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
         data_label :  string
            Name of dataset. Default is 'signal'
@@ -253,12 +252,15 @@ class S5Pplot(object):
         # the axis-label and tickmarks readable
         dscale = 1.0
         if vrange is None:
-            assert len(vperc) == 2
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
             (vmin, vmax) = np.percentile( data[np.isfinite(data)], vperc )
         else:
             assert len(vrange) == 2
             (vmin, vmax) = vrange
-        
+
         if data_unit is None:
             zunit = None
             zlabel = '{}'.format(data_label)
@@ -534,8 +536,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_geolocation( self, lats, lons, sequence=None,
-                          subsatellite=False, proj='hammer',
-                          title=None, sub_title=None, fig_info=None ):
+                          subsatellite=False, title=None, fig_info=None ):
         """
         Display footprint of sub-satellite coordinates project on the globe
 
@@ -547,12 +548,8 @@ class S5Pplot(object):
            Longitude coordinates
         subsatellite :  boolean
            Coordinates are given for sub-satellite point. Default is False
-        proj         :  string
-           Projection, see toolkit basemap. Default is 'hammer'
         title        :  string
            Title of the figure (use attribute "title" of product)
-        sub_title    :  string
-           Sub-title of the figure (use attribute "comment" of product)
 
         """
         from matplotlib import pyplot as plt
@@ -578,10 +575,10 @@ class S5Pplot(object):
             fig.suptitle(title, fontsize=24)
 
         # draw worldmap
-        ax = plt.axes(projection=ccrs.Mollweide(central_longitude=lon_0))
-        ax.set_global()
-        ax.coastlines(resolution='110m')
-        ax.gridlines()
+        axx = plt.axes(projection=ccrs.Mollweide(central_longitude=lon_0))
+        axx.set_global()
+        axx.coastlines(resolution='110m')
+        axx.gridlines()
         #m.drawmapboundary(fill_color=line_colors[1])
         #m.fillcontinents(color=line_colors[2], lake_color=line_colors[1])
 
@@ -594,9 +591,9 @@ class S5Pplot(object):
                                       lons[-1, ::-1], lons[1:-1:-1, 0]))
 
                 poly = Polygon( xy=list(zip(lon, lat)), closed=True,
-                                alpha=0.2, facecolor=line_colors[3], 
+                                alpha=0.2, facecolor=line_colors[3],
                                 transform=ccrs.PlateCarree() )
-                ax.add_patch(poly)
+                axx.add_patch(poly)
             else:
                 for ii in np.unique(sequence):
                     indx = np.unique(np.where(sequence == ii)[0])
@@ -611,14 +608,14 @@ class S5Pplot(object):
                                           lons[indx_rev, 0]))
 
                     poly = Polygon( xy=list(zip(lon, lat)), closed=True,
-                                    alpha=0.2, facecolor=line_colors[3], 
+                                    alpha=0.2, facecolor=line_colors[3],
                                     transform=ccrs.PlateCarree() )
-                    ax.add_patch(poly)
-                
+                    axx.add_patch(poly)
+
         # draw sub-satellite coordinates
         if subsatellite:
-            ax.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
-                       marker='o', color=line_colors[4])
+            axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
+                        marker='o', color=line_colors[4])
 
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})

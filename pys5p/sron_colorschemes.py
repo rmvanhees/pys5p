@@ -28,9 +28,8 @@ def add_outlier_colors(cdict):
     Add outlier colors to existing color map.
      - low outliers are indicated with "brown"
      - high outliers are indicated with "pink"
-    """
-    from matplotlib.pyplot import register_cmap
 
+    """
     color_high_outliers = {
         "red": 0x72/255., "green": 0x19/255., "blue": 0x0e/255.} # brown
     color_low_outliers = {
@@ -289,7 +288,7 @@ def register_cmap_extendedrainbow( with_outliers=False ):
     }
     if with_outliers:
         register_cmap(name='ExtendedRainbow',
-                          data=add_outlier_colors(cdict))
+                      data=add_outlier_colors(cdict))
     else:
         register_cmap(name='ExtendedRainbow', data=cdict)
 
@@ -397,7 +396,7 @@ def register_cmap_warpedextendedrainbow( with_outliers=False ):
     }
     if with_outliers:
         register_cmap(name='WarpedExtendedRainbow',
-                          data=add_outlier_colors(cdict))
+                      data=add_outlier_colors(cdict))
     else:
         register_cmap(name='WarpedExtendedRainbow', data=cdict)
 
