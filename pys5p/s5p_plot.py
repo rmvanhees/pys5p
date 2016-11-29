@@ -18,6 +18,10 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os.path
 from collections import OrderedDict
 
@@ -172,7 +176,7 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from pys5p import sron_colorschemes
+        from . import sron_colorschemes
 
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
@@ -306,7 +310,7 @@ class S5Pplot(object):
 
         # add annotation
         if fig_info is None:
-            from pys5p.biweight import biweight
+            from .biweight import biweight
 
             (median, spread) = biweight( data, spread=True)
             fig_info = OrderedDict({'median' : median})
@@ -351,8 +355,8 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from pys5p.sron_colorschemes import get_line_colors
-        from pys5p.biweight import biweight
+        from .biweight import biweight
+        from .sron_colorschemes import get_line_colors
 
         line_colors = get_line_colors()
 
@@ -532,7 +536,7 @@ class S5Pplot(object):
 
         from mpl_toolkits.basemap import Basemap
 
-        from pys5p import sron_colorschemes
+        from . import sron_colorschemes
 
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()

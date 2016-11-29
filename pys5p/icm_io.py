@@ -11,8 +11,9 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
-from __future__ import print_function
+from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 import os.path
 
@@ -94,7 +95,7 @@ class ICMio(object):
         """
         Returns S/W version
         """
-        from pys5p import version
+        from . import version
 
         return version.__version__
 

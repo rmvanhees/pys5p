@@ -23,14 +23,14 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
-import matplotlib.pyplot as plt
-
 def add_outlier_colors(cdict):
     """
     Add outlier colors to existing color map.
      - low outliers are indicated with "brown"
      - high outliers are indicated with "pink"
     """
+    from matplotlib.pyplot import register_cmap
+
     color_high_outliers = {
         "red": 0x72/255., "green": 0x19/255., "blue": 0x0e/255.} # brown
     color_low_outliers = {
@@ -53,7 +53,9 @@ def register_cmap_rainbow( with_outliers=False ):
     Parameters
     ----------
       with_outliers : add colors for outliers (default = False)
-   """
+    """
+    from matplotlib.pyplot import register_cmap
+
     cdict = {
         'red'  :  ((0., 0.472, 0.472),        (0.05, 0.326495, 0.326495),
                    (0.1, 0.269004, 0.269004), (0.15, 0.248446, 0.248446),
@@ -90,9 +92,9 @@ def register_cmap_rainbow( with_outliers=False ):
                    (1., 0.124844, 0.124844))
     }
     if with_outliers:
-        plt.register_cmap(name='Rainbow', data=add_outlier_colors(cdict))
+        register_cmap(name='Rainbow', data=add_outlier_colors(cdict))
     else:
-        plt.register_cmap(name='Rainbow', data=cdict)
+        register_cmap(name='Rainbow', data=cdict)
 
 def register_cmap_rainbowbands( with_outliers=False ):
     """
@@ -102,6 +104,8 @@ def register_cmap_rainbowbands( with_outliers=False ):
     ----------
       with_outliers : add colors for outliers (default = False)
     """
+    from matplotlib.pyplot import register_cmap
+
     cdict = {
         'red'  :  ((0., 0.909804, 0.909804),
                    (0.0434783, 0.909804, 0.85098),
@@ -177,9 +181,9 @@ def register_cmap_rainbowbands( with_outliers=False ):
                    (1., 0.0392157, 0.0392157))
     }
     if with_outliers:
-        plt.register_cmap(name='RainbowBands', data=add_outlier_colors(cdict))
+        register_cmap(name='RainbowBands', data=add_outlier_colors(cdict))
     else:
-        plt.register_cmap(name='RainbowBands', data=cdict)
+        register_cmap(name='RainbowBands', data=cdict)
 
 def register_cmap_extendedrainbow( with_outliers=False ):
     """
@@ -189,6 +193,8 @@ def register_cmap_extendedrainbow( with_outliers=False ):
     ----------
       with_outliers : add colors for outliers (default = False)
     """
+    from matplotlib.pyplot import register_cmap
+
     cdict = {
         'red'  :  ((0., 0.907917, 0.907917),
                    (0.0344828, 0.866928, 0.866928),
@@ -282,10 +288,10 @@ def register_cmap_extendedrainbow( with_outliers=False ):
                    (1., 0.132677, 0.132677))
     }
     if with_outliers:
-        plt.register_cmap(name='ExtendedRainbow',
+        register_cmap(name='ExtendedRainbow',
                           data=add_outlier_colors(cdict))
     else:
-        plt.register_cmap(name='ExtendedRainbow', data=cdict)
+        register_cmap(name='ExtendedRainbow', data=cdict)
 
 def register_cmap_warpedextendedrainbow( with_outliers=False ):
     """
@@ -295,6 +301,8 @@ def register_cmap_warpedextendedrainbow( with_outliers=False ):
     ----------
       with_outliers : add colors for outliers (default = False)
     """
+    from matplotlib.pyplot import register_cmap
+
     cdict = {
         'red'  :  ((0., 0.907917, 0.907917),
                    (0.0344828, 0.79788, 0.79788),
@@ -388,10 +396,10 @@ def register_cmap_warpedextendedrainbow( with_outliers=False ):
                    (1., 0.132677, 0.132677))
     }
     if with_outliers:
-        plt.register_cmap(name='WarpedExtendedRainbow',
+        register_cmap(name='WarpedExtendedRainbow',
                           data=add_outlier_colors(cdict))
     else:
-        plt.register_cmap(name='WarpedExtendedRainbow', data=cdict)
+        register_cmap(name='WarpedExtendedRainbow', data=cdict)
 
 
 def get_line_colors():
