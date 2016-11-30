@@ -3,9 +3,10 @@ from __future__ import print_function
 
 import os.path
 
-import matplotlib
-
+from glob import glob
 from unittest import TestCase
+
+import matplotlib
 
 matplotlib.use('TkAgg')
 
@@ -16,20 +17,22 @@ def test_frame():
 
     Please use the code as tutorial
     """
-    from pys5p.ocm_io import OCMio
-    from pys5p.s5p_plot import S5Pplot
+    from .get_data_dir import get_data_dir
+    from ..ocm_io import OCMio
+    from ..s5p_plot import S5Pplot
     
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
-    else:
-        data_dir ='/nfs/TROPOMI/ocal/proc_knmi/2015_02_23T01_36_51_svn4709_CellEarth_CH4'
+    # obtain path to directory pys5p-data
+    data_dir = get_data_dir()
+    msmlist = glob(os.path.join(data_dir, 'OCM', '*'))
+    sdirlist = glob(os.path.join(msmlist[0], '*'))
 
+    # read background measurements
     icid = 31523
 
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
-    ocm_product = os.path.join( data_dir, 'before_strayl_l1b_val_SWIR_2',
-                                product_b7 )
+    ocm_product = os.path.join( sdirlist[0], product_b7 )
+    
     # open OCAL Lx poduct
     ocm7 = OCMio( ocm_product )
 
@@ -40,8 +43,8 @@ def test_frame():
 
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
-    ocm_product = os.path.join( data_dir, 'before_strayl_l1b_val_SWIR_2',
-                                product_b8 )
+    ocm_product = os.path.join( sdirlist[0], product_b8 )
+    
     # open OCAL Lx poduct
     ocm8 = OCMio( ocm_product )
 
@@ -51,8 +54,6 @@ def test_frame():
         dict_b8_std = ocm8.get_msm_data( 'signal_error_vals' )
 
     # Combine band 7 & 8 data
-    # del dict_b7['ICID_31524_GROUP_00000']
-    # del dict_b8['ICID_31524_GROUP_00000']
     for key in dict_b7:
         print( key, dict_b7[key].shape )
     data = ocm7.band2channel( dict_b7, dict_b8,
@@ -63,8 +64,7 @@ def test_frame():
                                skip_first=True, skip_last=True )
 
     # Generate figure
-    figname = os.path.basename(data_dir) + '.pdf'
-    plot = S5Pplot( figname )
+    plot = S5Pplot('test_plot_frame.pdf')
     plot.draw_signal( data,
                       data_label='signal',
                       data_unit=ocm7.get_msm_attr('signal', 'units'),
@@ -92,8 +92,3 @@ def test_frame():
 class TestCmd(TestCase):
     def test_basic(self):
         test_frame()
-
-#--------------------------------------------------
-if __name__ == '__main__':
-    print( '*** Info: call function test_frame()')
-    test_frame()

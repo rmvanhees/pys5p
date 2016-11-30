@@ -3,9 +3,9 @@ from __future__ import print_function
 
 import os.path
 
-import matplotlib
-
 from unittest import TestCase
+
+import matplotlib
 
 matplotlib.use('TkAgg')
 
@@ -38,17 +38,16 @@ def test_icm_dpqf():
         dpqm_noise = icm.get_msm_data( 'dpqm_noise', band='78' )
 
     # generate figure
-    figname = fl_name + '.pdf'
-    plot = S5Pplot( figname )
-    plot.draw_quality( dpqm,
-                       title=fl_name,
-                       sub_title='dpqf_map' )
-    plot.draw_quality( dpqm_dark,
-                       title=fl_name,
-                       sub_title='dpqm_dark_flux' )
-    plot.draw_quality( dpqm_noise,
-                       title=fl_name,
-                       sub_title='dpqm_noise' )
+    plot = S5Pplot('test_icm_dpq.pdf')
+    plot.draw_quality(dpqm,
+                      title=fl_name,
+                      sub_title='dpqf_map')
+    plot.draw_quality(dpqm_dark,
+                      title=fl_name,
+                      sub_title='dpqm_dark_flux')
+    plot.draw_quality(dpqm_noise,
+                      title=fl_name,
+                      sub_title='dpqm_noise')
     del plot
     del icm
     
@@ -56,8 +55,3 @@ def test_icm_dpqf():
 class TestCmd(TestCase):
     def test_basic(self):
         test_icm_dpqf()
-
-#--------------------------------------------------
-if __name__ == '__main__':
-    print( '*** Info: call function test_icm_dpqf()')
-    test_icm_dpqf()

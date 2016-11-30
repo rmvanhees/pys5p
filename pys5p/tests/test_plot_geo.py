@@ -3,9 +3,10 @@ from __future__ import print_function
 
 import os.path
 
-import matplotlib
-
+from glob import glob
 from unittest import TestCase
+
+import matplotlib
 
 matplotlib.use('TkAgg')
 
@@ -16,29 +17,28 @@ def test_geo():
 
     Please use the code as tutorial
     """
-    from pys5p.l1b_io import L1BioCAL, L1BioRAD
-    from pys5p.s5p_plot import S5Pplot
+    from .get_data_dir import get_data_dir
+    
+    from ..l1b_io import L1BioCAL, L1BioRAD
+    from ..s5p_plot import S5Pplot
 
-    plot = S5Pplot( 'test_geo.pdf' )
-
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/L1B-CALIBRATION'
-    else:
-        data_dir = '/stage/EPSstorage/jochen/TROPOMI_ODA_DATA/data_set_05102016/OFFL/L1B/2015/08/21/00058'
-
+    # obtain path to directory pys5p-data
+    data_dir = get_data_dir()
+    
     # test footprint mode
-    fl_name = 'S5P_OFFL_L1B_RA_BD7_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    l1b = L1BioRAD( os.path.join(data_dir, 'L1B-RADIANCE', fl_name) )
+    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
+    l1b = L1BioRAD( os.path.join(data_dir, 'L1B', filelist[-1]) )
     l1b.select()
     geo = l1b.get_geo_data( icid=4 )
     del l1b
 
+    plot = S5Pplot('test_plot_geo.pdf')
     plot.draw_geolocation( geo['latitude'], geo['longitude'],
                            sequence=geo['sequence'] )
 
     # test subsatellite mode
-    fl_name = 'S5P_OFFL_L1B_CA_SIR_20150821T012540_20150821T030710_00058_01_000000_20160721T173643.nc'
-    l1b = L1BioCAL( os.path.join(data_dir, 'L1B-CALIBRATION', fl_name) )
+    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
+    l1b = L1BioCAL( os.path.join(data_dir, filelist[-1]) )
     l1b.select('BACKGROUND_RADIANCE_MODE_0005')
     geo = l1b.get_geo_data()
     del l1b
@@ -54,8 +54,3 @@ def test_geo():
 class TestCmd(TestCase):
     def test_basic(self):
         test_geo()
-
-#--------------------------------------------------
-if __name__ == '__main__':
-    print( '*** Info: call function test_geo()')
-    test_geo()

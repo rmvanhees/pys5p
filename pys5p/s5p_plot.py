@@ -554,14 +554,53 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
+        
         import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        import shapely.geometry as sgeom
 
-        from . import sron_colorschemes
+        watercolor = '#ddeeff'
+        landcolor  = '#e1c999'
+        gridcolor  = '#bbbbbb'
+        s5p_color  = '#ee6677'
 
-        sron_colorschemes.register_cmap_rainbow()
-        line_colors = sron_colorschemes.get_line_colors()
+        class BetterTransverseMercator(ccrs.Projection):
+            def __init__(self, central_latitude=0.0, central_longitude=0.0,
+                         orientation=0, scale_factor=1.0, 
+                         false_easting=0.0, false_northing=0.0, globe=None):
+                centlon = np.round(central_longitude/15.0)*15.0+0.01
+                gam = np.sign(orientation)*89.99
+                proj4_params = [('proj', 'omerc'), ('lat_0', central_latitude),
+                                ('lonc', centlon), ('alpha', '0.01'),
+                                ('gamma', gam), ('over', ''),
+                                ('k_0', scale_factor),
+                                ('x_0', false_easting), ('y_0', false_northing),
+                                ('units', 'm')]
+                super(BetterTransverseMercator, self).__init__(proj4_params, globe=globe)
+
+            @property
+            def threshold(self):
+                return 1e4
+
+            @property
+            def boundary(self):
+                x0, x1 = self.x_limits
+                y0, y1 = self.y_limits
+                return sgeom.LineString([(x0, y0), (x0, y1),
+                                         (x1, y1), (x1, y0),
+                                         (x0, y0)])
+            @property
+            def x_limits(self):
+                return (-2e7, 2e7)
+
+            @property
+            def y_limits(self):
+                return (-2e7, 2e7)
 
         # determine central longitude
+        sphere_radius = 6370997.0
+        parallel_half = 0.883 * sphere_radius
+        meridian_half = 2.360 * sphere_radius
         if lons.max() - lons.min() > 180:
             if np.sum( lons > 0 ) > np.sum( lons < 0 ):
                 lons[lons < 0] += 360
@@ -575,12 +614,17 @@ class S5Pplot(object):
             fig.suptitle(title, fontsize=24)
 
         # draw worldmap
-        axx = plt.axes(projection=ccrs.Mollweide(central_longitude=lon_0))
-        axx.set_global()
-        axx.coastlines(resolution='110m')
-        axx.gridlines()
-        #m.drawmapboundary(fill_color=line_colors[1])
-        #m.fillcontinents(color=line_colors[2], lake_color=line_colors[1])
+        axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
+                                                           orientation=1,
+                                                           globe=ccrs.Globe(ellipse='sphere')))
+        axx.set_xlim(-meridian_half, meridian_half)
+        axx.set_ylim(-parallel_half, parallel_half)
+        axx.outline_patch.set_visible(False)
+        axx.background_patch.set_facecolor(watercolor)
+        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
+        axx.gridlines(xlocs=np.arange(0,375,15),
+                      ylocs=np.arange(-90,105,15),
+                      linestyle='-', linewidth=0.5, color=gridcolor)
 
         # draw footprint
         if not subsatellite:
@@ -590,9 +634,9 @@ class S5Pplot(object):
                 lon = np.concatenate((lons[0, :], lons[1:-1, -1],
                                       lons[-1, ::-1], lons[1:-1:-1, 0]))
 
-                poly = Polygon( xy=list(zip(lon, lat)), closed=True,
-                                alpha=0.2, facecolor=line_colors[3],
-                                transform=ccrs.PlateCarree() )
+                poly = Polygon(xy=list(zip(lon, lat)), closed=True,
+                               alpha=0.6, facecolor=s5p_color,
+                               transform=ccrs.PlateCarree())
                 axx.add_patch(poly)
             else:
                 for ii in np.unique(sequence):
@@ -607,20 +651,20 @@ class S5Pplot(object):
                                           lons[indx[-1], ::-1],
                                           lons[indx_rev, 0]))
 
-                    poly = Polygon( xy=list(zip(lon, lat)), closed=True,
-                                    alpha=0.2, facecolor=line_colors[3],
-                                    transform=ccrs.PlateCarree() )
+                    poly = Polygon(xy=list(zip(lon, lat)), closed=True,
+                                   alpha=0.6, facecolor=s5p_color,
+                                   transform=ccrs.PlateCarree())
                     axx.add_patch(poly)
 
         # draw sub-satellite coordinates
         if subsatellite:
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
-                        marker='o', color=line_colors[4])
+                        marker='o', color=s5p_color)
 
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        self.__fig_info( fig, fig_info )
+        self.__fig_info( fig, fig_info, aspect=1 )
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()

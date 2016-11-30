@@ -274,7 +274,10 @@ class L1Bio(object):
         self.imsm['icid'] = icid_list
         self.imsm['index'] = np.arange(length, dtype=np.uint32)
         self.imsm['delta_time'] = delta_time
-
+        if length == 1:
+            self.imsm['sequence'] = [0]
+            return
+        
         buff_icid = np.concatenate(([icid_list[0]-10], icid_list,
                                     [icid_list[-1]+10]))
         dt_thres = 10 * master_cycle
