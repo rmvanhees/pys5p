@@ -4,7 +4,7 @@ Installing pyS5p
 Building from source
 --------------------
 
-The latest release of Cartopy is available from:
+The latest release of pyS5p is available from:
 https://github.com/rmvanhees/pys5p
 
 Once you have satisfied the requirements detailed below, simply run::
@@ -46,7 +46,6 @@ available in Linux package managers such as aptitude and yum.
 **PROJ.4** 4.9.0 or later (https://trac.osgeo.org/proj/)
     Cartographic Projections library.
 
-Testing Dependencies
 Testing Dependencies
 ~~~~~~~~~~~~~~~~~~~~
 These packages are required for the full pyS5p test suite to run.
