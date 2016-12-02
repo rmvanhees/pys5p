@@ -20,6 +20,31 @@ import os.path
 import numpy as np
 import h5py
 
+def pad_rows( arr1, arr2 ):
+    """
+    Pad the array with the least numer of rows with NaN's
+    """
+    if arr2.ndim == 2:
+        if arr1.shape[0] < arr2.shape[0]:
+            buff = arr1.copy()
+            arr1 = np.full_like(arr2, np.nan)
+            arr1[0:buff.shape[0], :] = buff
+        elif arr1.shape[0] > arr2.shape[0]:
+            buff = arr2.copy()
+            arr2 = np.full_like(arr1, np.nan)
+            arr2[0:buff.shape[0], :] = buff
+    else:
+        if arr1.shape[1] < arr2.shape[1]:
+            buff = arr1.copy()
+            arr1 = np.full_like(arr2, np.nan)
+            arr1[:, 0:buff.shape[1], :] = buff
+        elif arr1.shape[1] > arr2.shape[1]:
+            buff = arr2.copy()
+            arr2 = np.full_like(arr1, np.nan)
+            arr2[:, 0:buff.shape[1], :] = buff
+
+    return (arr1, arr2)
+
 #--------------------------------------------------
 class L1Bio(object):
     """
@@ -277,7 +302,7 @@ class L1Bio(object):
         if length == 1:
             self.imsm['sequence'] = [0]
             return
-        
+
         buff_icid = np.concatenate(([icid_list[0]-10], icid_list,
                                     [icid_list[-1]+10]))
         dt_thres = 10 * master_cycle
@@ -330,9 +355,8 @@ class L1Bio(object):
            Full path to measurement group
         msm_dset   :  string
             Name of measurement dataset.
-        scan_index :  array-like
-            Indices ot the scanlines to be read or written. If scan_index is
-            None, then all data is read.
+        icid       :  integer
+            Select measurement data of measurements with given ICID
 
         Returns
         -------
@@ -597,7 +621,7 @@ class L1BioCAL(L1Bio):
                                  msm_dset, attr_name )
 
     # ---------- class L1BioCAL::
-    def get_msm_data(self, msm_dset, band='78'):
+    def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -608,6 +632,12 @@ class L1BioCAL(L1Bio):
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
+        msm_to_row : {None, 'padding', 'rebin'}
+            Return the measurement data as stored in the product (None), padded
+            with NaN's for the spectral band with largest number of rows, or
+            rebinned according 'measurement_to_detector_row_table'
+            - Default for spectral bands is to return the data as stored.
+            - Default for spectral channels is to apply padding
 
         Returns
         -------
@@ -617,6 +647,9 @@ class L1BioCAL(L1Bio):
         assert len(band) > 0 and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
+            if msm_to_row is None:
+                msm_to_row = 'padding'
+        assert self.bands.find(band) >= 0
 
         res = None
         for ii in band:
@@ -625,6 +658,9 @@ class L1BioCAL(L1Bio):
             if res is None:
                 res = data
             else:
+                if msm_to_row == 'padding':
+                    (res, data) = pad_rows(res, data)
+
                 res = np.concatenate((res, data), axis=data.ndim-1)
 
         return res
@@ -638,12 +674,14 @@ class L1BioCAL(L1Bio):
         ----------
         msm_dset   :  string
             Name of measurement dataset
+        data       :  array-like
+            data to be written with same dimensions as dataset "msm_dset"
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
-        data       :  array-like
-            data to be written with same dimensions as dataset "msm_dset"
         """
+        assert self.bands.find(band) >= 0
+
         col = 0
         for ii in band:
             dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
@@ -766,7 +804,7 @@ class L1BioIRR(L1Bio):
                                  msm_dset, attr_name )
 
     # ---------- class L1BioIRR::
-    def get_msm_data(self, msm_dset, band='78'):
+    def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -777,6 +815,12 @@ class L1BioIRR(L1Bio):
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
+        msm_to_row : {None, 'padding', 'rebin'}
+            Return the measurement data as stored in the product (None), padded
+            with NaN's for the spectral band with largest number of rows, or
+            rebinned according 'measurement_to_detector_row_table'
+            - Default for spectral bands is to return the data as stored.
+            - Default for spectral channels is to apply padding.
 
         Returns
         -------
@@ -786,6 +830,9 @@ class L1BioIRR(L1Bio):
         assert len(band) > 0 and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
+            if msm_to_row is None:
+                msm_to_row = 'padding'
+        assert self.bands.find(band) >= 0
 
         res = None
         for ii in band:
@@ -794,6 +841,9 @@ class L1BioIRR(L1Bio):
             if res is None:
                 res = data
             else:
+                if msm_to_row == 'padding':
+                    (res, data) = pad_rows(res, data)
+
                 res = np.concatenate((res, data), axis=data.ndim-1)
 
         return res
@@ -807,12 +857,14 @@ class L1BioIRR(L1Bio):
         ----------
         msm_dset   :  string
             Name of measurement dataset
+        data       :  array-like
+            data to be written with same dimensions as dataset "msm_dset"
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
-        data       :  array-like
-            data to be written with same dimensions as dataset "msm_dset"
         """
+        assert self.bands.find(band) >= 0
+
         col = 0
         for ii in band:
             dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
@@ -981,7 +1033,7 @@ class L1BioRAD(L1Bio):
         return super().msm_attr(self.__msm_path, msm_dset, attr_name)
 
     # ---------- class L1BioRAD::
-    def get_msm_data(self, msm_dset, icid=None):
+    def get_msm_data(self, msm_dset, icid=None, msm_to_row=None):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -990,14 +1042,22 @@ class L1BioRAD(L1Bio):
         msm_dset  :  string
            Name of measurement dataset
         icid  :   integer
-           select measurement data of measurements with given ICID
+           Select measurement data of measurements with given ICID
+        msm_to_row : {None, 'rebin'}
+            Return the measurement data as stored in the product (None), or
+            rebinned according 'measurement_to_detector_row_table'
+            - Default is to return the data as stored.
 
         Returns
         -------
         out   :    array-like
            Data of measurement dataset "msm_dset"
         """
-        return super()._get_msm_data(self.__msm_path, msm_dset, icid)
+        if msm_to_row is None:
+            return super()._get_msm_data(self.__msm_path, msm_dset,
+                                         icid=icid)
+        else:
+            return None
 
     # ---------- class L1BioRAD::
     def set_msm_data(self, msm_dset, data, icid=None):

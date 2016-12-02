@@ -72,7 +72,7 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     print( 'instrument settings [{}]: '.format(res.size), res )
     res = l1b.get_housekeeping_data()
     print( 'housekeeping data [{}]: '.format(res.size), res ) 
-    dset = l1b.get_msm_data( msm_dset )
+    dset = l1b.get_msm_data( msm_dset, band=l1b.bands[0:2] )
     print( '{}: {}'.format(msm_dset, dset.shape) )
     del l1b
 
