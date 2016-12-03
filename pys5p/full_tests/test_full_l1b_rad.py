@@ -9,7 +9,7 @@ from unittest import TestCase
 
 def test_rd_radiance(msm_dset=None):
     """
-    Perform some simple tests to check the L1BioRAD classes
+    Perform a full read-test a L1B radiance product using the L1BioRAD class
 
     Please use the code as tutorial
 

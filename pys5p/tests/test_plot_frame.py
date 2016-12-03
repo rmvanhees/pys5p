@@ -23,6 +23,10 @@ def test_frame():
     
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
+    if not os.path.isdir(os.path.join(data_dir, 'OCM')):
+        return
     msmlist = glob(os.path.join(data_dir, 'OCM', '*'))
     sdirlist = glob(os.path.join(msmlist[0], '*'))
 

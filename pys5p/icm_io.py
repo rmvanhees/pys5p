@@ -37,15 +37,16 @@ class ICMio(object):
         readwrite   :  boolean
            open product in read-write mode (default is False)
         """
-        assert os.path.isfile( icm_product ), \
-            '*** Fatal, can not find ICM_CA_SIR file: {}'.format(icm_product)
-
         # initialize class-attributes
         self.__product = icm_product
         self.__rw = readwrite
         self.__msm_path = None
         self.__patched_msm = []
         self.bands = None
+        self.fid = None
+
+        assert os.path.isfile( icm_product ), \
+            '*** Fatal, can not find ICM_CA_SIR file: {}'.format(icm_product)
 
         # open ICM product as HDF5 file
         if readwrite:
@@ -87,7 +88,8 @@ class ICMio(object):
             dset[:] = np.asarray(self.__patched_msm)
 
         self.bands = None
-        self.fid.close()
+        if self.fid is not None:
+            self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod

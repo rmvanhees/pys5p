@@ -24,6 +24,8 @@ def test_ckd_dpqf():
 
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
     dpqm_fl = os.path.join(data_dir, 'CKD', 'dpqf', 'ckd.dpqf.detector4.nc')
 
     with h5py.File( dpqm_fl, 'r' ) as fid:

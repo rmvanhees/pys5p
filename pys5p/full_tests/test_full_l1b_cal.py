@@ -9,7 +9,7 @@ from unittest import TestCase
 
 def test_rd_calib(msm_dset=None):
     """
-    Perform some simple tests to check the L1BioCAL classes
+    Perform a full read-test a L1B calibration product using the L1BioCAL class
 
     Please use the code as tutorial
 
@@ -62,7 +62,6 @@ def test_rd_calib(msm_dset=None):
                 print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
                 
     del l1b
-
 
 if __name__ == '__main__':
     test_rd_calib()

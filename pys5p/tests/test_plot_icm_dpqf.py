@@ -16,15 +16,14 @@ def test_icm_dpqf():
 
     Please use the code as tutorial
     """
-    from pys5p.icm_io import ICMio
-    from pys5p.s5p_plot import S5Pplot
+    from .get_data_dir import get_data_dir
+    from ..icm_io import ICMio
+    from ..s5p_plot import S5Pplot
 
-    if os.path.isdir('/Users/richardh'):
-        data_dir = '/Users/richardh/Data/S5P_ICM_CA_SIR/001000/2012/09/18'
-    elif os.path.isdir('/nfs/TROPOMI/ical/'):
-        data_dir = '/nfs/TROPOMI/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
-    else:
-        data_dir = '/data/richardh/Tropomi/ical/S5P_ICM_CA_SIR/001100/2012/09/18'
+    # obtain path to directory pys5p-data
+    data_dir = get_data_dir()
+    if data_dir is None:
+        return
     fl_name = 'S5P_TEST_ICM_CA_SIR_20120918T131651_20120918T145629_01890_01_001100_20151002T140000.h5'
     icm_product = os.path.join(data_dir, fl_name)
 

@@ -9,7 +9,7 @@ from unittest import TestCase
 
 def test_rd_irrad(msm_dset=None):
     """
-    Perform some simple tests to check the L1BioIRR classes
+    Perform a full read-test a L1B irradiance product using the L1BioIRR class
 
     Please use the code as tutorial
 

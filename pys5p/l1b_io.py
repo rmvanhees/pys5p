@@ -56,16 +56,17 @@ class L1Bio(object):
         """
         Initialize access to a Tropomi offline L1b product
         """
-        assert os.path.isfile( l1b_product ), \
-            '*** Fatal, can not find S5p L1b product: {}'.format(l1b_product)
-
         # initialize private class-attributes
         self.__product = l1b_product
         self.__rw = readwrite
         self.__patched_msm = []
+        self.fid = None
+        self.imsm = None
 
         # open L1b product as HDF5 file
-        self.imsm = None
+        assert os.path.isfile( l1b_product ), \
+            '*** Fatal, can not find S5p L1b product: {}'.format(l1b_product)
+
         if readwrite:
             self.fid = h5py.File( l1b_product, "r+" )
         else:
@@ -107,7 +108,8 @@ class L1Bio(object):
 
             dset[:] = np.asarray(self.__patched_msm)
 
-        self.fid.close()
+        if self.fid is not None:
+            self.fid.close()
 
     # ---------- PUBLIC FUNCTIONS ----------
     @staticmethod

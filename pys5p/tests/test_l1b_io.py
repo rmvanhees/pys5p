@@ -19,7 +19,11 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
 
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
+    if len(filelist) == 0:
+        return
 
     l1b = L1BioCAL(filelist[-1])
     print( l1b )
@@ -56,7 +60,11 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
 
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_IR_*.nc'))
+    if len(filelist) == 0:
+        return
 
     l1b = L1BioIRR(filelist[-1])
     print( l1b )
@@ -87,7 +95,11 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
 
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
+    if len(filelist) == 0:
+        return
 
     l1b = L1BioRAD( filelist[-1] )
     print( l1b )

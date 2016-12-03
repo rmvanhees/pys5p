@@ -21,7 +21,11 @@ def test_rd_icm():
 
     # obtain path to directory pys5p-data
     data_dir = get_data_dir()
+    if data_dir is None:
+        return
     filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
+    if len(filelist) == 0:
+        return
     
     icm = ICMio( os.path.join(data_dir, filelist[0]) )
     print( icm.get_processor_version() )

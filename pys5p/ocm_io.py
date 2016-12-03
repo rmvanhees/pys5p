@@ -37,14 +37,15 @@ class OCMio(object):
            Full path to on-ground calibration measurement
 
         """
-        assert os.path.isfile( ocm_product ), \
-            '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
-
         # initialize class-attributes
         self.__product = ocm_product
         self.__msm_path = None
         self.__patched_msm = []
         self.band = None
+        self.fid  = None
+
+        assert os.path.isfile( ocm_product ), \
+            '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
 
         # open OCM product as HDF5 file
         self.fid = h5py.File( ocm_product, "r" )
@@ -60,7 +61,8 @@ class OCMio(object):
 
     def __del__(self):
         self.band = None
-        self.fid.close()
+        if self.fid is not None:
+            self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
     @staticmethod
