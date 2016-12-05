@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import os.path
 
+from glob import glob
 from unittest import TestCase
 
 import matplotlib
@@ -16,19 +17,21 @@ def test_icm_dpqf():
 
     Please use the code as tutorial
     """
-    from .get_data_dir import get_data_dir
+    from ..get_data_dir import get_data_dir
     from ..icm_io import ICMio
     from ..s5p_plot import S5Pplot
 
     # obtain path to directory pys5p-data
-    data_dir = get_data_dir()
-    if data_dir is None:
+    try:
+        data_dir = get_data_dir()
+    except FileNotFoundError:
         return
-    fl_name = 'S5P_TEST_ICM_CA_SIR_20120918T131651_20120918T145629_01890_01_001100_20151002T140000.h5'
-    icm_product = os.path.join(data_dir, fl_name)
+    filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
+    if len(filelist) == 0:
+        return
 
     # open ICM product
-    icm = ICMio( icm_product )
+    icm = ICMio( os.path.join(data_dir, filelist[0]) )
     if len(icm.select('DPQF_MAP')) > 0:
         dpqm = icm.get_msm_data( 'dpqf_map', band='78' )
 
@@ -39,13 +42,13 @@ def test_icm_dpqf():
     # generate figure
     plot = S5Pplot('test_icm_dpq.pdf')
     plot.draw_quality(dpqm,
-                      title=fl_name,
+                      title=filelist[0],
                       sub_title='dpqf_map')
     plot.draw_quality(dpqm_dark,
-                      title=fl_name,
+                      title=filelist[0],
                       sub_title='dpqm_dark_flux')
     plot.draw_quality(dpqm_noise,
-                      title=fl_name,
+                      title=filelist[0],
                       sub_title='dpqm_noise')
     del plot
     del icm

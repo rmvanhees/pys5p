@@ -17,13 +17,14 @@ def test_frame():
 
     Please use the code as tutorial
     """
-    from .get_data_dir import get_data_dir
+    from ..get_data_dir import get_data_dir
     from ..ocm_io import OCMio
     from ..s5p_plot import S5Pplot
     
     # obtain path to directory pys5p-data
-    data_dir = get_data_dir()
-    if data_dir is None:
+    try:
+        data_dir = get_data_dir()
+    except FileNotFoundError:
         return
     if not os.path.isdir(os.path.join(data_dir, 'OCM')):
         return

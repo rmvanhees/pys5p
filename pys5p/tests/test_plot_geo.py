@@ -17,20 +17,19 @@ def test_geo():
 
     Please use the code as tutorial
     """
-    from .get_data_dir import get_data_dir
-    
+    from ..get_data_dir import get_data_dir
     from ..l1b_io import L1BioCAL, L1BioRAD
     from ..s5p_plot import S5Pplot
 
     # obtain path to directory pys5p-data
-    data_dir = get_data_dir()
-    if data_dir is None:
+    try:
+        data_dir = get_data_dir()
+    except FileNotFoundError:
         return
-    
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
     if len(filelist) == 0:
         return
-    
+
     # test footprint mode
     l1b = L1BioRAD( os.path.join(data_dir, 'L1B', filelist[-1]) )
     l1b.select()

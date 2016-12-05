@@ -16,12 +16,13 @@ def test_rd_icm():
     Please use the code as tutorial
 
     """
-    from .get_data_dir import get_data_dir
+    from ..get_data_dir import get_data_dir
     from ..icm_io import ICMio
 
     # obtain path to directory pys5p-data
-    data_dir = get_data_dir()
-    if data_dir is None:
+    try:
+        data_dir = get_data_dir()
+    except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
     if len(filelist) == 0:
