@@ -14,8 +14,8 @@ def test_rd_calib(msm_dset=None):
     Please use the code as tutorial
 
     """
-    from pys5p.get_data_dir import get_data_dir
-    from pys5p.l1b_io import L1BioCAL
+    from ..get_data_dir import get_data_dir
+    from ..l1b_io import L1BioCAL
 
     # obtain path to directory pys5p-data
     try:

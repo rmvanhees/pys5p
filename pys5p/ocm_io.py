@@ -13,7 +13,6 @@ License:  Standard 3-clause BSD
 
 """
 from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
 
 import os.path
@@ -368,4 +367,4 @@ class OCMio(object):
             return data_a
         else:
             return np.concatenate( (data_a, data_b),
-                                   axis=len(data_a.shape)-1 )
+                                   axis=data_a.ndim-1 )

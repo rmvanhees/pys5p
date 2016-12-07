@@ -12,13 +12,37 @@ License:  Standard 3-clause BSD
 
 """
 from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
 
 import os.path
 
 import numpy as np
 import h5py
+
+def pad_rows( arr1, arr2 ):
+    """
+    Pad the array with the least numer of rows with NaN's
+    """
+    if arr2.ndim == 2:
+        if arr1.shape[0] < arr2.shape[0]:
+            buff = arr1.copy()
+            arr1 = np.full_like(arr2, np.nan)
+            arr1[0:buff.shape[0], :] = buff
+        elif arr1.shape[0] > arr2.shape[0]:
+            buff = arr2.copy()
+            arr2 = np.full_like(arr1, np.nan)
+            arr2[0:buff.shape[0], :] = buff
+    else:
+        if arr1.shape[1] < arr2.shape[1]:
+            buff = arr1.copy()
+            arr1 = np.full_like(arr2, np.nan)
+            arr1[:, 0:buff.shape[1], :] = buff
+        elif arr1.shape[1] > arr2.shape[1]:
+            buff = arr2.copy()
+            arr2 = np.full_like(arr1, np.nan)
+            arr2[:, 0:buff.shape[1], :] = buff
+
+    return (arr1, arr2)
 
 #--------------------------------------------------
 class ICMio(object):
@@ -101,6 +125,56 @@ class ICMio(object):
 
         return version.__version__
 
+    #-------------------------
+    def select(self, msm_type, msm_path=None):
+        """
+        Select a measurement as <processing class>_<ic_id>
+
+        Parameters
+        ----------
+        msm_type :  string
+          name of measurement group
+        msm_path : {'BAND%_ANALYSIS', 'BAND%_CALIBRATION',
+                   'BAND%_IRRADIANCE', 'BAND%_RADIANCE'}
+          name of path in HDF5 file to measurement group
+
+        Returns
+        -------
+        out  :  string
+           String with spectral bands found in product
+
+        Updated object attributes:
+         - bands               : available spectral bands
+        """
+        self.bands = ''
+        self.__msm_path = None
+
+        # if path is given, then only determine avaialble spectral bands
+        # else determine path and avaialble spectral bands
+        if msm_path is not None:
+            assert msm_path.startswith('BAND%') > 0, \
+                '*** Fatal: msm_path should start with BAND%'
+
+            for ii in '12345678':
+                grp_path = os.path.join( msm_path.replace('%', ii), msm_type )
+                if grp_path in self.fid:
+                    self.bands += ii
+        else:
+            grp_list = [ 'ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
+            for ii in '12345678':
+                for name in grp_list:
+                    grp_path = os.path.join( 'BAND{}_{}'.format(ii, name),
+                                             msm_type )
+                    if grp_path in self.fid:
+                        msm_path = 'BAND{}_{}'.format('%', name)
+                        self.bands += ii
+
+        # return in case no data was found
+        if len(self.bands) > 0:
+            self.__msm_path = os.path.join(msm_path, msm_type)
+
+        return self.bands
+
     # ---------- Functions that work before MSM selection ----------
     def get_orbit(self):
         """
@@ -161,6 +235,8 @@ class ICMio(object):
 
         if band is None:
             band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
@@ -210,6 +286,8 @@ class ICMio(object):
 
         if band is None:
             band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
@@ -265,6 +343,8 @@ class ICMio(object):
 
         if band is None:
             band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
@@ -319,6 +399,8 @@ class ICMio(object):
 
         if band is None:
             band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
@@ -359,56 +441,6 @@ class ICMio(object):
         return res
 
     #-------------------------
-    def select(self, msm_type, msm_path=None):
-        """
-        Select a measurement as <processing class>_<ic_id>
-
-        Parameters
-        ----------
-        msm_type :  string
-          name of measurement group
-        msm_path : {'BAND%_ANALYSIS', 'BAND%_CALIBRATION',
-                   'BAND%_IRRADIANCE', 'BAND%_RADIANCE'}
-          name of path in HDF5 file to measurement group
-
-        Returns
-        -------
-        out  :  string
-           String with spectral bands found in product
-
-        Updated object attributes:
-         - bands               : available spectral bands
-        """
-        self.bands = ''
-        self.__msm_path = None
-
-        # if path is given, then only determine avaialble spectral bands
-        # else determine path and avaialble spectral bands
-        if msm_path is not None:
-            assert msm_path.startswith('BAND%') > 0, \
-                '*** Fatal: msm_path should start with BAND%'
-
-            for ii in '12345678':
-                grp_path = os.path.join( msm_path.replace('%', ii), msm_type )
-                if grp_path in self.fid:
-                    self.bands += ii
-        else:
-            grp_list = [ 'ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
-            for ii in '12345678':
-                for name in grp_list:
-                    grp_path = os.path.join( 'BAND{}_{}'.format(ii, name),
-                                             msm_type )
-                    if grp_path in self.fid:
-                        msm_path = 'BAND{}_{}'.format('%', name)
-                        self.bands += ii
-
-        # return in case no data was found
-        if len(self.bands) > 0:
-            self.__msm_path = os.path.join(msm_path, msm_type)
-
-        return self.bands
-
-    #-------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
         """
         Returns value attribute of measurement dataset "msm_dset"
@@ -433,6 +465,8 @@ class ICMio(object):
 
         if band is None:
             band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
             ds_path = os.path.join( self.__msm_path.replace('%', band),
@@ -473,6 +507,9 @@ class ICMio(object):
 
         if band is None:
             band = str(self.bands[0])
+        else:
+            assert self.bands.find(band) >= 0
+
         msm_path = self.__msm_path.replace('%', band)
         msm_type = os.path.basename(self.__msm_path)
 
@@ -517,18 +554,25 @@ class ICMio(object):
 
         return res
 
-    def get_msm_data(self, msm_dset, band='78', fill_as_nan=False):
+    def get_msm_data(self, msm_dset, band='78',
+                     msm_to_row=None, fill_as_nan=False):
         """
         Read datasets from a measurement selected by class-method "select"
 
         Parameters
         ----------
-        msm_dset    :  string
+        msm_dset   :  string
             name of measurement dataset
             if msm_dset is None then show names of available datasets
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
+        msm_to_row : {None, 'padding', 'rebin'}
+            Return the measurement data as stored in the product (None), padded
+            with NaN's for the spectral band with largest number of rows, or
+            rebinned according 'measurement_to_detector_row_table'
+            - Default for spectral bands is to return the data as stored.
+            - Default for spectral channels is to apply padding.
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
@@ -543,6 +587,9 @@ class ICMio(object):
         assert len(band) > 0 and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
+            if msm_to_row is None:
+                msm_to_row = 'padding'            
+        assert self.bands.find(band) >= 0
 
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -562,7 +609,10 @@ class ICMio(object):
                 if res is None:
                     res = data
                 else:
-                    res = np.hstack((res, data))
+                    if msm_to_row == 'padding':
+                        (res, data) = pad_rows(res, data)
+
+                    res = np.concatenate((res, data), axis=data.ndim-1)
 
         return res
 
@@ -583,6 +633,7 @@ class ICMio(object):
 
         """
         assert self.__rw
+        assert self.bands.find(band) >= 0
 
         if self.__msm_path is None:
             return None
