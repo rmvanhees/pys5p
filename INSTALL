@@ -23,33 +23,37 @@ available in Linux package managers such as aptitude and yum.
 **python** 3.5 or later (https://www.python.org/)
     pyS5p requires Python 3.5 or later.
 
-**Cython** 0.25 or later (https://pypi.python.org/pypi/Cython/)
+**Cython** 0.25 or later (http://cython.org/)
+    The Cython compiler for writing C extensions for the Python language.
 
 **numpy** 1.11 or later (http://www.numpy.org/)
-    Python package for scientific computing including a powerful N-dimensional
-    array object.
+    Python package for scientific computing including a powerful N-dimensional array object.
 
-**h5py** 2.6  or later (www.h5py.org/)
+**h5py** 2.6  or later (https://www.h5py.org/)
     HDF5 for Python
 
-**matplotlib** 1.5.x or later (http://matplotlib.org/)
-    Python package for 2D plotting.  This package is required for any
-    graphical capability.
-
-**GEOS** 3.3.3 or later (https://trac.osgeo.org/geos/)
-    GEOS is an API of spatial predicates and functions for processing geometry
-    written in C++.
+**matplotlib** 1.5 or later (http://matplotlib.org/)
+    Python package for 2D plotting.  This package is required for any graphical capability.
 
 **PROJ.4** 4.9.0 or later (https://trac.osgeo.org/proj/)
     Cartographic Projections library.
 
-**PROJ.4** 4.9.0 or later (https://trac.osgeo.org/proj/)
-    Cartographic Projections library.
+**GEOS** 3.5.0 or later (https://trac.osgeo.org/geos/)
+    GEOS is an API of spatial predicates and functions for processing geometry written in C++.
+
+**shapely** 1.5 0r later (https://github.com/Toblerity/Shapely)
+    Shapely is a BSD-licensed Python package for manipulation and analysis of planar geometric objects.
+
+**cartopy** 0.14 or later (http://scitools.org.uk/cartopy/)
+    Cartopy is a Python package designed to make drawing maps for data analysis and visualisation as easy as possible.
+    
+**setup-scm** 1.1 or later (https://github.com/pypa/setuptools_scm/)
+    The blessed package to manage your versions by scm tags
 
 Testing Dependencies
 ~~~~~~~~~~~~~~~~~~~~
 These packages are required for the full pyS5p test suite to run.
 
-**nose** 1.2.1 or later (https://nose.readthedocs.org/en/latest/)
-    Python package for software testing.
+**nose** 1.3 or later (https://pypi.python.org/pypi/nose/)
+    Nose extends unittest to make testing easier
 
