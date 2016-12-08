@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
@@ -18,7 +18,7 @@ import numpy as np
 #import h5py
 
 #--------------------------------------------------
-def fill_constant( array, value ):
+def fill_constant(array, value):
     """
     Basic test-operation: replace values in ndarray with a constant value.
 
@@ -34,7 +34,7 @@ def fill_constant( array, value ):
     out    :  ndarray
        Return an array with each element set to value
     """
-    return np.full_like( array, value )
+    return np.full_like(array, value)
 
 def nonlinearity():
     """
@@ -62,7 +62,7 @@ def nonlinearity():
     """
     pass
 
-def prnu( array, prnu_orig, prnu_patch ):
+def prnu(array, prnu_orig, prnu_patch):
     """
     Patch pixel response non-uniformity correction.
 
@@ -78,7 +78,7 @@ def prnu( array, prnu_orig, prnu_patch ):
      * apply (alternative) stray-light correction
      * apply (alternative) radiance calibration
 
-    Alternative: neglect impact stray-light, but apply patch to correct for 
+    Alternative: neglect impact stray-light, but apply patch to correct for
        spectral features
 
     Parameters
@@ -107,7 +107,7 @@ def straylight():
     """
     Patch in-of-band stray-light correction.
 
-    High priority, correction implemented for the most important measured 
+    High priority, correction implemented for the most important measured
     features, however, at low resolution. Met requirement within factor 3-6.
     Spatial stray-light seems to be the biggest problem. Unclear how hard it
     is to correct
@@ -215,24 +215,24 @@ def _main():
     import argparse
     from pathlib import Path
 
-    from l1b_io import L1BioRAD
+    from pys5p.l1b_io import L1BioRAD
 
     # parse command-line parameters
     parser = argparse.ArgumentParser(
-        description='run test-routines to check class L1BioXXX' )
-    parser.add_argument( 'l1b_product', default=None,
-                         help='name of L1B product (full path)' )
-    parser.add_argument( '--msm_type', default=None,
-                         help='define measurement type as <processing class>_<ic_id>' )
-    parser.add_argument( '--msm_dset', default=None,
-                         help='define measurement dataset to be read/patched' )
-    parser.add_argument( '-o', '--output', default='/tmp',
-                         help='directory to store patched product' )
-    parser.add_argument( '--quiet', dest='verbose', action='store_false',
-                         default=True, help='only show error messages' )
+        description='run test-routines to check class L1BioXXX')
+    parser.add_argument('l1b_product', default=None,
+                        help='name of L1B product (full path)')
+    parser.add_argument('--msm_type', default=None,
+                        help='define measurement type as <processing class>_<ic_id>')
+    parser.add_argument('--msm_dset', default=None,
+                        help='define measurement dataset to be read/patched')
+    parser.add_argument('-o', '--output', default='/tmp',
+                        help='directory to store patched product')
+    parser.add_argument('--quiet', dest='verbose', action='store_false',
+                        default=True, help='only show error messages')
     args = parser.parse_args()
     if args.verbose:
-        print( args )
+        print(args)
     if args.l1b_product is None:
         parser.print_usage()
         parser.exit()
@@ -242,8 +242,8 @@ def _main():
 
     l1b_patch = str(Path(args.output,
                          Path(args.l1b_product.replace('_01_', '_02_')).name))
-    print( args.l1b_product, l1b_patch )
-    #shutil.copy( args.l1b_product, l1b_patch )
+    print(args.l1b_product, l1b_patch)
+    #shutil.copy(args.l1b_product, l1b_patch)
 
     prod_type = Path(l1b_patch).name[0:15]
     if prod_type == 'S5P_OFFL_L1B_RA':
@@ -256,15 +256,15 @@ def _main():
         print('rad: ', msm_type, msm_dset)
 
         # open L1B product and read dataset
-        l1b = L1BioRAD( l1b_patch, readwrite=True )
-        l1b.select( msm_type )
-        data = l1b.get_msm_data( msm_dset )
+        l1b = L1BioRAD(l1b_patch, readwrite=True)
+        l1b.select(msm_type)
+        data = l1b.get_msm_data(msm_dset)
 
         # patch dataset
-        data = fill_constant( data, 7 )
+        data = fill_constant(data, 7)
 
         # write patched data to L1B product
-        l1b.set_msm_data( msm_dset, data )
+        l1b.set_msm_data(msm_dset, data)
 
         # update meta-data of product and flush all changes to disk
         del l1b

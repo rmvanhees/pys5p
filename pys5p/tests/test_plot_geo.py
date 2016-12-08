@@ -1,10 +1,30 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Purpose
+-------
+Perform unittest on S5Pplot.draw_geo
+
+Note
+----
+Please use the code as tutorial
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
+import sys
 import os.path
 
 from glob import glob
-from unittest import TestCase
+#from unittest import TestCase
 
 import matplotlib
 
@@ -13,9 +33,8 @@ matplotlib.use('TkAgg')
 #-------------------------
 def test_geo():
     """
-    Let the user test the software!!!
+    Check classes L1BioCAL, L1BioRAD and S5Pplot.draw_geo
 
-    Please use the code as tutorial
     """
     from ..get_data_dir import get_data_dir
     from ..l1b_io import L1BioCAL, L1BioRAD
@@ -31,30 +50,29 @@ def test_geo():
         return
 
     # test footprint mode
-    l1b = L1BioRAD( os.path.join(data_dir, 'L1B', filelist[-1]) )
+    l1b = L1BioRAD(filelist[-1])
+    print(l1b, file=sys.stderr)
     l1b.select()
-    geo = l1b.get_geo_data( icid=4 )
+    geo = l1b.get_geo_data(icid=4)
     del l1b
 
     plot = S5Pplot('test_plot_geo.pdf')
-    plot.draw_geolocation( geo['latitude'], geo['longitude'],
-                           sequence=geo['sequence'] )
+    plot.draw_geolocation(geo['latitude'], geo['longitude'],
+                          sequence=geo['sequence'])
 
     # test subsatellite mode
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
-    l1b = L1BioCAL( os.path.join(data_dir, filelist[-1]) )
+    l1b = L1BioCAL(filelist[-1])
+    print(l1b, file=sys.stderr)
     l1b.select('BACKGROUND_RADIANCE_MODE_0005')
     geo = l1b.get_geo_data()
     del l1b
 
-    plot.draw_geolocation( geo['satellite_latitude'],
-                           geo['satellite_longitude'],
-                           sequence=geo['sequence'],
-                           subsatellite=True )
-
+    plot.draw_geolocation(geo['satellite_latitude'],
+                          geo['satellite_longitude'],
+                          sequence=geo['sequence'],
+                          subsatellite=True)
     del plot
-    
 
-class TestCmd(TestCase):
-    def test_basic(self):
-        test_geo()
+if __name__ == '__main__':
+    test_geo()

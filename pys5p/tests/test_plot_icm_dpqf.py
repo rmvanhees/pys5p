@@ -1,10 +1,30 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Purpose
+-------
+Perform unittest on S5Pplot.draw_quality
+
+Note
+----
+Please use the code as tutorial
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
+import sys
 import os.path
 
 from glob import glob
-from unittest import TestCase
+#from unittest import TestCase
 
 import matplotlib
 
@@ -13,9 +33,8 @@ matplotlib.use('TkAgg')
 #-------------------------
 def test_icm_dpqf():
     """
-    Let the user test the software!!!
+    Check class OCMio and S5Pplot.draw_quality
 
-    Please use the code as tutorial
     """
     from ..get_data_dir import get_data_dir
     from ..icm_io import ICMio
@@ -31,13 +50,14 @@ def test_icm_dpqf():
         return
 
     # open ICM product
-    icm = ICMio( os.path.join(data_dir, filelist[0]) )
+    icm = ICMio(filelist[0])
+    print(icm, file=sys.stderr)
     if len(icm.select('DPQF_MAP')) > 0:
-        dpqm = icm.get_msm_data( 'dpqf_map', band='78' )
+        dpqm = icm.get_msm_data('dpqf_map', band='78')
 
-        dpqm_dark = icm.get_msm_data( 'dpqm_dark_flux', band='78' )
+        dpqm_dark = icm.get_msm_data('dpqm_dark_flux', band='78')
 
-        dpqm_noise = icm.get_msm_data( 'dpqm_noise', band='78' )
+        dpqm_noise = icm.get_msm_data('dpqm_noise', band='78')
 
     # generate figure
     plot = S5Pplot('test_icm_dpq.pdf')
@@ -52,8 +72,6 @@ def test_icm_dpqf():
                       sub_title='dpqm_noise')
     del plot
     del icm
-    
 
-class TestCmd(TestCase):
-    def test_basic(self):
-        test_icm_dpqf()
+if __name__ == '__main__':
+    test_icm_dpqf()

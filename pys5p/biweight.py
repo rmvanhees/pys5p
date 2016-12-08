@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 

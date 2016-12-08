@@ -1,3 +1,16 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Implement function to obtain path to test-data
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 
 import os.path

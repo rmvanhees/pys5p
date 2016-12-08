@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
@@ -71,22 +71,22 @@ class S5Pplot(object):
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
-    def __init__( self, figname, cmap="Rainbow", mode='frame' ):
+    def __init__(self, figname, cmap="Rainbow", mode='frame'):
         from matplotlib.backends.backend_pdf import PdfPages
 
-        self.__pdf  = PdfPages( figname )
+        self.__pdf  = PdfPages(figname)
         self.__cmap = cmap
         self.__mode = mode
 
-    def __repr__( self ):
+    def __repr__(self):
         pass
 
-    def __del__( self ):
+    def __del__(self):
         self.__pdf.close()
 
     # --------------------------------------------------
     @staticmethod
-    def __fig_info( fig, dict_info, aspect=4 ):
+    def __fig_info(fig, dict_info, aspect=4):
         """
         Add meta-information in the current figure
 
@@ -145,10 +145,10 @@ class S5Pplot(object):
                      horizontalalignment='left')
 
     # --------------------------------------------------
-    def draw_signal( self, data, data_col=None, data_row=None,
-                     data_label='signal', data_unit=None, time_axis=None,
-                     title=None, sub_title=None, fig_info=None,
-                     vperc=None, vrange=None ):
+    def draw_signal(self, data, data_col=None, data_row=None,
+                    data_label='signal', data_unit=None, time_axis=None,
+                    title=None, sub_title=None, fig_info=None,
+                    vperc=None, vrange=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -195,10 +195,10 @@ class S5Pplot(object):
 
         # calculate column/row medians (if required)
         if data_col is None:
-            data_col = np.nanmedian( data, axis=1 )
+            data_col = np.nanmedian(data, axis=1)
 
         if data_row is None:
-            data_row = np.nanmedian( data, axis=0 )
+            data_row = np.nanmedian(data, axis=0)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
         dims = data.shape
@@ -209,26 +209,26 @@ class S5Pplot(object):
 
         if aspect == 1:
             figsize = (16.5001, 15)
-            gdim = np.array([( 1, 12, 2, 8), ( 1, 12, 8, 28),
-                             ( 12, 15, 8, 28), (1, 15, 28, 31)],
+            gdim = np.array([(1, 12, 2, 8), (1, 12, 8, 28),
+                             (12, 15, 8, 28), (1, 15, 28, 31)],
                             dtype=[('xmn','u2'),('xmx','u2'),
                                    ('ymn','u2'),('ymx','u2')])
         elif aspect == 2:
             figsize = (13.5001, 8)
-            gdim = np.array([( 1, 5, 2, 8), ( 1, 5, 8, 22),
-                             ( 5, 8, 8, 22), (1, 8, 22, 25)],
+            gdim = np.array([(1, 5, 2, 8), (1, 5, 8, 22),
+                             (5, 8, 8, 22), (1, 8, 22, 25)],
                             dtype=[('xmn','u2'),('xmx','u2'),
                                    ('ymn','u2'),('ymx','u2')])
         elif aspect == 4:
             figsize = (20.5001, 8)
-            gdim = np.array([( 1, 5, 2, 8), ( 1, 5, 8, 36),
-                             ( 5, 8, 8, 36), (1, 8, 36, 39)],
+            gdim = np.array([(1, 5, 2, 8), (1, 5, 8, 36),
+                             (5, 8, 8, 36), (1, 8, 36, 39)],
                             dtype=[('xmn','u2'),('xmx','u2'),
                                    ('ymn','u2'),('ymx','u2')])
         else:
-            print( '*** FATAL: aspect ratio not implemented, exit' )
+            print('*** FATAL: aspect ratio not implemented, exit')
             return
-        #print( 'aspect: {}'.format(aspect) )
+        #print('aspect: {}'.format(aspect))
 
         # set label and range of X/Y axis
         xlabel = 'column'
@@ -256,7 +256,7 @@ class S5Pplot(object):
                 vperc = (1., 99.)
             else:
                 assert len(vperc) == 2
-            (vmin, vmax) = np.percentile( data[np.isfinite(data)], vperc )
+            (vmin, vmax) = np.percentile(data[np.isfinite(data)], vperc)
         else:
             assert len(vrange) == 2
             (vmin, vmax) = vrange
@@ -264,7 +264,7 @@ class S5Pplot(object):
         if data_unit is None:
             zunit = None
             zlabel = '{}'.format(data_label)
-        elif data_unit.find( 'electron' ) >= 0:
+        elif data_unit.find('electron') >= 0:
             max_value = max(abs(vmin), abs(vmax))
 
             if max_value > 1000000000:
@@ -286,7 +286,7 @@ class S5Pplot(object):
         # inititalize figure
         fig = plt.figure(figsize=figsize)
         if title is not None:
-            fig.suptitle( title, fontsize=24 )
+            fig.suptitle(title, fontsize=24)
         gspec = gridspec.GridSpec(np.rint(figsize[1]).astype(int),
                                   np.rint(2 * figsize[0]).astype(int))
 
@@ -303,11 +303,11 @@ class S5Pplot(object):
         # draw sub-plot 2
         axx = plt.subplot(gspec[gdim[1]['xmn']:gdim[1]['xmx'],
                                 gdim[1]['ymn']:gdim[1]['ymx']])
-        axx.imshow( data / dscale, cmap=self.__cmap, extent=extent,
-                    vmin=vmin / dscale, vmax=vmax / dscale,
-                    aspect='auto', interpolation='none', origin='lower' )
+        axx.imshow(data / dscale, cmap=self.__cmap, extent=extent,
+                   vmin=vmin / dscale, vmax=vmax / dscale,
+                   aspect='auto', interpolation='none', origin='lower')
         if sub_title is not None:
-            axx.set_title( sub_title )
+            axx.set_title(sub_title)
 
         # draw sub-plot 3
         axx = plt.subplot(gspec[gdim[2]['xmn']:gdim[2]['xmx'],
@@ -323,15 +323,15 @@ class S5Pplot(object):
         axx = plt.subplot(gspec[gdim[3]['xmn']:gdim[3]['xmx'],
                                 gdim[3]['ymn']:gdim[3]['ymx']])
         norm = mpl.colors.Normalize(vmin=vmin / dscale, vmax=vmax / dscale)
-        cb1 = mpl.colorbar.ColorbarBase( axx, cmap=self.__cmap, norm=norm,
-                                         orientation='vertical' )
+        cb1 = mpl.colorbar.ColorbarBase(axx, cmap=self.__cmap, norm=norm,
+                                        orientation='vertical')
         cb1.set_label(zlabel)
 
         # add annotation
         if fig_info is None:
             from .biweight import biweight
 
-            (median, spread) = biweight( data, spread=True)
+            (median, spread) = biweight(data, spread=True)
             if zunit is not None:
                 median_str = '{:.5g} {}'.format(median / dscale, zunit)
                 spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
@@ -343,16 +343,16 @@ class S5Pplot(object):
             fig_info.update({'spread' : spread_str})
 
         # save and close figure
-        self.__fig_info( fig, fig_info, aspect )
+        self.__fig_info(fig, fig_info, aspect)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist( self, data_in, error_in,
-                   data_label=None, data_unit=None,
-                   error_label=None, error_unit=None,
-                   title=None, sub_title=None, fig_info=None ):
+    def draw_hist(self, data_in, error_in,
+                  data_label=None, data_unit=None,
+                  error_label=None, error_unit=None,
+                  title=None, sub_title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
@@ -419,37 +419,37 @@ class S5Pplot(object):
 
         fig = plt.figure(figsize=(18, 7.875))
         if title is not None:
-            fig.suptitle( title, fontsize=24 )
+            fig.suptitle(title, fontsize=24)
         gspec = gridspec.GridSpec(6,8)
 
         axx = plt.subplot(gspec[1:3,1:])
-        axx.hist( data,
-                  range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
-                         fig_info['num_sigma'] * fig_info['sign_spread']],
-                  bins=15, color=line_colors[0] )
-        axx.set_title( r'Histogram is centered at the median with range of ' \
-                       r'$\pm 3 \sigma$' )
-        axx.set_xlabel( d_label )
-        axx.set_ylabel( 'count' )
+        axx.hist(data,
+                 range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
+                        fig_info['num_sigma'] * fig_info['sign_spread']],
+                 bins=15, color=line_colors[0])
+        axx.set_title(r'Histogram is centered at the median with range of ' \
+                      r'$\pm 3 \sigma$')
+        axx.set_xlabel(d_label)
+        axx.set_ylabel('count')
         if sub_title is not None:
-            axx.set_title( sub_title )
+            axx.set_title(sub_title)
 
         axx = plt.subplot(gspec[3:5,1:])
-        axx.hist( error,
-                  range=[-fig_info['num_sigma'] * fig_info['error_spread'],
-                         fig_info['num_sigma'] * fig_info['error_spread']],
-                  bins=15, color=line_colors[0] )
-        axx.set_xlabel( e_label )
-        axx.set_ylabel( 'count' )
+        axx.hist(error,
+                 range=[-fig_info['num_sigma'] * fig_info['error_spread'],
+                        fig_info['num_sigma'] * fig_info['error_spread']],
+                 bins=15, color=line_colors[0])
+        axx.set_xlabel(e_label)
+        axx.set_ylabel('count')
 
-        self.__fig_info( fig, fig_info )
+        self.__fig_info(fig, fig_info)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality( self, dpqm, low_thres=0.1, high_thres=0.8,
-                      title=None, sub_title=None, fig_info=None ):
+    def draw_quality(self, dpqm, low_thres=0.1, high_thres=0.8,
+                     title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
 
@@ -478,7 +478,7 @@ class S5Pplot(object):
 
         fig = plt.figure(figsize=(18, 7.875))
         if title is not None:
-            fig.suptitle( title, fontsize=24 )
+            fig.suptitle(title, fontsize=24)
         gspec = gridspec.GridSpec(6,16)
 
         clist = ['#BBBBBB', '#EE6677','#CCBB44','w']
@@ -486,39 +486,39 @@ class S5Pplot(object):
         bounds=[-1, 0, thres_min, thres_max, 10]
         norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
-        dpqf_col_01 = np.sum( ((dpqf >= 0) & (dpqf < thres_min)), axis=1 )
-        dpqf_col_08 = np.sum( ((dpqf >= 0) & (dpqf < thres_max)), axis=1 )
+        dpqf_col_01 = np.sum(((dpqf >= 0) & (dpqf < thres_min)), axis=1)
+        dpqf_col_08 = np.sum(((dpqf >= 0) & (dpqf < thres_max)), axis=1)
 
         axx = plt.subplot(gspec[1:4,0:2])
         axx.step(dpqf_col_08, np.arange(dpqf_col_08.size),
-                 lw=0.5, color=clist[2] )
+                 lw=0.5, color=clist[2])
         axx.step(dpqf_col_01, np.arange(dpqf_col_01.size),
-                 lw=0.6, color=clist[1] )
-        axx.set_xlim( [0, 30] )
-        axx.set_xlabel( 'bad (count)' )
-        axx.set_ylim( [0, dpqf_col_01.size-1] )
-        axx.set_ylabel( 'row' )
+                 lw=0.6, color=clist[1])
+        axx.set_xlim([0, 30])
+        axx.set_xlabel('bad (count)')
+        axx.set_ylim([0, dpqf_col_01.size-1])
+        axx.set_ylabel('row')
         axx.grid(True)
 
         axx = plt.subplot(gspec[1:4,2:14])
-        axx.imshow( dpqf, cmap=cmap, norm=norm,
-                    aspect=1, vmin=-1, vmax=10,
-                    interpolation='none', origin='lower' )
+        axx.imshow(dpqf, cmap=cmap, norm=norm,
+                   aspect=1, vmin=-1, vmax=10,
+                   interpolation='none', origin='lower')
         if sub_title is not None:
-            axx.set_title( sub_title )
+            axx.set_title(sub_title)
 
-        dpqf_row_01 = np.sum( ((dpqf >= 0) & (dpqf < thres_min)), axis=0 )
-        dpqf_row_08 = np.sum( ((dpqf >= 0) & (dpqf < thres_max)), axis=0 )
+        dpqf_row_01 = np.sum(((dpqf >= 0) & (dpqf < thres_min)), axis=0)
+        dpqf_row_08 = np.sum(((dpqf >= 0) & (dpqf < thres_max)), axis=0)
 
         axx = plt.subplot(gspec[4:6,2:14])
         axx.step(np.arange(dpqf_row_08.size), dpqf_row_08,
-                 lw=0.5, color=clist[2] )
+                 lw=0.5, color=clist[2])
         axx.step(np.arange(dpqf_row_01.size), dpqf_row_01,
-                 lw=0.6, color=clist[1] )
-        axx.set_ylim( [0, 10] )
-        axx.set_ylabel( 'bad (count)' )
-        axx.set_xlim( [0, dpqf_row_01.size-1] )
-        axx.set_xlabel( 'column' )
+                 lw=0.6, color=clist[1])
+        axx.set_ylim([0, 10])
+        axx.set_ylabel('bad (count)')
+        axx.set_xlim([0, dpqf_row_01.size-1])
+        axx.set_xlabel('column')
         axx.grid(True)
 
         if fig_info is None:
@@ -529,14 +529,14 @@ class S5Pplot(object):
         fig_info.update({'thres_08': high_thres})
         fig_info.update({'dpqf_08': np.sum(((dpqf >= 0) & (dpqf < thres_max)))})
 
-        self.__fig_info( fig, fig_info )
+        self.__fig_info(fig, fig_info)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
-    def draw_geolocation( self, lats, lons, sequence=None,
-                          subsatellite=False, title=None, fig_info=None ):
+    def draw_geolocation(self, lats, lons, sequence=None,
+                         subsatellite=False, title=None, fig_info=None):
         """
         Display footprint of sub-satellite coordinates project on the globe
 
@@ -554,7 +554,7 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
-        
+
         import cartopy.crs as ccrs
         import cartopy.feature as cfeature
         import shapely.geometry as sgeom
@@ -565,11 +565,16 @@ class S5Pplot(object):
         s5p_color  = '#ee6677'
 
         class BetterTransverseMercator(ccrs.Projection):
+            """
+            Implement improved transverse mercator projection
+
+            By Paul Tol (SRON)
+            """
             def __init__(self, central_latitude=0.0, central_longitude=0.0,
-                         orientation=0, scale_factor=1.0, 
+                         orientation=0, scale_factor=1.0,
                          false_easting=0.0, false_northing=0.0, globe=None):
-                centlon = np.round(central_longitude/15.0)*15.0+0.01
-                gam = np.sign(orientation)*89.99
+                centlon = np.round(central_longitude / 15.0) * 15.0 + 0.01
+                gam = np.sign(orientation) * 89.99
                 proj4_params = [('proj', 'omerc'), ('lat_0', central_latitude),
                                 ('lonc', centlon), ('alpha', '0.01'),
                                 ('gamma', gam), ('over', ''),
@@ -584,11 +589,11 @@ class S5Pplot(object):
 
             @property
             def boundary(self):
-                x0, x1 = self.x_limits
-                y0, y1 = self.y_limits
-                return sgeom.LineString([(x0, y0), (x0, y1),
-                                         (x1, y1), (x1, y0),
-                                         (x0, y0)])
+                xx0, xx1 = self.x_limits
+                yy0, yy1 = self.y_limits
+                return sgeom.LineString([(xx0, yy0), (xx0, yy1),
+                                         (xx1, yy1), (xx1, yy0),
+                                         (xx0, yy0)])
             @property
             def x_limits(self):
                 return (-2e7, 2e7)
@@ -602,7 +607,7 @@ class S5Pplot(object):
         parallel_half = 0.883 * sphere_radius
         meridian_half = 2.360 * sphere_radius
         if lons.max() - lons.min() > 180:
-            if np.sum( lons > 0 ) > np.sum( lons < 0 ):
+            if np.sum(lons > 0) > np.sum(lons < 0):
                 lons[lons < 0] += 360
             else:
                 lons[lons > 0] -= 360
@@ -664,7 +669,7 @@ class S5Pplot(object):
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        self.__fig_info( fig, fig_info, aspect=1 )
+        self.__fig_info(fig, fig_info, aspect=1)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()

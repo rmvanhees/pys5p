@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
@@ -45,7 +45,7 @@ def add_outlier_colors(cdict):
 
     return new_cdict
 
-def register_cmap_rainbow( with_outliers=False ):
+def register_cmap_rainbow(with_outliers=False):
     """
     Register the "Rainbow" color-map
 
@@ -95,7 +95,7 @@ def register_cmap_rainbow( with_outliers=False ):
     else:
         register_cmap(name='Rainbow', data=cdict)
 
-def register_cmap_rainbowbands( with_outliers=False ):
+def register_cmap_rainbowbands(with_outliers=False):
     """
     Register the "RainbowBands" color-map
 
@@ -184,7 +184,7 @@ def register_cmap_rainbowbands( with_outliers=False ):
     else:
         register_cmap(name='RainbowBands', data=cdict)
 
-def register_cmap_extendedrainbow( with_outliers=False ):
+def register_cmap_extendedrainbow(with_outliers=False):
     """
     Register the "ExtendedRainbow" color-map
 
@@ -292,7 +292,7 @@ def register_cmap_extendedrainbow( with_outliers=False ):
     else:
         register_cmap(name='ExtendedRainbow', data=cdict)
 
-def register_cmap_warpedextendedrainbow( with_outliers=False ):
+def register_cmap_warpedextendedrainbow(with_outliers=False):
     """
     Register the "WrapedExtendedRainbow" color-map
 

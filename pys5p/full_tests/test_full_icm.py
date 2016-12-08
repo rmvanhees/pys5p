@@ -1,17 +1,35 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Purpose
+-------
+Perform unittest on ICMio
+
+Note
+----
+Please use the code as tutorial
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
+import sys
 import re
 import os.path
 
 from glob import glob
-from unittest import TestCase
+#from unittest import TestCase
 
 def test_rd_icm(msm_dset=None):
     """
     Perform a full read-test a ICM product using the ICMio class
-
-    Please use the code as tutorial
 
     """
     from ..get_data_dir import get_data_dir
@@ -27,6 +45,7 @@ def test_rd_icm(msm_dset=None):
         return
 
     for name in filelist:
+        print(name, file=sys.stderr )
         icm = ICMio(name)
         print( icm )
         print('version: ', icm.get_processor_version())
@@ -39,7 +58,7 @@ def test_rd_icm(msm_dset=None):
             for key2 in icm.fid[key1]:
                 print('-->', key2)
                 icm.select( key2 )
-                res1 = icm.get_ref_time()
+                _ = icm.get_ref_time()
                 res2 = icm.get_delta_time()
                 print('\t delta time: ', res2.shape)
                 res3 = icm.get_instrument_settings()
@@ -47,7 +66,7 @@ def test_rd_icm(msm_dset=None):
                       res3.shape)
                 res4 = icm.get_housekeeping_data()
                 print('\t housekeeping data [{}]: '.format(res4.size),
-                      res4.shape) 
+                      res4.shape)
 
                 if msm_dset is None:
                     if key1.endswith('_RADIANCE'):

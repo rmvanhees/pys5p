@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
@@ -43,15 +43,15 @@ class OCMio(object):
         self.band = None
         self.fid  = None
 
-        assert os.path.isfile( ocm_product ), \
+        assert os.path.isfile(ocm_product), \
             '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
 
         # open OCM product as HDF5 file
-        self.fid = h5py.File( ocm_product, "r" )
+        self.fid = h5py.File(ocm_product, "r")
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r})'.format( class_name, self.__product )
+        return '{}({!r})'.format(class_name, self.__product)
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -231,7 +231,7 @@ class OCMio(object):
 
             if attr_name in grp[ds_path].attrs.keys():
                 attr = grp[ds_path].attrs['units']
-                if isinstance( attr, bytes):
+                if isinstance(attr, bytes):
                     return attr.decode('ascii')
                 else:
                     return attr
@@ -281,8 +281,8 @@ class OCMio(object):
         return res
 
     @staticmethod
-    def band2channel( dict_a, dict_b,
-                      skip_first=False, skip_last=False, mode=None):
+    def band2channel(dict_a, dict_b,
+                     skip_first=False, skip_last=False, mode=None):
         """
         Store data from a dictionary as returned by get_msm_data to a ndarray
 
@@ -366,5 +366,4 @@ class OCMio(object):
         if data_b is None:
             return data_a
         else:
-            return np.concatenate( (data_a, data_b),
-                                   axis=data_a.ndim-1 )
+            return np.concatenate((data_a, data_b), axis=data_a.ndim-1)

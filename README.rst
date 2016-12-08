@@ -1,6 +1,6 @@
-pys5p
+pyS5p
 ^^^^^
-The pys5p package contains software to read S5p Tropomi L1b products.
+The pyS5p package contains software to read S5p Tropomi L1b products.
 
 For more information on the Sentinel 5 precursor mission visit:
    * https://earth.esa.int/web/guest/missions/esa-future-missions/sentinel-5P

@@ -1,5 +1,5 @@
 """
-This file is part of pys5p
+This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
@@ -20,7 +20,7 @@ import os.path
 import numpy as np
 import h5py
 
-def pad_rows( arr1, arr2 ):
+def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
     """
@@ -64,18 +64,18 @@ class L1Bio(object):
         self.imsm = None
 
         # open L1b product as HDF5 file
-        assert os.path.isfile( l1b_product ), \
+        assert os.path.isfile(l1b_product), \
             '*** Fatal, can not find S5p L1b product: {}'.format(l1b_product)
 
         if readwrite:
-            self.fid = h5py.File( l1b_product, "r+" )
+            self.fid = h5py.File(l1b_product, "r+")
         else:
-            self.fid = h5py.File( l1b_product, "r" )
+            self.fid = h5py.File(l1b_product, "r")
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r}, readwrite={!r})'.format( class_name,
-                                                  self.__product, self.__rw )
+        return '{}({!r}, readwrite={!r})'.format(class_name,
+                                                 self.__product, self.__rw)
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -98,7 +98,7 @@ class L1Bio(object):
         if len(self.__patched_msm) > 0:
             from datetime import datetime
 
-            sgrp = self.fid.create_group( "/METADATA/SRON_METADATA" )
+            sgrp = self.fid.create_group("/METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = self.pys5p_version()
             dtype = h5py.special_dtype(vlen=str)
@@ -221,8 +221,8 @@ class L1Bio(object):
         # This is my workaround
         #
         grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
-        instr = np.empty( grp['instrument_settings'].shape,
-                          dtype=grp['instrument_settings'].dtype )
+        instr = np.empty(grp['instrument_settings'].shape,
+                         dtype=grp['instrument_settings'].dtype)
         grp['instrument_settings'].read_direct(instr)
         #for name in grp['instrument_settings'].dtype.names:
         #    instr[name][:] = grp['instrument_settings'][name]
@@ -294,10 +294,10 @@ class L1Bio(object):
         grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
         delta_time = np.squeeze(grp['delta_time'])
         length = delta_time.size
-        self.imsm = np.empty( (length,), dtype=[('icid','u2'),
-                                                ('sequence','u2'),
-                                                ('index','u4'),
-                                                ('delta_time','u4')])
+        self.imsm = np.empty((length,), dtype=[('icid','u2'),
+                                               ('sequence','u2'),
+                                               ('index','u4'),
+                                               ('delta_time','u4')])
         self.imsm['icid'] = icid_list
         self.imsm['index'] = np.arange(length, dtype=np.uint32)
         self.imsm['delta_time'] = delta_time
@@ -311,8 +311,8 @@ class L1Bio(object):
         buff_time = np.concatenate(([delta_time[0] - 10 * dt_thres], delta_time,
                                     [delta_time[-1] + 10 * dt_thres]))
 
-        indx = np.where( ((buff_time[1:] - buff_time[0:-1]) > dt_thres)
-                         | ((buff_icid[1:] - buff_icid[0:-1]) != 0) )[0]
+        indx = np.where(((buff_time[1:] - buff_time[0:-1]) > dt_thres)
+                        | ((buff_icid[1:] - buff_icid[0:-1]) != 0))[0]
         for ii in range(len(indx)-1):
             self.imsm['sequence'][indx[ii]:indx[ii+1]] = ii
 
@@ -340,7 +340,7 @@ class L1Bio(object):
         ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
         if attr_name in self.fid[ds_path].attrs.keys():
             attr = self.fid[ds_path].attrs['units']
-            if isinstance( attr, bytes ):
+            if isinstance(attr, bytes):
                 return attr.decode('ascii')
             else:
                 return attr
@@ -378,12 +378,12 @@ class L1Bio(object):
                 return None
             indx = self.imsm['index'][self.imsm['icid'] == icid]
             buff = np.concatenate(([indx[0]-10], indx, [indx[-1]+10]))
-            ij = np.where((buff[1:] - buff[0:-1]) != 1)[0]
+            kk = np.where((buff[1:] - buff[0:-1]) != 1)[0]
 
             res = None
-            for ii in range(len(ij)-1):
-                ibgn = indx[ij[ii]]
-                iend = indx[ij[ii+1]-1]+1
+            for ii in range(len(kk)-1):
+                ibgn = indx[kk[ii]]
+                iend = indx[kk[ii+1]-1]+1
                 data = dset[0, ibgn:iend, :, :]
                 if res is None:
                     res = data
@@ -420,7 +420,7 @@ class L1Bio(object):
         # overwrite the data
         if icid is None:
             if dset.shape[1:] != write_data.shape:
-                print( '*** Fatal: patch data has not same shape as original' )
+                print('*** Fatal: patch data has not same shape as original')
                 return None
 
             dset[0,...] = write_data
@@ -429,12 +429,12 @@ class L1Bio(object):
                 return None
             indx = self.imsm['index'][self.imsm['icid'] == icid]
             buff = np.concatenate(([indx[0]-10], indx, [indx[-1]+10]))
-            ij = np.where((buff[1:] - buff[0:-1]) != 1)[0]
+            kk = np.where((buff[1:] - buff[0:-1]) != 1)[0]
 
-            for ii in range(len(ij)-1):
-                ibgn = indx[ij[ii]]
-                iend = indx[ij[ii+1]-1]+1
-                dset[0, ibgn:iend, :, :] = write_data[ij[ii]:ij[ii+1], :, :]
+            for ii in range(len(kk)-1):
+                ibgn = indx[kk[ii]]
+                iend = indx[kk[ii+1]-1]+1
+                dset[0, ibgn:iend, :, :] = write_data[kk[ii]:kk[ii+1], :, :]
 
         # update patch logging
         self.__patched_msm.append(ds_path)
@@ -448,7 +448,7 @@ class L1BioCAL(L1Bio):
     and SWIR (band 7-8).
     """
     def __init__(self, l1b_product, readwrite=False, verbose=False):
-        super().__init__( l1b_product, readwrite=readwrite )
+        super().__init__(l1b_product, readwrite=readwrite)
 
         # initialize class-attributes
         self.__verbose = verbose
@@ -481,7 +481,7 @@ class L1BioCAL(L1Bio):
                 grp_path = os.path.join('BAND{}_{}'.format(ii, name), msm_type)
                 if grp_path in self.fid:
                     if self.__verbose:
-                        print( '*** INFO: found: ', grp_path )
+                        print('*** INFO: found: ', grp_path)
                     self.bands += ii
 
             if len(self.bands) > 0:
@@ -586,7 +586,7 @@ class L1BioCAL(L1Bio):
         dtype = [('sequence','u2')]
         for name in geo_dset.split(','):
             dtype.append((name, 'f4'))
-        res = np.empty( (nscans,), dtype=dtype )
+        res = np.empty((nscans,), dtype=dtype)
         res['sequence'] = self.imsm['sequence']
 
         grp = self.fid[os.path.join(self.__msm_path.replace('%', band),
@@ -619,8 +619,8 @@ class L1BioCAL(L1Bio):
         if band is None:
             band = self.bands[0]
 
-        return super().msm_attr( self.__msm_path.replace('%', band),
-                                 msm_dset, attr_name )
+        return super().msm_attr(self.__msm_path.replace('%', band),
+                                msm_dset, attr_name)
 
     # ---------- class L1BioCAL::
     def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
@@ -655,8 +655,8 @@ class L1BioCAL(L1Bio):
 
         res = None
         for ii in band:
-            data = super()._get_msm_data( self.__msm_path.replace('%', ii),
-                                          msm_dset )
+            data = super()._get_msm_data(self.__msm_path.replace('%', ii),
+                                         msm_dset)
             if res is None:
                 res = data
             else:
@@ -686,9 +686,9 @@ class L1BioCAL(L1Bio):
 
         col = 0
         for ii in band:
-            dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
-            super()._set_msm_data( self.__msm_path.replace('%', ii), msm_dset,
-                                   data[...,col:col+dim[-1]] )
+            dim = super().msm_dims(self.__msm_path.replace('%', ii), msm_dset)
+            super()._set_msm_data(self.__msm_path.replace('%', ii), msm_dset,
+                                  data[...,col:col+dim[-1]])
             col += dim[-1]
 
 #--------------------------------------------------
@@ -697,7 +697,7 @@ class L1BioIRR(L1Bio):
     class with function to access Tropomi offline L1b irradiance products
     """
     def __init__(self, l1b_product, readwrite=False, verbose=False):
-        super().__init__( l1b_product, readwrite=readwrite )
+        super().__init__(l1b_product, readwrite=readwrite)
 
         # initialize class-attributes
         self.__verbose = verbose
@@ -730,7 +730,7 @@ class L1BioIRR(L1Bio):
             grp_path = os.path.join('BAND{}_IRRADIANCE'.format(ii), msm_type)
             if grp_path in self.fid:
                 if self.__verbose:
-                    print( '*** INFO: found: ', grp_path )
+                    print('*** INFO: found: ', grp_path)
                 self.bands += ii
 
         if len(self.bands) > 0:
@@ -802,8 +802,8 @@ class L1BioIRR(L1Bio):
         if band is None:
             band = self.bands[0]
 
-        return super().msm_attr( self.__msm_path.replace('%', band),
-                                 msm_dset, attr_name )
+        return super().msm_attr(self.__msm_path.replace('%', band),
+                                msm_dset, attr_name)
 
     # ---------- class L1BioIRR::
     def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
@@ -838,8 +838,8 @@ class L1BioIRR(L1Bio):
 
         res = None
         for ii in band:
-            data = super()._get_msm_data( self.__msm_path.replace('%', ii),
-                                          msm_dset )
+            data = super()._get_msm_data(self.__msm_path.replace('%', ii),
+                                         msm_dset)
             if res is None:
                 res = data
             else:
@@ -869,9 +869,9 @@ class L1BioIRR(L1Bio):
 
         col = 0
         for ii in band:
-            dim = super().msm_dims( self.__msm_path.replace('%', ii), msm_dset )
-            super()._set_msm_data( self.__msm_path.replace('%', ii), msm_dset,
-                                   data[...,col:col+dim[-1]] )
+            dim = super().msm_dims(self.__msm_path.replace('%', ii), msm_dset)
+            super()._set_msm_data(self.__msm_path.replace('%', ii), msm_dset,
+                                  data[...,col:col+dim[-1]])
             col += dim[-1]
 
 #--------------------------------------------------
@@ -880,7 +880,7 @@ class L1BioRAD(L1Bio):
     class with function to access Tropomi offline L1b radiance products
     """
     def __init__(self, l1b_product, readwrite=False, verbose=False):
-        super().__init__( l1b_product, readwrite=readwrite )
+        super().__init__(l1b_product, readwrite=readwrite)
 
         # initialize class-attributes
         self.__verbose = verbose
@@ -913,7 +913,7 @@ class L1BioRAD(L1Bio):
             grp_path = os.path.join('BAND{}_RADIANCE'.format(ii), msm_type)
             if grp_path in self.fid:
                 if self.__verbose:
-                    print( '*** INFO: found: ', grp_path )
+                    print('*** INFO: found: ', grp_path)
                 self.bands = ii
                 break              # only one band per product
 
@@ -992,7 +992,7 @@ class L1BioRAD(L1Bio):
             dtype = [('sequence','u2')]
             for name in geo_dset.split(','):
                 dtype.append((name, 'f4'))
-            res = np.empty( (nscans, nrows), dtype=dtype )
+            res = np.empty((nscans, nrows), dtype=dtype)
             for ii in range(nscans):
                 res['sequence'][ii, :] = self.imsm['sequence'][ii]
 
@@ -1005,7 +1005,7 @@ class L1BioRAD(L1Bio):
             dtype = [('sequence','u2')]
             for name in geo_dset.split(','):
                 dtype.append((name, 'f4'))
-            res = np.empty( (nscans, nrows), dtype=dtype )
+            res = np.empty((nscans, nrows), dtype=dtype)
             res['sequence'][:, :] = np.repeat(self.imsm['sequence'][indx],
                                               nrows, axis=0).reshape(nscans, nrows)
 

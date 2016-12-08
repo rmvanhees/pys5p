@@ -1,10 +1,29 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Purpose
+-------
+Perform unittest on S5Pplot.draw_signal
+
+Note
+----
+Please use the code as tutorial
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
 import os.path
 
 from glob import glob
-from unittest import TestCase
+#from unittest import TestCase
 
 import matplotlib
 
@@ -13,14 +32,13 @@ matplotlib.use('TkAgg')
 #-------------------------
 def test_frame():
     """
-    Let the user test the software!!!
+    Check class OCMio and S5Pplot.draw_signal
 
-    Please use the code as tutorial
     """
     from ..get_data_dir import get_data_dir
     from ..ocm_io import OCMio
     from ..s5p_plot import S5Pplot
-    
+
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()
@@ -37,7 +55,7 @@ def test_frame():
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
     ocm_product = os.path.join( sdirlist[0], product_b7 )
-    
+
     # open OCAL Lx poduct
     ocm7 = OCMio( ocm_product )
 
@@ -49,7 +67,7 @@ def test_frame():
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
     ocm_product = os.path.join( sdirlist[0], product_b8 )
-    
+
     # open OCAL Lx poduct
     ocm8 = OCMio( ocm_product )
 
@@ -94,6 +112,5 @@ def test_frame():
     del ocm7
     del ocm8
 
-class TestCmd(TestCase):
-    def test_basic(self):
-        test_frame()
+if __name__ == '__main__':
+    test_frame()

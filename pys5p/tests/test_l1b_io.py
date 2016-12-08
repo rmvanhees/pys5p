@@ -1,17 +1,35 @@
+"""
+This file is part of pyS5p
+
+https://github.com/rmvanhees/pys5p.git
+
+Purpose
+-------
+Perform (quick) unittest on the class L1Bio
+
+Note
+----
+Please use the code as tutorial
+
+Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+   All Rights Reserved
+
+License:  Standard 3-clause BSD
+
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 
+import sys
 import os.path
 
 from glob import glob
-from unittest import TestCase
+#from unittest import TestCase
 
 #------------------------- TEST-modules and Tutorials -------------------------
 def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
     """
-    Perform some simple tests to check the L1BioCAL classes
-
-    Please use the code as tutorial
+    Perform some simple checks on the L1BioCAL class
 
     """
     from ..get_data_dir import get_data_dir
@@ -27,10 +45,10 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
         return
 
     l1b = L1BioCAL(filelist[-1])
-    print( l1b )
+    print(l1b, file=sys.stderr)
     print('orbit:   ', l1b.get_orbit())
     print('version: ', l1b.get_processor_version())
-    l1b.select( msm_type )
+    l1b.select(msm_type)
     for key in l1b:
         print('{}: {!r}'.format(key, l1b.__getattribute__(key)))
 
@@ -39,21 +57,19 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
     res = l1b.get_instrument_settings()
     print('instrument settings [{}]: '.format(res.size), res.shape)
     res = l1b.get_housekeeping_data()
-    print('housekeeping data [{}]: '.format(res.size), res.shape) 
+    print('housekeeping data [{}]: '.format(res.size), res.shape)
     geo = l1b.get_geo_data()
     print('geodata: ', geo.dtype.names, geo.shape)
     #for ii in range(geo.size):
-    #    print( ii, geo['sequence'][ii], geo['satellite_latitude'][ii],
-    #           geo['satellite_longitude'][ii] )
-    dset = l1b.get_msm_data( msm_dset, band=l1b.bands[0:2] )
+    #    print(ii, geo['sequence'][ii], geo['satellite_latitude'][ii],
+    #           geo['satellite_longitude'][ii])
+    dset = l1b.get_msm_data(msm_dset, band=l1b.bands[0:2])
     print('{}: {}'.format(msm_dset, dset.shape))
     del l1b
 
 def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     """
-    Perform some simple tests to check the L1BioIRR classes
-
-    Please use the code as tutorial
+    Perform some simple checks on the L1BioIRR class
 
     """
     from ..get_data_dir import get_data_dir
@@ -69,28 +85,27 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
         return
 
     l1b = L1BioIRR(filelist[-1])
-    print( l1b )
+    print(l1b, file=sys.stderr)
     print('orbit:   ', l1b.get_orbit())
     print('version: ', l1b.get_processor_version())
-    l1b.select( msm_type )
+    l1b.select(msm_type)
     for key in l1b:
-        print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
+        print('{}: {!r}'.format(key, l1b.__getattribute__(key)))
 
-    print( 'reference time: ', l1b.get_ref_time() )
-    print( 'delta time: ', l1b.get_delta_time() )
+    print('reference time: ', l1b.get_ref_time())
+    print('delta time: ', l1b.get_delta_time())
     res = l1b.get_instrument_settings()
-    print( 'instrument settings [{}]: '.format(res.size), res.shape )
+    print('instrument settings [{}]: '.format(res.size), res.shape)
     res = l1b.get_housekeeping_data()
-    print( 'housekeeping data [{}]: '.format(res.size), res.shape )
-    dset = l1b.get_msm_data( msm_dset, band=l1b.bands[0:2] )
-    print( '{}: {}'.format(msm_dset, dset.shape) )
+    print('housekeeping data [{}]: '.format(res.size), res.shape)
+    dset = l1b.get_msm_data(msm_dset, band=l1b.bands[0:2])
+    print('{}: {}'.format(msm_dset, dset.shape))
     del l1b
 
 def test_rd_rad(icid=4, msm_dset='radiance'):
     """
-    Perform some simple tests to check the L01BioRAD classes
+    Perform some simple checks on the L01BioRAD class
 
-    Please use the code as tutorial
     """
     from ..get_data_dir import get_data_dir
     from ..l1b_io import L1BioRAD
@@ -104,30 +119,29 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
     if len(filelist) == 0:
         return
 
-    l1b = L1BioRAD( filelist[-1] )
-    print( l1b )
-    print( 'orbit:   ', l1b.get_orbit() )
-    print( 'version: ', l1b.get_processor_version() )
+    l1b = L1BioRAD(filelist[-1])
+    print(l1b, file=sys.stderr)
+    print('orbit:   ', l1b.get_orbit())
+    print('version: ', l1b.get_processor_version())
     l1b.select()
     for key in l1b:
-        print( '{}: {!r}'.format(key, l1b.__getattribute__(key)) )
+        print('{}: {!r}'.format(key, l1b.__getattribute__(key)))
 
-    print( 'reference time: ', l1b.get_ref_time() )
-    print( 'delta time: ', l1b.get_delta_time() )
+    print('reference time: ', l1b.get_ref_time())
+    print('delta time: ', l1b.get_delta_time())
     res = l1b.get_instrument_settings()
-    print( 'instrument settings [{}]: '.format(res.size), res.shape )
-    res = l1b.get_housekeeping_data( icid=icid )
-    print( 'housekeeping data [{}]: '.format(res.size), res.shape )
-    geo = l1b.get_geo_data( icid=icid )
-    print( 'geodata: ', geo.dtype.names, geo.shape )
+    print('instrument settings [{}]: '.format(res.size), res.shape)
+    res = l1b.get_housekeeping_data(icid=icid)
+    print('housekeeping data [{}]: '.format(res.size), res.shape)
+    geo = l1b.get_geo_data(icid=icid)
+    print('geodata: ', geo.dtype.names, geo.shape)
     #for ii in range(geo.shape[0]):
-    #    print( ii, geo['sequence'][ii, 117], geo['latitude'][ii, 117],
-    #           geo['longitude'][ii, 117] )
-    print( msm_dset, l1b.get_msm_data( msm_dset, icid=icid ).shape )
+    #    print(ii, geo['sequence'][ii, 117], geo['latitude'][ii, 117],
+    #           geo['longitude'][ii, 117])
+    print(msm_dset, l1b.get_msm_data(msm_dset, icid=icid).shape)
     del l1b
 
-class TestCmd(TestCase):
-    def test_basic(self):
-        test_rd_calib()
-        test_rd_irrad()
-        test_rd_rad()
+if __name__ == '__main__':
+    test_rd_calib()
+    test_rd_irrad()
+    test_rd_rad()
