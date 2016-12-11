@@ -54,60 +54,60 @@ def test_frame():
 
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
-    ocm_product = os.path.join( sdirlist[0], product_b7 )
+    ocm_product = os.path.join(sdirlist[0], product_b7)
 
     # open OCAL Lx poduct
-    ocm7 = OCMio( ocm_product )
+    ocm7 = OCMio(ocm_product)
 
     # select data of measurement(s) with given ICID
-    if ocm7.select( icid ) > 0:
-        dict_b7 = ocm7.get_msm_data( 'signal' )
-        dict_b7_std = ocm7.get_msm_data( 'signal_error_vals' )
+    if ocm7.select(icid) > 0:
+        dict_b7 = ocm7.get_msm_data('signal')
+        dict_b7_std = ocm7.get_msm_data('signal_error_vals')
 
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
-    ocm_product = os.path.join( sdirlist[0], product_b8 )
+    ocm_product = os.path.join(sdirlist[0], product_b8)
 
     # open OCAL Lx poduct
-    ocm8 = OCMio( ocm_product )
+    ocm8 = OCMio(ocm_product)
 
     # select data of measurement(s) with given ICID
-    if ocm8.select( icid ) > 0:
-        dict_b8 = ocm8.get_msm_data( 'signal' )
-        dict_b8_std = ocm8.get_msm_data( 'signal_error_vals' )
+    if ocm8.select(icid) > 0:
+        dict_b8 = ocm8.get_msm_data('signal')
+        dict_b8_std = ocm8.get_msm_data('signal_error_vals')
 
     # Combine band 7 & 8 data
     for key in dict_b7:
-        print( key, dict_b7[key].shape )
-    data = ocm7.band2channel( dict_b7, dict_b8,
+        print(key, dict_b7[key].shape)
+    data = ocm7.band2channel(dict_b7, dict_b8,
+                             mode=['combine', 'median'],
+                             skip_first=True, skip_last=True)
+    error = ocm7.band2channel(dict_b7_std, dict_b8_std,
                               mode=['combine', 'median'],
-                              skip_first=True, skip_last=True )
-    error = ocm7.band2channel( dict_b7_std, dict_b8_std,
-                               mode=['combine', 'median'],
-                               skip_first=True, skip_last=True )
+                              skip_first=True, skip_last=True)
 
     # Generate figure
     plot = S5Pplot('test_plot_frame.pdf')
-    plot.draw_signal( data,
-                      data_label='signal',
-                      data_unit=ocm7.get_msm_attr('signal', 'units'),
-                      title=ocm7.get_attr('title'),
-                      sub_title='ICID={}'.format(icid),
-                      fig_info=None )
-    plot.draw_signal( error,
+    plot.draw_signal(data,
+                     data_label='signal',
+                     data_unit=ocm7.get_msm_attr('signal', 'units'),
+                     title=ocm7.get_attr('title'),
+                     sub_title='ICID={}'.format(icid),
+                     fig_info=None)
+    plot.draw_signal2(error,
                       data_label='signal_error_vals',
                       data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
                       title=ocm7.get_attr('title'),
                       sub_title='ICID={}'.format(icid),
-                      fig_info=None )
-    plot.draw_hist( data, error,
-                    data_label='signal',
-                    data_unit=ocm7.get_msm_attr('signal', 'units'),
-                    error_label='signal_error_vals',
-                    error_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
-                    title=ocm7.get_attr('title'),
-                    sub_title='ICID={}'.format(icid),
-                    fig_info=None )
+                      fig_info=None)
+    plot.draw_hist(data, error,
+                   data_label='signal',
+                   data_unit=ocm7.get_msm_attr('signal', 'units'),
+                   error_label='signal_error_vals',
+                   error_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
+                   title=ocm7.get_attr('title'),
+                   sub_title='ICID={}'.format(icid),
+                   fig_info=None)
     del plot
     del ocm7
     del ocm8
