@@ -347,7 +347,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_quality(self, qdata, low_thres=0.1, high_thres=0.8,
-                     title=None, sub_title=None, fig_info=None):
+                     qlabels=None, title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
 
@@ -361,6 +361,12 @@ class S5Pplot(object):
            pixels are considered bad
         high_thres  :  float
            threshold for good pixels
+        qlabels     :  list of strings
+           quality ranking labels, default ['invalid', 'bad', 'poor', 'good']
+            - 'invalid': value is negative or NaN
+            - 'bad'    : 0 <= value < low_thres
+            - 'poor'   : low_thres <= value < high_thres
+            - 'good'   : value >= high_thres
         title       :  string
            Title of the figure (use attribute "title" of product)
         sub_title   :  string
@@ -371,6 +377,9 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+        if qlabels is None:
+            qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
         dims = qdata.shape
@@ -395,10 +404,12 @@ class S5Pplot(object):
         qmask = (qdata * 10).astype(np.int8)
 
         # set columns and row with at least 75% dead-pixels to -1
-        unused_cols = np.where(np.sum(qdata, axis=0) < (256 // 4))[0]
+        qmask[~np.isfinite(qdata)] = -1
+        qmask[qmask < -1] = -1
+        unused_cols = np.all(qmask <= 0, axis=0)
         if unused_cols.size > 0:
             qmask[:, unused_cols] = -1
-        unused_rows = np.where(np.sum(qdata, axis=1) < (1000 // 4))[0]
+        unused_rows = np.all(qmask <= 0, axis=1)
         if unused_rows.size > 0:
             qmask[unused_rows, :] = -1
 
@@ -439,7 +450,7 @@ class S5Pplot(object):
         #
         cax = divider.append_axes("right", size=0.3, pad=0.05)
         plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
-        cax.set_yticklabels(['invalid','bad','usable','good'])
+        cax.set_yticklabels(qlabels)
         #
         qmask_row_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=0)
         qmask_row_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=0)
