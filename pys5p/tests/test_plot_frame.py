@@ -94,12 +94,12 @@ def test_frame():
                      title=ocm7.get_attr('title'),
                      sub_title='ICID={}'.format(icid),
                      fig_info=None)
-    plot.draw_signal2(error,
-                      data_label='signal_error_vals',
-                      data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
-                      title=ocm7.get_attr('title'),
-                      sub_title='ICID={}'.format(icid),
-                      fig_info=None)
+    plot.draw_signal(error,
+                     data_label='signal_error_vals',
+                     data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
+                     title=ocm7.get_attr('title'),
+                     sub_title='ICID={}'.format(icid),
+                     fig_info=None)
     plot.draw_hist(data, error,
                    data_label='signal',
                    data_unit=ocm7.get_msm_attr('signal', 'units'),
