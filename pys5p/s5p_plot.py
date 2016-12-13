@@ -159,7 +159,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_signal(self, data, data_col=None, data_row=None,
-                    data_label='signal', data_unit=None, time_axis=None,
+                    data_unit=None, time_axis=None,
                     title=None, sub_title=None, fig_info=None,
                     vperc=None, vrange=None):
         """
@@ -181,8 +181,6 @@ class S5Pplot(object):
         vperc      :  float in range of [0,100]
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
-        data_label :  string
-           Name of dataset. Default is 'signal'
         data_unit  :  string
            Units of dataset. Default is None
         time_axis  :  tuple {None, ('x', t_intg), ('y', t_intg)}
@@ -199,7 +197,7 @@ class S5Pplot(object):
 
         """
         import warnings
-        
+
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -269,7 +267,6 @@ class S5Pplot(object):
 
         if data_unit is None:
             zunit = None
-            zlabel = '{}'.format(data_label)
         elif data_unit.find('electron') >= 0:
             max_value = max(abs(vmin), abs(vmax))
 
@@ -284,50 +281,49 @@ class S5Pplot(object):
                 zunit = data_unit.replace('electron', 'ke')
             else:
                 zunit = data_unit.replace('electron', 'e')
-            zlabel = '{} [{}]'.format(data_label, zunit)
         else:
             zunit = data_unit
-            zlabel = '{} [{}]'.format(data_label, data_unit)
 
         # inititalize figure
-        fig, axImg = plt.subplots(figsize=figsize)
+        fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
             fig.suptitle(title, fontsize=24)
 
         # the image plot:
-        im = axImg.imshow(data / dscale, cmap=self.__cmap, extent=extent,
-                          vmin=vmin / dscale, vmax=vmax / dscale,
-                          aspect='equal', interpolation='none', origin='lower')
-        for tl in axImg.get_xticklabels():
-            tl.set_visible(False)
-        for tl in axImg.get_yticklabels():
-            tl.set_visible(False)
+        img = ax_img.imshow(data / dscale, cmap=self.__cmap, extent=extent,
+                            vmin=vmin / dscale, vmax=vmax / dscale,
+                            aspect='equal', interpolation='none',
+                            origin='lower')
+        for xtl in ax_img.get_xticklabels():
+            xtl.set_visible(False)
+        for ytl in ax_img.get_yticklabels():
+            ytl.set_visible(False)
         if sub_title is not None:
-            axImg.set_title(sub_title)
+            ax_img.set_title(sub_title)
 
         # create new axes on the right and on the top of the current axes
         # The first argument of the new_vertical(new_horizontal) method is
         # the height (width) of the axes to be created in inches.
-        divider = make_axes_locatable(axImg)
+        divider = make_axes_locatable(ax_img)
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(im, cax=cax)
-        # 
-        axMedx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=axImg)
-        axMedx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
-        axMedx.set_xlim([0, xmax])
-        axMedx.grid(linestyle=':')
-        axMedx.locator_params(axis='x', nbins=6)
-        axMedx.locator_params(axis='y', nbins=4)
-        axMedx.set_xlabel(xlabel)
-        # 
-        axMedy = divider.append_axes("left", 1.1, pad=0.25, sharey=axImg)
-        axMedy.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
-        axMedy.set_ylim([0, ymax])
-        axMedy.grid(linestyle=':')
-        axMedy.locator_params(axis='x', nbins=4)
-        axMedy.set_ylabel(ylabel)
+        plt.colorbar(img, cax=cax)
+        #
+        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
+        ax_medx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
+        ax_medx.set_xlim([0, xmax])
+        ax_medx.grid(linestyle=':')
+        ax_medx.locator_params(axis='x', nbins=6)
+        ax_medx.locator_params(axis='y', nbins=4)
+        ax_medx.set_xlabel(xlabel)
+        #
+        ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
+        ax_medy.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
+        ax_medy.set_ylim([0, ymax])
+        ax_medy.grid(linestyle=':')
+        ax_medy.locator_params(axis='x', nbins=4)
+        ax_medy.set_ylabel(ylabel)
 
         # add annotation
         if fig_info is None:
@@ -350,26 +346,37 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality(self, dpqm, low_thres=0.1, high_thres=0.8,
+    def draw_quality(self, qdata, low_thres=0.1, high_thres=0.8,
                      title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
 
         Parameters
         ----------
-        dpqm        :  ndarray
-           Numpy array (2D) holding pixel-quality data
+        qdata        :  ndarray
+           Numpy array (2D) holding quality data, range [0, 1] or NaN.
+           Zero is for dead pixels and one is for excellent pixels.
+        low_thres   :  float
+           threshold for usable pixels (with caution), below this threshold
+           pixels are considered bad
+        high_thres  :  float
+           threshold for good pixels
         title       :  string
            Title of the figure (use attribute "title" of product)
         sub_title   :  string
            Sub-title of the figure (use attribute "comment" of product)
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
 
         """
-        from matplotlib import pyplot as plt, ticker
+        from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = dpqm.shape
+        dims = qdata.shape
+        xdata = np.arange(dims[1], dtype=float)
+        ydata = np.arange(dims[0], dtype=float)
+        extent = [0, dims[1], 0, dims[0]]
         aspect = int(np.round(dims[1] / dims[0]))
 
         if aspect == 1:
@@ -382,29 +389,27 @@ class S5Pplot(object):
             print('*** FATAL: aspect ratio not implemented, exit')
             return
 
-        # scale data to [0, 10]
+        # scale data to integers between [0, 10]
         thres_min = 10 * low_thres
         thres_max = 10 * high_thres
-        dpqf = (dpqm * 10).astype(np.int8)
+        qmask = (qdata * 10).astype(np.int8)
 
-        xmax = dpqm.shape[1]
-        xdata = np.arange(xmax, dtype=float)
-        ymax = dpqm.shape[0]
-        ydata = np.arange(ymax, dtype=float)
-        extent = [0, xmax, 0, ymax]
-
-        # set columns and row with atleast 75% dead-pixels to -1
-        unused_cols = np.where(np.sum(dpqm, axis=0) < (256 // 4))[0]
+        # set columns and row with at least 75% dead-pixels to -1
+        unused_cols = np.where(np.sum(qdata, axis=0) < (256 // 4))[0]
         if unused_cols.size > 0:
-            dpqf[:, unused_cols] = -1
-        unused_rows = np.where(np.sum(dpqm, axis=1) < (1000 // 4))[0]
+            qmask[:, unused_cols] = -1
+        unused_rows = np.where(np.sum(qdata, axis=1) < (1000 // 4))[0]
         if unused_rows.size > 0:
-            dpqf[unused_rows, :] = -1
+            qmask[unused_rows, :] = -1
 
         # define colormap with only 4 colors
         clist = ['#BBBBBB', '#EE6677','#CCBB44','#FFFFFF']
         cmap = mpl.colors.ListedColormap(clist)
-        bounds=[-1, 0, thres_min, thres_max, 10]
+        bounds = [-1, 0, thres_min, thres_max, 10]
+        mbounds = [(bounds[1] + bounds[0]) / 2,
+                   (bounds[2] + bounds[1]) / 2,
+                   (bounds[3] + bounds[2]) / 2,
+                   (bounds[4] + bounds[3]) / 2]
         norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
         # set label and range of X/Y axis
@@ -412,61 +417,62 @@ class S5Pplot(object):
         ylabel = 'row'
 
         # inititalize figure
-        fig, axImg = plt.subplots(figsize=figsize)
+        fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
             fig.suptitle(title, fontsize=24)
 
         # the image plot:
-        im = axImg.imshow(dpqf, cmap=cmap, norm=norm, extent=extent,
-                          vmin=-1, vmax=10, aspect='equal',
-                          interpolation='none', origin='lower')
-        for tl in axImg.get_xticklabels():
-            tl.set_visible(False)
-        for tl in axImg.get_yticklabels():
-            tl.set_visible(False)
+        img = ax_img.imshow(qmask, cmap=cmap, norm=norm, extent=extent,
+                            vmin=-1, vmax=10, aspect='equal',
+                            interpolation='none', origin='lower')
+        for xtl in ax_img.get_xticklabels():
+            xtl.set_visible(False)
+        for ytl in ax_img.get_yticklabels():
+            ytl.set_visible(False)
         if sub_title is not None:
-            axImg.set_title(sub_title)
+            ax_img.set_title(sub_title)
 
         # create new axes on the right and on the top of the current axes
         # The first argument of the new_vertical(new_horizontal) method is
         # the height (width) of the axes to be created in inches.
-        divider = make_axes_locatable(axImg)
+        divider = make_axes_locatable(ax_img)
         #
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(im, cax=cax, ticks=[-.5,.5,4.5,9],
-                     boundaries=[-1,0,1,8,10])
+        plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
         cax.set_yticklabels(['invalid','bad','usable','good'])
         #
-        dpqf_row_01 = np.sum(((dpqf >= 0) & (dpqf < thres_min)), axis=0)
-        dpqf_row_08 = np.sum(((dpqf >= 0) & (dpqf < thres_max)), axis=0)
-        axMedx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=axImg)
-        axMedx.step(xdata, dpqf_row_08, lw=0.5, color=clist[2])
-        axMedx.step(xdata, dpqf_row_01, lw=0.6, color=clist[1])
-        axMedx.set_xlim([0, xmax])
-        axMedx.grid(linestyle=':')
-        axMedx.locator_params(axis='x', nbins=6)
-        axMedx.locator_params(axis='y', nbins=3)
-        axMedx.set_xlabel(xlabel)
+        qmask_row_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=0)
+        qmask_row_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=0)
+        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
+        ax_medx.step(xdata, qmask_row_08, lw=0.5, color=clist[2])
+        ax_medx.step(xdata, qmask_row_01, lw=0.6, color=clist[1])
+        ax_medx.set_xlim([0, dims[1]])
+        ax_medx.grid(linestyle=':')
+        ax_medx.locator_params(axis='x', nbins=6)
+        ax_medx.locator_params(axis='y', nbins=3)
+        ax_medx.set_xlabel(xlabel)
         #
-        dpqf_col_01 = np.sum(((dpqf >= 0) & (dpqf < thres_min)), axis=1)
-        dpqf_col_08 = np.sum(((dpqf >= 0) & (dpqf < thres_max)), axis=1)
-        axMedy = divider.append_axes("left", 1.1, pad=0.25, sharey=axImg)
-        axMedy.step(dpqf_col_08, ydata, lw=0.5, color=clist[2])
-        axMedy.step(dpqf_col_01, ydata, lw=0.6, color=clist[1])
-        axMedy.set_ylim([0, ymax])
-        axMedy.grid(linestyle=':')
-        axMedy.locator_params(axis='x', nbins=3)
-        axMedy.locator_params(axis='y', nbins=4)
-        axMedy.set_ylabel(ylabel)
+        qmask_col_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=1)
+        qmask_col_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=1)
+        ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
+        ax_medy.step(qmask_col_08, ydata, lw=0.5, color=clist[2])
+        ax_medy.step(qmask_col_01, ydata, lw=0.6, color=clist[1])
+        ax_medy.set_ylim([0, dims[0]])
+        ax_medy.grid(linestyle=':')
+        ax_medy.locator_params(axis='x', nbins=3)
+        ax_medy.locator_params(axis='y', nbins=4)
+        ax_medy.set_ylabel(ylabel)
 
         # add annotation
         if fig_info is None:
             fig_info = OrderedDict({'thres_01': low_thres})
         else:
             fig_info.update({'thres_01': low_thres})
-        fig_info.update({'dpqf_01': np.sum(((dpqf >= 0) & (dpqf < thres_min)))})
+        fig_info.update({'qmask_01': np.sum(((qmask >= 0)
+                                             & (qmask < thres_min)))})
         fig_info.update({'thres_08': high_thres})
-        fig_info.update({'dpqf_08': np.sum(((dpqf >= 0) & (dpqf < thres_max)))})
+        fig_info.update({'qmask_08': np.sum(((qmask >= 0)
+                                             & (qmask < thres_max)))})
 
         self.__fig_info(fig, fig_info, aspect, fontsize=10)
         self.__pdf.savefig()
@@ -713,9 +719,9 @@ class S5Pplot(object):
     # --------------------------------------------------
     def draw_cmp_swir(self, data_in, model_in,
                       data_label='signal', data_unit=None,
-                      model_label='reference', hist=False,
+                      model_label='reference',
                       vrange=None, vperc=None,
-                      title=None, sub_title=None, fig_info=None):
+                      title=None, sub_title=None):
         """
         Display signal / model comparison by three pannels.
         Top pannel shows data, middle pannel shows resuduals (data- model)
@@ -742,14 +748,10 @@ class S5Pplot(object):
            Units of dataset.  Default is None
         model_label :  string
            Name of dataset.  Default is 'reference'
-        hist        :  boolean
-           Display histograms data values and residual values
         title       :  string
            Title of the figure (use attribute "title" of product)
         sub_title   :  string
            Sub-title of the figure (use attribute "comment" of product)
-        fig_info    :  dictionary
-           Dictionary holding meta-data to be displayed in the figure
 
         """
         from matplotlib import pyplot as plt
@@ -813,71 +815,71 @@ class S5Pplot(object):
         fig = plt.figure(figsize=figsize)
         if title is not None:
             fig.suptitle(title, fontsize=24)
-        gs = GridSpec(4, 2)
+        gspec = GridSpec(4, 2)
 
         # create top-pannel with measurements
-        ax1 = plt.subplot(gs[0, :])
-        for tl in ax1.get_xticklabels():
-            tl.set_visible(False)
+        ax1 = plt.subplot(gspec[0, :])
+        for xtl in ax1.get_xticklabels():
+            xtl.set_visible(False)
         if sub_title is not None:
             ax1.set_title(sub_title)
-        im = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
-                        interpolation='none', origin='lower')
+        img = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
+                         interpolation='none', origin='lower')
         ax1.set_xlim([0, signal.shape[1]])
         ax1.locator_params(axis='x', nbins=5)
         ax1.set_ylim([0, signal.shape[0]])
         ax1.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
-        cbar = plt.colorbar(im)
+        cbar = plt.colorbar(img)
         if zlabel is not None:
             cbar.set_label(zlabel)
 
         # create centre-pannel with residuals
         (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
-        ax2 = plt.subplot(gs[1, :], sharex=ax1)
-        for tl in ax2.get_xticklabels():
-            tl.set_visible(False)
-        im = ax2.imshow(residual, vmin=rmin, vmax=rmax, aspect='equal',
-                        interpolation='none', origin='lower')
+        ax2 = plt.subplot(gspec[1, :], sharex=ax1)
+        for xtl in ax2.get_xticklabels():
+            xtl.set_visible(False)
+        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, aspect='equal',
+                         interpolation='none', origin='lower')
         ax2.set_xlim([0, signal.shape[1]])
         ax2.locator_params(axis='x', nbins=5)
         ax2.set_ylim([0, signal.shape[0]])
         ax2.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
-        cbar = plt.colorbar(im)
+        cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label('residuals')
         else:
             cbar.set_label('residuals {}'.format(zunit))
 
         # create lower-pannel with reference (model, CKD, previous measurement)
-        ax3 = plt.subplot(gs[2, :], sharex=ax1)
-        im = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
-                        interpolation='none', origin='lower')
+        ax3 = plt.subplot(gspec[2, :], sharex=ax1)
+        img = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
+                         interpolation='none', origin='lower')
         ax3.set_xlim([0, signal.shape[1]])
         ax3.locator_params(axis='x', nbins=5)
         ax3.set_ylim([0, signal.shape[0]])
         ax3.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
-        cbar = plt.colorbar(im)
+        cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label(model_label)
         else:
             cbar.set_label('{} {}'.format(model_label, zunit))
-        
+
         # ignore NaN's and flatten the images for the hostograms
         mask = np.isfinite(data_in) & np.isfinite(model_in)
         signal = dscale * data_in[mask]
         residual = dscale * (data_in[mask] - model_in[mask])
 
-        ax4 = plt.subplot(gs[3, 0])
+        ax4 = plt.subplot(gspec[3, 0])
         ax4.hist(signal, range=[vmin, vmax], bins=15, normed=True,
                  color=line_colors[0])
         ax4.set_xlabel(zlabel)
         ax4.set_ylabel('fraction')
         ax4.grid(which='major', color='0.5', lw=0.5, ls='--')
 
-        ax5 = plt.subplot(gs[3, 1])
+        ax5 = plt.subplot(gspec[3, 1])
         ax5.hist(residual, range=[rmin, rmax], bins=15, normed=True,
                  color=line_colors[0])
         if zunit is None:
@@ -885,9 +887,8 @@ class S5Pplot(object):
         else:
             ax5.set_xlabel('residual {}'.format(zunit))
         ax5.grid(which='major', color='0.5', lw=0.5, ls='--')
-        
+
         # save and close figure
-        #self.__fig_info(fig, fig_info, aspect)
         plt.draw()
         self.__pdf.savefig()
         plt.close()
