@@ -33,8 +33,10 @@ def test_rd_icm():
     Perform some simple checks on the ICMio class
 
     """
-    from ..get_data_dir import get_data_dir
+    from .get_data_dir import get_data_dir
     from ..icm_io import ICMio
+    ##from pys5p.get_data_dir import get_data_dir
+    ##from pys5p.icm_io import ICMio
 
     # obtain path to directory pys5p-data
     try:
@@ -97,12 +99,12 @@ def test_rd_icm():
         print('radiance_avg_row: ', res.shape)
         print(icm.get_msm_attr('radiance_avg_row', 'units'))
 
-    fl_patch = filelist[0].replace('_TEST_', '_PATCH_')
-    print(os.path.join(data_dir, filelist[0]))
-    print(os.path.join('/tmp', fl_patch))
-    shutil.copy(os.path.join(data_dir, filelist[0]),
-                os.path.join('/tmp', fl_patch))
-    icm = ICMio(os.path.join('/tmp', fl_patch), readwrite=True)
+    ## check patching of ICM product
+    fl_patch = os.path.basename(filelist[0])
+    fl_patch = os.path.join('/tmp', fl_patch.replace('_TEST_', '_PATCH_'))
+    print(fl_patch)
+    shutil.copy(filelist[0], fl_patch)
+    icm = ICMio(fl_patch, readwrite=True)
     icm.select('BACKGROUND_MODE_1063')
     res = icm.get_msm_data('signal_avg', '7')
     print('signal_avg[7]: ', res.shape)

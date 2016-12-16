@@ -1002,7 +1002,7 @@ class L1BioRAD(L1Bio):
             indx = self.imsm['index'][self.imsm['icid'] == icid]
             nscans = len(indx)
 
-            dtype = [('sequence','u2')]
+            dtype = [('sequence', 'u2')]
             for name in geo_dset.split(','):
                 dtype.append((name, 'f4'))
             res = np.empty((nscans, nrows), dtype=dtype)

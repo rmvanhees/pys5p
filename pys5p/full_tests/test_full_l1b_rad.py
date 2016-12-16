@@ -33,6 +33,8 @@ def test_rd_radiance(msm_dset=None):
     """
     from ..get_data_dir import get_data_dir
     from ..l1b_io import L1BioRAD
+    ##from pys5p.get_data_dir import get_data_dir
+    ##from pys5p.l1b_io import L1BioRAD
 
     # obtain path to directory pys5p-data
     try:
@@ -73,11 +75,12 @@ def test_rd_radiance(msm_dset=None):
                 else:
                     dset_name = msm_dset
 
-                dset = l1b.get_msm_data( dset_name )
+                dset = l1b.get_msm_data(dset_name)
                 print('\t {}[:]: {}'.format(dset_name, dset.shape))
                 print()
                 for icid in sorted(res3['ic_id']):
-                    geo = l1b.get_geo_data(icid=icid)
+                    geo = l1b.get_geo_data(geo_dset='latitude,longitude',
+                                           icid=icid)
                     print('\t geodata[{}]: {}'.format(icid, geo.shape))
                     dset = l1b.get_msm_data(dset_name, icid=icid)
                     print('\t {}[{}]: {}'.format(dset_name, icid, dset.shape))
