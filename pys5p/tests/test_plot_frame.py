@@ -89,24 +89,21 @@ def test_frame():
     # Generate figure
     plot = S5Pplot('test_plot_frame.pdf')
     plot.draw_signal(data,
-                     data_label='signal',
                      data_unit=ocm7.get_msm_attr('signal', 'units'),
                      title=ocm7.get_attr('title'),
-                     sub_title='ICID={}'.format(icid),
+                     sub_title='signal ICID={}'.format(icid),
                      fig_info=None)
     plot.draw_signal(error,
-                     data_label='signal_error_vals',
                      data_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
                      title=ocm7.get_attr('title'),
-                     sub_title='ICID={}'.format(icid),
+                     sub_title='signal_error_vals ICID={}'.format(icid),
                      fig_info=None)
     plot.draw_hist(data, error,
-                   data_label='signal',
                    data_unit=ocm7.get_msm_attr('signal', 'units'),
                    error_label='signal_error_vals',
                    error_unit=ocm7.get_msm_attr('signal_error_vals', 'units'),
                    title=ocm7.get_attr('title'),
-                   sub_title='ICID={}'.format(icid),
+                   sub_title='signal ICID={}'.format(icid),
                    fig_info=None)
     del plot
     del ocm7

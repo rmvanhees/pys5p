@@ -99,10 +99,10 @@ def test_rd_icm():
 
     fl_patch = filelist[0].replace('_TEST_', '_PATCH_')
     print(os.path.join(data_dir, filelist[0]))
-    print(os.path.join(data_dir, fl_patch))
+    print(os.path.join('/tmp', fl_patch))
     shutil.copy(os.path.join(data_dir, filelist[0]),
-                os.path.join(data_dir, fl_patch))
-    icm = ICMio(os.path.join(data_dir, fl_patch), readwrite=True)
+                os.path.join('/tmp', fl_patch))
+    icm = ICMio(os.path.join('/tmp', fl_patch), readwrite=True)
     icm.select('BACKGROUND_MODE_1063')
     res = icm.get_msm_data('signal_avg', '7')
     print('signal_avg[7]: ', res.shape)
