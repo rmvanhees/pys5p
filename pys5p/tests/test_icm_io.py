@@ -33,7 +33,7 @@ def test_rd_icm():
     Perform some simple checks on the ICMio class
 
     """
-    from .get_data_dir import get_data_dir
+    from ..get_data_dir import get_data_dir
     from ..icm_io import ICMio
     ##from pys5p.get_data_dir import get_data_dir
     ##from pys5p.icm_io import ICMio
