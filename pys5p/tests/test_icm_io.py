@@ -105,7 +105,8 @@ def test_rd_icm():
     print(fl_patch)
     shutil.copy(filelist[0], fl_patch)
     icm = ICMio(fl_patch, readwrite=True)
-    icm.select('BACKGROUND_MODE_1063')
+    bands = icm.select('BACKGROUND_MODE_1633')
+    print('bands: ', bands)
     res = icm.get_msm_data('signal_avg', '7')
     print('signal_avg[7]: ', res.shape)
     res[:,:] = 2

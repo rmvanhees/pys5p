@@ -160,7 +160,7 @@ class ICMio(object):
                 if grp_path in self.fid:
                     self.bands += ii
         else:
-            grp_list = [ 'ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
+            grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
             for ii in '12345678':
                 for name in grp_list:
                     grp_path = os.path.join('BAND{}_{}'.format(ii, name),
