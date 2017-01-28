@@ -237,7 +237,8 @@ class OCMio(object):
                     return attr
         return None
 
-    def get_msm_data(self, msm_dset, fill_as_nan=False):
+    def get_msm_data(self, msm_dset, fill_as_nan=False,
+                     frames=None, columns=None):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -271,7 +272,17 @@ class OCMio(object):
             for msm in sorted(self.__msm_path):
                 ds_path = os.path.join(msm, 'OBSERVATIONS', msm_dset)
 
-                data = np.squeeze(grp[ds_path])
+                if frames is None and columns is None:
+                    data = grp[ds_path][:, :-1, :]
+                elif frames is not None:
+                    if columns is not None:
+                        data = grp[ds_path][frames[0]:frames[1],
+                                            :-1, columns[0]:columns[1]]
+                    else:
+                        data = grp[ds_path][frames[0]:frames[1], :-1, :]
+                else:
+                    data = grp[ds_path][:, :-1, columns[0]:columns[1]]
+
                 if fill_as_nan \
                    and grp[ds_path].attrs['_FillValue'] == fillvalue:
                     data[(data == fillvalue)] = np.nan
