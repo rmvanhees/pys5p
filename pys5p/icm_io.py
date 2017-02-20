@@ -103,13 +103,19 @@ class ICMio(object):
         if len(self.__patched_msm) > 0:
             from datetime import datetime
 
-            sgrp = self.fid.create_group("METADATA/SRON_METADATA")
+            sgrp = self.fid.require_group("METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = self.pys5p_version()
-            dtype = h5py.special_dtype(vlen=str)
-            dset = sgrp.create_dataset('patched_datasets',
-                                       (len(self.__patched_msm),), dtype=dtype)
-            dset[:] = np.asarray(self.__patched_msm)
+            if 'patched_datasets' not in sgrp:
+                dtype = h5py.special_dtype(vlen=str)
+                dset = sgrp.create_dataset('patched_datasets', 
+                                           (len(self.__patched_msm),),
+                                           maxshape=(None,), dtype=dtype)
+                dset[:] = np.asarray(self.__patched_msm)
+            else:
+                dset = sgrp['patched_datasets']
+                dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
+                dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
 
         self.bands = None
         if self.fid is not None:
@@ -124,6 +130,33 @@ class ICMio(object):
         from . import version
 
         return version.__version__
+
+    #-------------------------
+    def find(self, msm_class):
+        """
+        find a measurement as <processing-class name>
+
+        Parameters
+        ----------
+        msm_class :  string
+          processing-class name without ICID
+
+        Returns
+        -------
+        out  :  list of strings
+           String with msm_type as used by ICMio.select
+        """
+        res = []
+        
+        grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
+        for ii in '12345678':
+            for name in grp_list:
+                grp_name = 'BAND{}_{}'.format(ii, name)
+                if grp_name in self.fid:
+                    gid = self.fid[grp_name]
+                    res += [s for s in gid if s.startswith(msm_class)]
+
+        return list(set(res))
 
     #-------------------------
     def select(self, msm_type, msm_path=None):
@@ -416,9 +449,9 @@ class ICMio(object):
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
-                    res = sgrp['housekeeping_data'][:]
+                    res = np.squeeze(sgrp['housekeeping_data'])
                 else:
-                    res = np.append(res, sgrp['housekeeping_data'][:])
+                    res = np.append(res, np.squeeze(sgrp['housekeeping_data']))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
             grp_path = os.path.join(os.path.dirname(msm_path),
                                     'ANALOG_OFFSET_SWIR')
@@ -431,12 +464,12 @@ class ICMio(object):
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
-                    res = sgrp['housekeeping_data'][:]
+                    res = np.squeeze(sgrp['housekeeping_data'])
                 else:
-                    res = np.append(res, sgrp['housekeeping_data'][:])
+                    res = np.append(res, np.squeeze(sgrp['housekeeping_data']))
         else:
             grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
-            res = grp['housekeeping_data'][:]
+            res = np.squeeze(grp['housekeeping_data'])
 
         return res
 
@@ -554,7 +587,7 @@ class ICMio(object):
 
         return res
 
-    def get_msm_data(self, msm_dset, band='78',
+    def get_msm_data(self, msm_dset, band='78', columns=None,
                      msm_to_row=None, fill_as_nan=False):
         """
         Read datasets from a measurement selected by class-method "select"
@@ -601,7 +634,11 @@ class ICMio(object):
                 if ds_path not in self.fid:
                     continue
 
-                data = np.squeeze(self.fid[ds_path])
+                if columns is None:
+                    data = np.squeeze(self.fid[ds_path])
+                else:
+                    data = self.fid[ds_path][...,columns[0]:columns[1]]
+                    data = np.squeeze(data)
                 if fill_as_nan \
                    and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
                     data[(data == fillvalue)] = np.nan
@@ -617,6 +654,39 @@ class ICMio(object):
         return res
 
     #-------------------------
+    def set_housekeeping_data(self, data, band=None):
+        """
+        Returns housekeeping data of measurements
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
+        """
+        assert self.__rw
+
+        if self.__msm_path is None:
+            return None
+
+        if band is None:
+            band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
+
+        msm_path = self.__msm_path.replace('%', band)
+        msm_type = os.path.basename(self.__msm_path)
+
+        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+            pass
+        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+            pass
+        else:
+            ds_path = os.path.join(msm_path, 'INSTRUMENT', 'housekeeping_data')
+            self.fid[ds_path][0,:] = data
+
+            self.__patched_msm.append(ds_path)
+
     def set_msm_data(self, msm_dset, data, band='78'):
         """
         Alter dataset from a measurement selected using function "select"
@@ -643,13 +713,27 @@ class ICMio(object):
 
         col = 0
         for ii in band:
-            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                ds_path = os.path.join(self.__msm_path.replace('%', ii),
-                                       dset_grp, msm_dset)
-                if ds_path not in self.fid:
-                    continue
-
+            ds_path = os.path.join(self.__msm_path.replace('%', ii),
+                                   'ANALYSIS', msm_dset)
+            if ds_path in self.fid:
                 dim = self.fid[ds_path].shape
+
+                if init:
+                    if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
+                        data[np.isnan(data)] = fillvalue
+                    self.fid[ds_path][...] = data[...,col:col+dim[-1]]
+                    col += dim[-1]
+                    init = False
+                else:
+                    self.fid[ds_path][...] = data[...,col:col+dim[-1]]
+
+                self.__patched_msm.append(ds_path)
+        
+            ds_path = os.path.join(self.__msm_path.replace('%', ii),
+                                   'OBSERVATIONS', msm_dset)
+            if ds_path in self.fid:
+                dim = self.fid[ds_path].shape
+                
                 if init:
                     if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
                         data[np.isnan(data)] = fillvalue
@@ -660,3 +744,7 @@ class ICMio(object):
                     self.fid[ds_path][0,...] = data[...,col:col+dim[-1]]
 
                 self.__patched_msm.append(ds_path)
+
+        # display warning when no dataset is updated
+        if init: 
+            print('WARNING: dataset {} not found'.format(msm_dset))
