@@ -13,7 +13,7 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
  * draw_geo
  * draw_cmp_swir
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -45,17 +45,17 @@ mpl.use('TkAgg')
 #   db_version   : version of the monitoring database (SRON)
 #   l1b_version  : L1b processor version
 #   icm_version  : ICM processor version
-#   msm_date     : Datetime of first frame
+#   msm_date     : Date-time of first frame
 # * Data in detector coordinates or column/row averaged as function of time
 #   sign_median  : (biweight) median of signals
 #   sign_spread  : (biweight) spread of signals
 #   error_median : (biweight) median of errors
 #   error_spread : (biweight) spread of errors
 # * Detector quality data:
-#   dpqf_01      : nummer of good pixels with threshold at 0.1
-#   dpqf_08      : nummer of good pixels with threshold at 0.8
+#   dpqf_01      : number of good pixels with threshold at 0.1
+#   dpqf_08      : mumber of good pixels with threshold at 0.8
 #
-# To force the sequence of the displayed information it is adviced to use
+# To force the sequence of the displayed information it is advised to use
 # collections.OrderedDict:
 #
 # > from collections import OrderedDict
@@ -73,6 +73,18 @@ class S5Pplot(object):
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
     def __init__(self, figname, cmap="Rainbow", mode='frame'):
+        """
+        Initialize multipage PDF document for an SRON SWIR ICM report
+
+        Parameters
+        ----------
+        figname   :  string
+             name of PDF file
+        cmap      :  string
+             matplotlib color map
+        mode      :  string
+             data mode - 'frame' or 'dpqm'
+        """
         from matplotlib.backends.backend_pdf import PdfPages
 
         self.__pdf  = PdfPages(figname)
@@ -83,6 +95,17 @@ class S5Pplot(object):
         pass
 
     def __del__(self):
+        """
+        Close multipage PDF document
+        """
+        if self.__pdf is None:
+            return
+
+        doc = self.__pdf.infodict()
+        doc['Title'] = 'Report on Tropomi SWIR diode-laser ISRF measurement'
+        doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
+        doc['Subject'] = 'Shown are ISRF parameters and goodness of fit'
+        doc['Keywords'] = 'PdfPages multipage keywords author title subject'
         self.__pdf.close()
 
     # --------------------------------------------------
@@ -93,7 +116,7 @@ class S5Pplot(object):
 
         Parameters
         ----------
-        fig       :  Matplotlib Figure instance
+        fig       :  Matplotlib figure instance
         dict_info :  dictionary or sortedDict
            legenda parameters to be displayed in the figure
         """
@@ -177,7 +200,7 @@ class S5Pplot(object):
            Default is calculated as biweight(data, axis=0)
         vrange     :  float in range of [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
-           Note that is you pass a vrange instance then vperc wil be ignored
+           Note that is you pass a vrange instance then vperc will be ignored
         vperc      :  float in range of [0,100]
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
@@ -185,7 +208,7 @@ class S5Pplot(object):
            Units of dataset. Default is None
         time_axis  :  tuple {None, ('x', t_intg), ('y', t_intg)}
            Defines if one of the axis is a time-axis. Default is None
-           Where t_intg is the time between succesive readouts (in seconds)
+           Where t_intg is the time between successive readouts (in seconds)
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -506,11 +529,11 @@ class S5Pplot(object):
         data_label  :  string
            Name of dataset
         data_unit   :  string
-           Units of dataset
+           Unit of dataset
         error_label :  string
            Name of dataset
         error_unit  :  string
-           Units of dataset
+           Unit of dataset
         title       :  string
            Title of the figure (use attribute "title" of product)
         sub_title   :  string
@@ -734,9 +757,9 @@ class S5Pplot(object):
                       vrange=None, vperc=None,
                       title=None, sub_title=None):
         """
-        Display signal / model comparison by three pannels.
-        Top pannel shows data, middle pannel shows resuduals (data- model)
-        and lower pannel show model.
+        Display signal vs model (or CKD) comparison in three panels.
+        Top panel shows data, middle panel shows residuals (data - model)
+        and lower panel shows model.
 
         Optionally, two histograms are added, with the distribution of resp.
         the data values and residuals.
@@ -756,14 +779,13 @@ class S5Pplot(object):
         data_label  :  string
            Name of dataset. Default is 'signal'
         data_unit   :  string
-           Units of dataset.  Default is None
+           Unit of dataset. Default is None
         model_label :  string
            Name of dataset.  Default is 'reference'
         title       :  string
            Title of the figure (use attribute "title" of product)
         sub_title   :  string
            Sub-title of the figure (use attribute "comment" of product)
-
         """
         from matplotlib import pyplot as plt
         from matplotlib.gridspec import GridSpec
