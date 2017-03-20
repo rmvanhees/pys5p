@@ -11,7 +11,7 @@ Note
 ----
 Please use the code as tutorial
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -26,10 +26,6 @@ from unittest import TestCase
 
 import numpy as np
 import h5py
-
-import matplotlib
-
-matplotlib.use('TkAgg')
 
 #-------------------------
 def test_ckd_dpqf():
@@ -53,7 +49,7 @@ def test_ckd_dpqf():
         dpqm = np.hstack((band7, band8))
 
     # generate figure
-    plot = S5Pplot('test_ckd_dpqf.pdf')
+    plot = S5Pplot('test_plot_ckd_dpqm.pdf')
     plot.draw_quality(dpqm, title='ckd.dpqf.detector4.nc',
                       sub_title='dpqf_map')
     del plot

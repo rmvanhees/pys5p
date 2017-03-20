@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
 offline level 1b products, resp. calibration, irradiance and radiance.
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -57,7 +57,7 @@ class L1Bio(object):
         Initialize access to a Tropomi offline L1b product
         """
         # initialize private class-attributes
-        self.__product = l1b_product
+        self.filename = l1b_product
         self.__rw = readwrite
         self.__patched_msm = []
         self.fid = None
@@ -75,7 +75,7 @@ class L1Bio(object):
     def __repr__(self):
         class_name = type(self).__name__
         return '{}({!r}, readwrite={!r})'.format(class_name,
-                                                 self.__product, self.__rw)
+                                                 self.filename, self.__rw)
 
     def __iter__(self):
         for attr in sorted(self.__dict__):

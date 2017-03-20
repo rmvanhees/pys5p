@@ -11,7 +11,7 @@ Note
 ----
 Please use the code as tutorial
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -25,10 +25,6 @@ import os.path
 
 from glob import glob
 #from unittest import TestCase
-
-import matplotlib
-
-matplotlib.use('TkAgg')
 
 #-------------------------
 def test_icm_dpqf():
@@ -50,25 +46,27 @@ def test_icm_dpqf():
         return
 
     # open ICM product
-    icm = ICMio(filelist[0])
-    print(icm, file=sys.stderr)
-    if len(icm.select('DPQF_MAP')) > 0:
-        dpqm = icm.get_msm_data('dpqf_map', band='78')
+    for flname in filelist:
+        icm = ICMio(flname)
+        print(icm, file=sys.stderr)
+        if len(icm.select('DPQF_MAP')) > 0:
+            break
 
-        dpqm_dark = icm.get_msm_data('dpqm_dark_flux', band='78')
-
-        dpqm_noise = icm.get_msm_data('dpqm_noise', band='78')
+    assert len(icm.select('DPQF_MAP')) > 0
+    dpqm = icm.get_msm_data('dpqf_map', band='78')
+    dpqm_dark = icm.get_msm_data('dpqm_dark_flux', band='78')
+    dpqm_noise = icm.get_msm_data('dpqm_noise', band='78')
 
     # generate figure
-    plot = S5Pplot('test_icm_dpq.pdf')
+    plot = S5Pplot('test_plot_icm_dpqm.pdf')
     plot.draw_quality(dpqm,
-                      title=filelist[0],
+                      title=os.path.basename(icm.filename),
                       sub_title='dpqf_map')
     plot.draw_quality(dpqm_dark,
-                      title=filelist[0],
+                      title=os.path.basename(icm.filename),
                       sub_title='dpqm_dark_flux')
     plot.draw_quality(dpqm_noise,
-                      title=filelist[0],
+                      title=os.path.basename(icm.filename),
                       sub_title='dpqm_noise')
     del plot
     del icm

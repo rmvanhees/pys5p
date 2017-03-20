@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
 offline level 1b products, resp. calibration, irradiance and radiance.
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -23,10 +23,17 @@ import h5py
 #--------------------------------------------------
 class CKDio(object):
     """
+    This class should offer all the necessary functionality to read Tropomi
+    CKD's
     """
     def __init__(self, ckd_dir='/nfs/TROPOMI/ocal/ckd'):
         """
         Initialize access to a Tropomi offline L1b product
+
+        Parameters
+        ----------
+        ckd_dir  :  string
+           path to directory with subdirectories per CKD
         """
         # initialize private class-attributes
         self.__ckd_dir = ckd_dir

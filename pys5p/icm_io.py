@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 The class ICMio provides read access to S5p Tropomi ICM_CA_SIR products
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -62,7 +62,7 @@ class ICMio(object):
            open product in read-write mode (default is False)
         """
         # initialize class-attributes
-        self.__product = icm_product
+        self.filename = icm_product
         self.__rw = readwrite
         self.__msm_path = None
         self.__patched_msm = []
@@ -81,7 +81,7 @@ class ICMio(object):
     def __repr__(self):
         class_name = type(self).__name__
         return '{}({!r}, readwrite={!r})'.format(class_name,
-                                                 self.__product, self.__rw)
+                                                 self.filename, self.__rw)
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -108,7 +108,7 @@ class ICMio(object):
             sgrp.attrs['git_tag'] = self.pys5p_version()
             if 'patched_datasets' not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
-                dset = sgrp.create_dataset('patched_datasets', 
+                dset = sgrp.create_dataset('patched_datasets',
                                            (len(self.__patched_msm),),
                                            maxshape=(None,), dtype=dtype)
                 dset[:] = np.asarray(self.__patched_msm)
@@ -147,7 +147,7 @@ class ICMio(object):
            String with msm_type as used by ICMio.select
         """
         res = []
-        
+
         grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
         for ii in '12345678':
             for name in grp_list:
@@ -728,12 +728,12 @@ class ICMio(object):
                     self.fid[ds_path][...] = data[...,col:col+dim[-1]]
 
                 self.__patched_msm.append(ds_path)
-        
+
             ds_path = os.path.join(self.__msm_path.replace('%', ii),
                                    'OBSERVATIONS', msm_dset)
             if ds_path in self.fid:
                 dim = self.fid[ds_path].shape
-                
+
                 if init:
                     if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
                         data[np.isnan(data)] = fillvalue
@@ -746,5 +746,5 @@ class ICMio(object):
                 self.__patched_msm.append(ds_path)
 
         # display warning when no dataset is updated
-        if init: 
+        if init:
             print('WARNING: dataset {} not found'.format(msm_dset))

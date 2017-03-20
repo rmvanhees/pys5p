@@ -10,7 +10,7 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
  * draw_signal
  * draw_hist
  * draw_quality
- * draw_geo
+ * draw_geolocation
  * draw_cmp_swir
 
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
@@ -122,7 +122,6 @@ class S5Pplot(object):
         """
         from datetime import datetime
 
-        copy_str = r'$\copyright$ SRON'
         info_str = 'date : ' + datetime.utcnow().isoformat(' ')[0:19]
         for key in dict_info:
             if isinstance(dict_info[key], float) \
@@ -138,11 +137,6 @@ class S5Pplot(object):
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
-            fig.text(0.9, 0.2, copy_str,
-                     fontsize=9, family='monospace',
-                     rotation='vertical',
-                     verticalalignment='bottom',
-                     horizontalalignment='left')
         elif aspect == 2:
             fig.text(0.2, 0.25, info_str,
                      fontsize=fontsize, style='italic',
@@ -150,11 +144,6 @@ class S5Pplot(object):
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
-            fig.text(0.9, 0.15, copy_str,
-                     fontsize=9, family='monospace',
-                     rotation='vertical',
-                     verticalalignment='bottom',
-                     horizontalalignment='left')
         elif aspect == 1:
             fig.text(0.22, 0.2, info_str,
                      fontsize=fontsize, style='italic',
@@ -162,11 +151,6 @@ class S5Pplot(object):
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
-            fig.text(0.88, 0.15, copy_str,
-                     fontsize=10, family='monospace',
-                     rotation='vertical',
-                     verticalalignment='bottom',
-                     horizontalalignment='left')
         else:
             fig.text(0.3, 0.8, info_str,
                      fontsize=fontsize, style='italic',
@@ -174,11 +158,6 @@ class S5Pplot(object):
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
-            fig.text(0.88, 0.05, copy_str,
-                     fontsize=10, family='monospace',
-                     rotation='horizontal',
-                     verticalalignment='center',
-                     horizontalalignment='left')
 
     # --------------------------------------------------
     def draw_signal(self, data, data_col=None, data_row=None,
@@ -310,7 +289,8 @@ class S5Pplot(object):
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, fontsize=24)
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
         img = ax_img.imshow(data / dscale, cmap=self.__cmap, extent=extent,
@@ -323,6 +303,9 @@ class S5Pplot(object):
             ytl.set_visible(False)
         if sub_title is not None:
             ax_img.set_title(sub_title)
+        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                    verticalalignment='bottom', rotation='vertical',
+                    fontsize='xx-small', transform=ax_img.transAxes)
 
         # create new axes on the right and on the top of the current axes
         # The first argument of the new_vertical(new_horizontal) method is
@@ -453,7 +436,8 @@ class S5Pplot(object):
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, fontsize=24)
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
         img = ax_img.imshow(qmask, cmap=cmap, norm=norm, extent=extent,
@@ -465,6 +449,9 @@ class S5Pplot(object):
             ytl.set_visible(False)
         if sub_title is not None:
             ax_img.set_title(sub_title)
+        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                    verticalalignment='bottom', rotation='vertical',
+                    fontsize='xx-small', transform=ax_img.transAxes)
 
         # create new axes on the right and on the top of the current axes
         # The first argument of the new_vertical(new_horizontal) method is
@@ -540,7 +527,6 @@ class S5Pplot(object):
            Sub-title of the figure (use attribute "comment" of product)
         fig_info    :  dictionary
            Dictionary holding meta-data to be displayed in the figure
-
         """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
@@ -583,7 +569,8 @@ class S5Pplot(object):
 
         fig = plt.figure(figsize=(12,7))
         if title is not None:
-            fig.suptitle(title, fontsize=24)
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(11,1)
 
         axx = plt.subplot(gspec[2:6,0])
@@ -597,6 +584,9 @@ class S5Pplot(object):
         axx.set_ylabel('count')
         if sub_title is not None:
             axx.set_title(sub_title)
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[7:,0])
         axx.hist(error,
@@ -605,6 +595,9 @@ class S5Pplot(object):
                  bins=15, color=line_colors[0])
         axx.set_xlabel(e_label)
         axx.set_ylabel('count')
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
 
         self.__fig_info(fig, fig_info, fontsize=10)
         self.__pdf.savefig()
@@ -622,17 +615,21 @@ class S5Pplot(object):
            Latitude coordinates
         lons         :  ndarray
            Longitude coordinates
+        sequence     :  list
+           Indices to footprints to be drawn by polygons
         subsatellite :  boolean
            Coordinates are given for sub-satellite point. Default is False
         title        :  string
            Title of the figure (use attribute "title" of product)
-
+        fig_info    :  dictionary
+           Dictionary holding meta-data to be displayed in the figure
         """
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
 
         import cartopy.crs as ccrs
         import cartopy.feature as cfeature
+        from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
         import shapely.geometry as sgeom
 
         watercolor = '#ddeeff'
@@ -692,8 +689,8 @@ class S5Pplot(object):
         # inititalize figure
         fig = plt.figure(figsize=(15, 10))
         if title is not None:
-            fig.suptitle(title, fontsize=24)
-
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
                                                            orientation=1,
@@ -703,9 +700,11 @@ class S5Pplot(object):
         axx.outline_patch.set_visible(False)
         axx.background_patch.set_facecolor(watercolor)
         axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
-        axx.gridlines(xlocs=np.arange(0,375,15),
-                      ylocs=np.arange(-90,105,15),
-                      linestyle='-', linewidth=0.5, color=gridcolor)
+        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
+        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
+        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
+        glx.xformatter = LONGITUDE_FORMATTER
+        glx.yformatter = LATITUDE_FORMATTER
 
         # draw footprint
         if not subsatellite:
@@ -742,10 +741,13 @@ class S5Pplot(object):
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
 
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        self.__fig_info(fig, fig_info, aspect=1)
+        self.__fig_info(fig, fig_info, aspect=1, fontsize=10)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
@@ -847,7 +849,8 @@ class S5Pplot(object):
         figsize = (9.2, 8.5)
         fig = plt.figure(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, fontsize=24)
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
         gspec = GridSpec(4, 2)
 
         # create top-pannel with measurements
@@ -863,6 +866,9 @@ class S5Pplot(object):
         ax1.set_ylim([0, signal.shape[0]])
         ax1.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
+        ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax1.transAxes)
         cbar = plt.colorbar(img)
         if zlabel is not None:
             cbar.set_label(zlabel)
@@ -879,6 +885,9 @@ class S5Pplot(object):
         ax2.set_ylim([0, signal.shape[0]])
         ax2.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
+        ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax2.transAxes)
         cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label('residuals')
@@ -894,6 +903,9 @@ class S5Pplot(object):
         ax3.set_ylim([0, signal.shape[0]])
         ax3.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
                         3 * signal.shape[0] // 4, signal.shape[0]])
+        ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax3.transAxes)
         cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label(model_label)

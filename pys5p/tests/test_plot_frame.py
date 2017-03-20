@@ -11,7 +11,7 @@ Note
 ----
 Please use the code as tutorial
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -24,10 +24,6 @@ import os.path
 
 from glob import glob
 #from unittest import TestCase
-
-import matplotlib
-
-matplotlib.use('TkAgg')
 
 #-------------------------
 def test_frame():

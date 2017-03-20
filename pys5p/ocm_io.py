@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classe OCMio provide read access to Tropomi on-ground calibration products
 (Lx)
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -37,7 +37,7 @@ class OCMio(object):
 
         """
         # initialize class-attributes
-        self.__product = ocm_product
+        self.filename = ocm_product
         self.__msm_path = None
         self.__patched_msm = []
         self.band = None
@@ -51,7 +51,7 @@ class OCMio(object):
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r})'.format(class_name, self.__product)
+        return '{}({!r})'.format(class_name, self.filename)
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
