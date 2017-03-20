@@ -26,7 +26,7 @@ class CKDio(object):
     This class should offer all the necessary functionality to read Tropomi
     CKD's
     """
-    def __init__(self, ckd_dir='/nfs/TROPOMI/ocal/ckd'):
+    def __init__(self, ckd_dir='/nfs/Tropomi/ocal/ckd'):
         """
         Initialize access to a Tropomi offline L1b product
 

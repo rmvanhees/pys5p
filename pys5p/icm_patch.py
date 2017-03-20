@@ -55,14 +55,14 @@ import os.path
 import numpy as np
 import h5py
 
-DB_NAME = '/nfs/TROPOMI/ical/share/db/sron_s5p_icm_patched.db'
+DB_NAME = '/nfs/Tropomi/ical/share/db/sron_s5p_icm_patched.db'
 
 #--------------------------------------------------
 class ICMpatch(object):
     """
     """
     def background(self, exposure_time, coadding_factor):
-        ckd_dir = '/nfs/TROPOMI/ocal/ckd/ckd_release_swir'
+        ckd_dir = '/nfs/Tropomi/ocal/ckd/ckd_release_swir'
 
         # read v2c CKD
         ckd_file = os.path.join(ckd_dir, 'v2c', 'ckd.v2c_factor.detector4.nc')
@@ -148,7 +148,7 @@ class ICMpatch(object):
         assert ld_id > 0 and ld_id < 6
 
         light_icid = 32096
-        ocal_dir = '/nfs/TROPOMI/ocal/proc_raw'
+        ocal_dir = '/nfs/Tropomi/ocal/proc_raw'
         if ld_id == 1:
             band = 7
             columns = [443, 495]
@@ -271,7 +271,7 @@ def test():
     from pyS5pMon.algorithms.swir_isrf import ISRFio_h5
 
     # read OCAL ISRF measurements
-    data_dir = '/nfs/TROPOMI/ocal/proc_raw/2015_02_27T14_56_27_LaserDiodes_LD3_100/proc_raw'
+    data_dir = '/nfs/Tropomi/ocal/proc_raw/2015_02_27T14_56_27_LaserDiodes_LD3_100/proc_raw'
     isrf_io = ISRFio_h5(data_dir)
     obj_dict = isrf_io.__dict__
     for key in obj_dict:
