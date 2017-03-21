@@ -20,7 +20,11 @@ import os.path
 import numpy as np
 import h5py
 
-#--------------------------------------------------
+#- global parameters ------------------------------
+
+FILLVALUE = float.fromhex('0x1.ep+122')
+
+#- local functions --------------------------------
 class CKDio(object):
     """
     This class should offer all the necessary functionality to read Tropomi
@@ -62,10 +66,17 @@ class CKDio(object):
             with h5py.File(file_ch4, 'r') as fid:
                 dset = fid['/BAND7/long_term_swir']
                 dark_b7 = dset[:-1, :]['value']
+                dark_b7[(dark_b7 == FILLVALUE)] = np.nan
+
                 error_b7 = dset[:-1, :]['error']
+                error_b7[(error_b7 == FILLVALUE)] = np.nan
+
                 dset = fid['/BAND8/long_term_swir']
                 dark_b8 = dset[:-1, :]['value']
+                dark_b8[(dark_b8 == FILLVALUE)] = np.nan
+
                 error_b8 = dset[:-1, :]['error']
+                error_b8[(error_b8 == FILLVALUE)] = np.nan
 
             return (np.hstack((dark_b7, dark_b8)),
                     np.hstack((error_b7, error_b8)))
@@ -112,10 +123,17 @@ class CKDio(object):
             with h5py.File(file_ch4, 'r') as fid:
                 dset = fid['/BAND7/analog_offset_swir']
                 offs_b7 = dset[:-1, :]['value']
+                offs_b7[(offs_b7 == FILLVALUE)] = np.nan
+
                 error_b7 = dset[:-1, :]['error']
+                error_b7[(error_b7 == FILLVALUE)] = np.nan
+
                 dset = fid['/BAND8/analog_offset_swir']
                 offs_b8 = dset[:-1, :]['value']
+                offs_b8[(offs_b8 == FILLVALUE)] = np.nan
+
                 error_b8 = dset[:-1, :]['error']
+                error_b8[(error_b8 == FILLVALUE)] = np.nan
 
             return (np.hstack((offs_b7, offs_b8)),
                     np.hstack((error_b7, error_b8)))

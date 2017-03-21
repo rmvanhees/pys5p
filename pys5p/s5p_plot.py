@@ -28,8 +28,7 @@ from collections import OrderedDict
 import numpy as np
 
 import matplotlib as mpl
-
-mpl.use('TkAgg')
+#mpl.use('TkAgg')
 
 #
 # Suggestion for the name of the report/pdf-file
@@ -110,7 +109,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     @staticmethod
-    def __fig_info(fig, dict_info, aspect=-1, fontsize=12):
+    def __fig_info(fig, dict_info, aspect=-1, fontsize='small'):
         """
         Add meta-information in the current figure
 
@@ -131,30 +130,37 @@ class S5Pplot(object):
                 info_str += '\n{} : {}'.format(key, dict_info[key])
 
         if aspect == 4:
-            fig.text(0.175, 0.325, info_str,
+            fig.text(0.9, 0.965, info_str,
+                     fontsize=fontsize, style='italic',
+                     verticalalignment='top',
+                     horizontalalignment='right',
+                     multialignment='left',
+                     bbox={'facecolor':'white', 'pad':10})
+        elif aspect == 3:
+            fig.text(0.9, 0.975, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
         elif aspect == 2:
-            fig.text(0.2, 0.25, info_str,
+            fig.text(1, 1, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
         elif aspect == 1:
-            fig.text(0.22, 0.2, info_str,
+            fig.text(0.285, 0.225, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
         else:
-            fig.text(0.3, 0.8, info_str,
+            fig.text(0.9, 0.95, info_str,
                      fontsize=fontsize, style='italic',
-                     verticalalignment='bottom',
+                     verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':10})
@@ -230,9 +236,12 @@ class S5Pplot(object):
             figsize = (10, 9)
         elif aspect == 2:
             figsize = (12, 7)
+        elif aspect == 3:
+            figsize = (14, 7)
         elif aspect == 4:
             figsize = (16, 6)
         else:
+            print(__name__ + '.draw_signal', dims, aspect)
             print('*** FATAL: aspect ratio not implemented, exit')
             return
 
@@ -319,7 +328,7 @@ class S5Pplot(object):
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
         ax_medx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
         ax_medx.set_xlim([0, xmax])
-        ax_medx.grid(linestyle=':')
+        ax_medx.grid(True)
         ax_medx.locator_params(axis='x', nbins=6)
         ax_medx.locator_params(axis='y', nbins=4)
         ax_medx.set_xlabel(xlabel)
@@ -327,7 +336,7 @@ class S5Pplot(object):
         ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
         ax_medy.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
         ax_medy.set_ylim([0, ymax])
-        ax_medy.grid(linestyle=':')
+        ax_medy.grid(True)
         ax_medy.locator_params(axis='x', nbins=4)
         ax_medy.set_ylabel(ylabel)
 
@@ -347,7 +356,7 @@ class S5Pplot(object):
             fig_info.update({'spread' : spread_str})
 
         # save and close figure
-        self.__fig_info(fig, fig_info, aspect, fontsize=10)
+        self.__fig_info(fig, fig_info, aspect)
         self.__pdf.savefig()
         plt.close()
 
@@ -401,6 +410,7 @@ class S5Pplot(object):
         elif aspect == 4:
             figsize = (16, 6)
         else:
+            print(__name__, dims)
             print('*** FATAL: aspect ratio not implemented, exit')
             return
 
@@ -468,7 +478,7 @@ class S5Pplot(object):
         ax_medx.step(xdata, qmask_row_08, lw=0.5, color=clist[2])
         ax_medx.step(xdata, qmask_row_01, lw=0.6, color=clist[1])
         ax_medx.set_xlim([0, dims[1]])
-        ax_medx.grid(linestyle=':')
+        ax_medx.grid(True)
         ax_medx.locator_params(axis='x', nbins=6)
         ax_medx.locator_params(axis='y', nbins=3)
         ax_medx.set_xlabel(xlabel)
@@ -479,7 +489,7 @@ class S5Pplot(object):
         ax_medy.step(qmask_col_08, ydata, lw=0.5, color=clist[2])
         ax_medy.step(qmask_col_01, ydata, lw=0.6, color=clist[1])
         ax_medy.set_ylim([0, dims[0]])
-        ax_medy.grid(linestyle=':')
+        ax_medy.grid(True)
         ax_medy.locator_params(axis='x', nbins=3)
         ax_medy.locator_params(axis='y', nbins=4)
         ax_medy.set_ylabel(ylabel)
@@ -495,7 +505,7 @@ class S5Pplot(object):
         fig_info.update({'qmask_08': np.sum(((qmask >= 0)
                                              & (qmask < thres_max)))})
 
-        self.__fig_info(fig, fig_info, aspect, fontsize=10)
+        self.__fig_info(fig, fig_info, aspect)
         self.__pdf.savefig()
         plt.close()
 
@@ -599,7 +609,7 @@ class S5Pplot(object):
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
 
-        self.__fig_info(fig, fig_info, fontsize=10)
+        self.__fig_info(fig, fig_info)
         self.__pdf.savefig()
         plt.close()
 
@@ -747,7 +757,7 @@ class S5Pplot(object):
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        self.__fig_info(fig, fig_info, aspect=1, fontsize=10)
+        self.__fig_info(fig, fig_info, aspect=1)
         plt.tight_layout()
         self.__pdf.savefig()
         plt.close()
@@ -922,7 +932,7 @@ class S5Pplot(object):
                  color=line_colors[0])
         ax4.set_xlabel(zlabel)
         ax4.set_ylabel('fraction')
-        ax4.grid(which='major', color='0.5', lw=0.5, ls='--')
+        ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
         ax5.hist(residual, range=[rmin, rmax], bins=15, normed=True,
@@ -931,7 +941,7 @@ class S5Pplot(object):
             ax5.set_xlabel('residual')
         else:
             ax5.set_xlabel('residual {}'.format(zunit))
-        ax5.grid(which='major', color='0.5', lw=0.5, ls='--')
+        ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         # save and close figure
         plt.draw()

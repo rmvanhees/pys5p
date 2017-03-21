@@ -237,7 +237,7 @@ class OCMio(object):
                     return attr
         return None
 
-    def get_msm_data(self, msm_dset, fill_as_nan=False,
+    def get_msm_data(self, msm_dset, fill_as_nan=True,
                      frames=None, columns=None):
         """
         Returns data of measurement dataset "msm_dset"

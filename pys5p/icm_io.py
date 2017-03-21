@@ -588,7 +588,7 @@ class ICMio(object):
         return res
 
     def get_msm_data(self, msm_dset, band='78', columns=None,
-                     msm_to_row=None, fill_as_nan=False):
+                     msm_to_row=None, fill_as_nan=True):
         """
         Read datasets from a measurement selected by class-method "select"
 
