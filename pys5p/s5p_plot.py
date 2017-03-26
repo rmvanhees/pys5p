@@ -121,62 +121,64 @@ class S5Pplot(object):
         """
         from datetime import datetime
 
-        info_str = 'date : ' + datetime.utcnow().isoformat(' ')[0:19]
+        info_str = ""
         for key in dict_info:
             if isinstance(dict_info[key], float) \
                or isinstance(dict_info[key], np.float32):
-                info_str += '\n{} : {:.5g}'.format(key, dict_info[key])
+                info_str += "{} : {:.5g}".format(key, dict_info[key])
             else:
-                info_str += '\n{} : {}'.format(key, dict_info[key])
+                info_str += "{} : {}".format(key, dict_info[key])
+            info_str += '\n'
+        info_str += 'created : ' \
+                   + datetime.utcnow().isoformat(' ', timespec='minutes')
 
         if aspect == 4:
-            fig.text(0.9, 0.965, info_str,
+            fig.text(0.9, 0.975, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
-                     bbox={'facecolor':'white', 'pad':10})
+                     bbox={'facecolor':'white', 'pad':5})
         elif aspect == 3:
             fig.text(0.9, 0.975, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
-                     bbox={'facecolor':'white', 'pad':10})
+                     bbox={'facecolor':'white', 'pad':5})
         elif aspect == 2:
             fig.text(1, 1, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
-                     bbox={'facecolor':'white', 'pad':10})
+                     bbox={'facecolor':'white', 'pad':5})
         elif aspect == 1:
-            fig.text(0.285, 0.225, info_str,
+            fig.text(0.3, 0.225, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
-                     bbox={'facecolor':'white', 'pad':10})
+                     bbox={'facecolor':'white', 'pad':5})
         else:
-            fig.text(0.9, 0.95, info_str,
+            fig.text(0.9, 0.965, info_str,
                      fontsize=fontsize, style='italic',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
-                     bbox={'facecolor':'white', 'pad':10})
+                     bbox={'facecolor':'white', 'pad':5})
 
     # --------------------------------------------------
-    def draw_signal(self, data, data_col=None, data_row=None,
-                    data_unit=None, time_axis=None,
+    def draw_signal(self, msm, data_col=None, data_row=None,
                     title=None, sub_title=None, fig_info=None,
-                    vperc=None, vrange=None):
+                    vperc=None, vrange=None, time_axis=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
         Parameters
         ----------
-        data       :  ndarray
-           Numpy array (2D) holding the data to be displayed
+        msm       :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
         data_col   :  ndarray
            Numpy array (1D) column averaged values of data
            Default is calculated as biweight(data, axis=1)
@@ -189,11 +191,6 @@ class S5Pplot(object):
         vperc      :  float in range of [0,100]
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
-        data_unit  :  string
-           Units of dataset. Default is None
-        time_axis  :  tuple {None, ('x', t_intg), ('y', t_intg)}
-           Defines if one of the axis is a time-axis. Default is None
-           Where t_intg is the time between successive readouts (in seconds)
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -203,6 +200,10 @@ class S5Pplot(object):
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and if 
+        parameter 'time_axis' is not None' or 'fig_info' is None the data 
+        median & spread.
         """
         import warnings
 
@@ -218,26 +219,23 @@ class S5Pplot(object):
         if data_col is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_col = np.nanmedian(data, axis=1)
+                data_col = np.nanmedian(msm.value, axis=1)
 
         if data_row is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_row = np.nanmedian(data, axis=0)
+                data_row = np.nanmedian(msm.value, axis=0)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = data.shape
-        if time_axis is None:                      # band or detector lay-out
-            aspect = int(np.round(dims[1] / dims[0]))
-        else:                                      # trend data
-            aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
+        dims = msm.value.shape
+        aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
 
         if aspect == 1:
             figsize = (10, 9)
         elif aspect == 2:
             figsize = (12, 7)
         elif aspect == 3:
-            figsize = (14, 7)
+            figsize = (14, 6.5)
         elif aspect == 4:
             figsize = (16, 6)
         else:
@@ -246,22 +244,14 @@ class S5Pplot(object):
             return
 
         # set label and range of X/Y axis
-        xlabel = 'column'
-        ylabel = 'row'
-        xdata = np.arange(data_row.size, dtype=float)
-        xmax = data_row.size
-        ydata = np.arange(data_col.size, dtype=float)
-        ymax = data_col.size
-        if time_axis is not None:
-            if time_axis[0] == 'y':
-                ylabel = 'time(s)'
-                ydata *= time_axis[1]
-                ymax *= time_axis[1]
-            elif time_axis[0] == 'x':
-                xlabel = 'time(s)'
-                xdata *= time_axis[1]
-                xmax *= time_axis[1]
+        print(msm.value.shape)
+        (ylabel, xlabel) = msm.coords._fields
+        ydata = msm.coords[0]
+        ymax = len(ydata)
+        xdata = msm.coords[1]
+        xmax = len(xdata)
         extent = [0, xmax, 0, ymax]
+        print(msm.coords._fields, ymax, xmax)
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -271,29 +261,30 @@ class S5Pplot(object):
                 vperc = (1., 99.)
             else:
                 assert len(vperc) == 2
-            (vmin, vmax) = np.percentile(data[np.isfinite(data)], vperc)
+            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
+                                         vperc)
         else:
             assert len(vrange) == 2
             (vmin, vmax) = vrange
 
-        if data_unit is None:
+        if msm.units is None:
             zunit = None
-        elif data_unit.find('electron') >= 0:
+        elif msm.units.find('electron') >= 0:
             max_value = max(abs(vmin), abs(vmax))
 
             if max_value > 1000000000:
                 dscale = 1e9
-                zunit = data_unit.replace('electron', 'Ge')
+                zunit = msm.units.replace('electron', 'Ge')
             elif max_value > 1000000:
                 dscale = 1e6
-                zunit = data_unit.replace('electron', 'Me')
+                zunit = msm.units.replace('electron', 'Me')
             elif max_value > 1000:
                 dscale = 1e3
-                zunit = data_unit.replace('electron', 'ke')
+                zunit = msm.units.replace('electron', 'ke')
             else:
-                zunit = data_unit.replace('electron', 'e')
+                zunit = msm.units.replace('electron', 'e')
         else:
-            zunit = data_unit
+            zunit = msm.units
 
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
@@ -302,10 +293,10 @@ class S5Pplot(object):
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
-        img = ax_img.imshow(data / dscale, cmap=self.__cmap, extent=extent,
+        img = ax_img.imshow(msm.value / dscale, cmap=self.__cmap,
+                            extent=extent, origin='lower',
                             vmin=vmin / dscale, vmax=vmax / dscale,
-                            aspect='equal', interpolation='none',
-                            origin='lower')
+                            aspect='equal', interpolation='none')
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
@@ -333,6 +324,7 @@ class S5Pplot(object):
         ax_medx.locator_params(axis='y', nbins=4)
         ax_medx.set_xlabel(xlabel)
         #
+        print(ydata.shape, data_col.shape)
         ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
         ax_medy.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
         ax_medy.set_ylim([0, ymax])
@@ -341,10 +333,10 @@ class S5Pplot(object):
         ax_medy.set_ylabel(ylabel)
 
         # add annotation
-        if fig_info is None:
+        if fig_info is None or time_axis is not None:
             from .biweight import biweight
 
-            (median, spread) = biweight(data, spread=True)
+            (median, spread) = biweight(msm.value, spread=True)
             if zunit is not None:
                 median_str = '{:.5g} {}'.format(median / dscale, zunit)
                 spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
@@ -352,7 +344,10 @@ class S5Pplot(object):
                 median_str = '{:.5g}'.format(median)
                 spread_str = '{:.5g}'.format(spread)
 
-            fig_info = OrderedDict({'median' : median_str})
+            if fig_info is None:
+                fig_info = OrderedDict({'median' : median_str})
+            else:
+                fig_info.update({'median' : median_str})
             fig_info.update({'spread' : spread_str})
 
         # save and close figure
@@ -389,6 +384,9 @@ class S5Pplot(object):
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date, 'thres_01', 
+        'qmask_01', 'thres_08' and 'qmask_08'.
         """
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -397,7 +395,7 @@ class S5Pplot(object):
             qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = qdata.shape
+        dims = qmsm.shape
         xdata = np.arange(dims[1], dtype=float)
         ydata = np.arange(dims[0], dtype=float)
         extent = [0, dims[1], 0, dims[0]]
@@ -510,33 +508,206 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist(self, data_in, error_in,
-                  data_label=None, data_unit=None,
-                  error_label=None, error_unit=None,
-                  title=None, sub_title=None, fig_info=None):
+    def draw_cmp_swir(self, msm, model_in, model_label='reference',
+                      vrange=None, vperc=None,
+                      title=None, sub_title=None):
+        """
+        Display signal vs model (or CKD) comparison in three panels.
+        Top panel shows data, middle panel shows residuals (data - model)
+        and lower panel shows model.
+
+        Optionally, two histograms are added, with the distribution of resp.
+        the data values and residuals.
+
+        Parameters
+        ----------
+        msm       :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
+        model       :  ndarray
+           Numpy array (2D) holding the data to be displayed
+        vrange     :  float in range of [vmin,vmax]
+           Range to normalize luminance data between vmin and vmax.
+           Note that is you pass a vrange instance then vperc wil be ignored
+        vperc      :  float in range of [0,100]
+           Range to normalize luminance data between percentiles min and max of
+           array data. Default is [1., 99.]
+        model_label :  string
+           Name of dataset.  Default is 'reference'
+        title       :  string
+           Title of the figure (use attribute "title" of product)
+        sub_title   :  string
+           Sub-title of the figure (use attribute "comment" of product)
+        """
+        from matplotlib import pyplot as plt
+        from matplotlib.gridspec import GridSpec
+
+        from . import sron_colorschemes
+
+        sron_colorschemes.register_cmap_rainbow()
+        line_colors = sron_colorschemes.get_line_colors()
+
+        # scale data to keep reduce number of significant digits small to
+        # the axis-label and tickmarks readable
+        dscale = 1.0
+        if vperc is None:
+            vperc = (1., 99.)
+        else:
+            assert len(vperc) == 2
+
+        if vrange is None:
+            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
+                                         vperc)
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
+
+        if msm.units is None:
+            zunit = None
+            zlabel = '{}'.format(msm.name)
+        elif msm.units.find('electron') >= 0:
+            max_value = max(abs(vmin), abs(vmax))
+
+            if max_value > 1000000000:
+                dscale = 1e9
+                zunit = msm.units.replace('electron', 'Ge')
+            elif max_value > 1000000:
+                dscale = 1e6
+                zunit = msm.units.replace('electron', 'Me')
+            elif max_value > 1000:
+                dscale = 1e3
+                zunit = msm.units.replace('electron', 'ke')
+            else:
+                zunit = msm.units.replace('electron', 'e')
+            zlabel = '{} [{}]'.format(msm.name, zunit)
+        else:
+            zunit = msm.units
+            zlabel = '{} [{}]'.format(msm.name, msm.units)
+
+        # create residual image
+        mask = np.isfinite(msm.value)
+        signal = msm.value.copy()
+        signal[mask] *= dscale
+        mask = np.isfinite(model_in)
+        model = model_in.copy()
+        model[mask] *= dscale
+        mask = np.isfinite(msm.value) & np.isfinite(model_in)
+        residual = signal.copy()
+        residual[~mask] = np.nan
+        residual[mask] -= model[mask]
+
+        # inititalize figure
+        figsize = (9.2, 8.5)
+        fig = plt.figure(figsize=figsize)
+        if title is not None:
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
+        gspec = GridSpec(4, 2)
+
+        # create top-pannel with measurements
+        ax1 = plt.subplot(gspec[0, :])
+        for xtl in ax1.get_xticklabels():
+            xtl.set_visible(False)
+        if sub_title is not None:
+            ax1.set_title(sub_title)
+        img = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
+                         interpolation='none', origin='lower')
+        ax1.set_xlim([0, signal.shape[1]])
+        ax1.locator_params(axis='x', nbins=5)
+        ax1.set_ylim([0, signal.shape[0]])
+        ax1.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
+                        3 * signal.shape[0] // 4, signal.shape[0]])
+        ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax1.transAxes)
+        cbar = plt.colorbar(img)
+        if zlabel is not None:
+            cbar.set_label(zlabel)
+
+        # create centre-pannel with residuals
+        (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        ax2 = plt.subplot(gspec[1, :], sharex=ax1)
+        for xtl in ax2.get_xticklabels():
+            xtl.set_visible(False)
+        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, aspect='equal',
+                         interpolation='none', origin='lower')
+        ax2.set_xlim([0, signal.shape[1]])
+        ax2.locator_params(axis='x', nbins=5)
+        ax2.set_ylim([0, signal.shape[0]])
+        ax2.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
+                        3 * signal.shape[0] // 4, signal.shape[0]])
+        ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax2.transAxes)
+        cbar = plt.colorbar(img)
+        if zunit is None:
+            cbar.set_label('residuals')
+        else:
+            cbar.set_label('residuals [{}]'.format(zunit))
+
+        # create lower-pannel with reference (model, CKD, previous measurement)
+        ax3 = plt.subplot(gspec[2, :], sharex=ax1)
+        img = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
+                         interpolation='none', origin='lower')
+        ax3.set_xlim([0, signal.shape[1]])
+        ax3.locator_params(axis='x', nbins=5)
+        ax3.set_ylim([0, signal.shape[0]])
+        ax3.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
+                        3 * signal.shape[0] // 4, signal.shape[0]])
+        ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=ax3.transAxes)
+        cbar = plt.colorbar(img)
+        if zunit is None:
+            cbar.set_label(model_label)
+        else:
+            cbar.set_label('{} [{}]'.format(model_label, zunit))
+
+        # ignore NaN's and flatten the images for the histograms
+        mask = np.isfinite(msm.value) & np.isfinite(model_in)
+        signal = dscale * msm.value[mask]
+        residual = dscale * (msm.value[mask] - model_in[mask])
+
+        ax4 = plt.subplot(gspec[3, 0])
+        ax4.hist(signal, range=[vmin, vmax], bins=15, normed=True,
+                 color=line_colors[0])
+        ax4.set_xlabel(zlabel)
+        ax4.set_ylabel('fraction')
+        ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
+
+        ax5 = plt.subplot(gspec[3, 1])
+        ax5.hist(residual, range=[rmin, rmax], bins=15, normed=True,
+                 color=line_colors[0])
+        if zunit is None:
+            ax5.set_xlabel('residual')
+        else:
+            ax5.set_xlabel('residual [{}]'.format(zunit))
+        ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
+
+        # save and close figure
+        plt.draw()
+        self.__pdf.savefig()
+        plt.close()
+
+    # --------------------------------------------------
+    def draw_hist(self, msm, msm_err,
+                  title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
         Parameters
         ----------
-        data        :  ndarray
-           Numpy array (2D) holding the data to be displayed
-        error       :  ndarray
-           Numpy array (2D) holding the data to be displayed
-        data_label  :  string
-           Name of dataset
-        data_unit   :  string
-           Unit of dataset
-        error_label :  string
-           Name of dataset
-        error_unit  :  string
-           Unit of dataset
+        msm         :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
+        msm_err     :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
         title       :  string
            Title of the figure (use attribute "title" of product)
-        sub_title   :  string
-           Sub-title of the figure (use attribute "comment" of product)
         fig_info    :  dictionary
            Dictionary holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date, signal 
+        median & spread adn error meadian & spread.
         """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
@@ -551,31 +722,31 @@ class S5Pplot(object):
         else:
             fig_info.update({'num_sigma' : 3})
 
-        data = data_in[np.isfinite(data_in)].reshape(-1)
+        signal = msm.value[np.isfinite(msm.value)].reshape(-1)
         if 'sign_median' not in fig_info \
             or 'sign_spread' not in fig_info:
-            (median, spread) = biweight(data, spread=True)
+            (median, spread) = biweight(signal, spread=True)
             fig_info.update({'sign_median' : median})
             fig_info.update({'sign_spread' : spread})
-        data -= fig_info['sign_median']
+        signal -= fig_info['sign_median']
 
-        error = error_in[np.isfinite(error_in)].reshape(-1)
+        sign_err = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
         if 'error_median' not in fig_info \
             or 'error_spread' not in fig_info:
-            (median, spread) = biweight(error, spread=True)
+            (median, spread) = biweight(sign_err, spread=True)
             fig_info.update({'error_median' : median})
             fig_info.update({'error_spread' : spread})
-        error -= fig_info['error_median']
+        sign_err -= fig_info['error_median']
 
-        if data_unit is not None:
-            d_label = '{} [{}]'.format(data_label, data_unit)
+        if msm.units is not None:
+            d_label = '{} [{}]'.format(msm.name, msm.units)
         else:
-            d_label = data_label
+            d_label = msm.name
 
-        if error_unit is not None:
-            e_label = '{} [{}]'.format(error_label, error_unit)
+        if msm_err.units is not None:
+            e_label = '{} [{}]'.format(msm_err.name, msm_err.units)
         else:
-            e_label = error_label
+            e_label = msm_err.name
 
         fig = plt.figure(figsize=(12,7))
         if title is not None:
@@ -584,7 +755,7 @@ class S5Pplot(object):
         gspec = gridspec.GridSpec(11,1)
 
         axx = plt.subplot(gspec[2:6,0])
-        axx.hist(data,
+        axx.hist(signal,
                  range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
                         fig_info['num_sigma'] * fig_info['sign_spread']],
                  bins=15, color=line_colors[0])
@@ -592,14 +763,12 @@ class S5Pplot(object):
                       r'$\pm 3 \sigma$')
         axx.set_xlabel(d_label)
         axx.set_ylabel('count')
-        if sub_title is not None:
-            axx.set_title(sub_title)
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[7:,0])
-        axx.hist(error,
+        axx.hist(sign_err,
                  range=[-fig_info['num_sigma'] * fig_info['error_spread'],
                         fig_info['num_sigma'] * fig_info['error_spread']],
                  bins=15, color=line_colors[0])
@@ -759,191 +928,5 @@ class S5Pplot(object):
 
         self.__fig_info(fig, fig_info, aspect=1)
         plt.tight_layout()
-        self.__pdf.savefig()
-        plt.close()
-
-    # --------------------------------------------------
-    def draw_cmp_swir(self, data_in, model_in,
-                      data_label='signal', data_unit=None,
-                      model_label='reference',
-                      vrange=None, vperc=None,
-                      title=None, sub_title=None):
-        """
-        Display signal vs model (or CKD) comparison in three panels.
-        Top panel shows data, middle panel shows residuals (data - model)
-        and lower panel shows model.
-
-        Optionally, two histograms are added, with the distribution of resp.
-        the data values and residuals.
-
-        Parameters
-        ----------
-        data        :  ndarray
-           Numpy array (2D) holding the data to be displayed
-        model       :  ndarray
-           Numpy array (2D) holding the data to be displayed
-        vrange     :  float in range of [vmin,vmax]
-           Range to normalize luminance data between vmin and vmax.
-           Note that is you pass a vrange instance then vperc wil be ignored
-        vperc      :  float in range of [0,100]
-           Range to normalize luminance data between percentiles min and max of
-           array data. Default is [1., 99.]
-        data_label  :  string
-           Name of dataset. Default is 'signal'
-        data_unit   :  string
-           Unit of dataset. Default is None
-        model_label :  string
-           Name of dataset.  Default is 'reference'
-        title       :  string
-           Title of the figure (use attribute "title" of product)
-        sub_title   :  string
-           Sub-title of the figure (use attribute "comment" of product)
-        """
-        from matplotlib import pyplot as plt
-        from matplotlib.gridspec import GridSpec
-
-        from . import sron_colorschemes
-
-        sron_colorschemes.register_cmap_rainbow()
-        line_colors = sron_colorschemes.get_line_colors()
-
-        # scale data to keep reduce number of significant digits small to
-        # the axis-label and tickmarks readable
-        dscale = 1.0
-        if vperc is None:
-            vperc = (1., 99.)
-        else:
-            assert len(vperc) == 2
-
-        if vrange is None:
-            (vmin, vmax) = np.percentile(data_in[np.isfinite(data_in)], vperc)
-        else:
-            assert len(vrange) == 2
-            (vmin, vmax) = vrange
-
-        if data_unit is None:
-            zunit = None
-            zlabel = '{}'.format(data_label)
-        elif data_unit.find('electron') >= 0:
-            max_value = max(abs(vmin), abs(vmax))
-
-            if max_value > 1000000000:
-                dscale = 1e9
-                zunit = data_unit.replace('electron', 'Ge')
-            elif max_value > 1000000:
-                dscale = 1e6
-                zunit = data_unit.replace('electron', 'Me')
-            elif max_value > 1000:
-                dscale = 1e3
-                zunit = data_unit.replace('electron', 'ke')
-            else:
-                zunit = data_unit.replace('electron', 'e')
-            zlabel = '{} [{}]'.format(data_label, zunit)
-        else:
-            zunit = data_unit
-            zlabel = '{} [{}]'.format(data_label, data_unit)
-
-        # create residual image
-        mask = np.isfinite(data_in)
-        signal = data_in.copy()
-        signal[mask] *= dscale
-        mask = np.isfinite(model_in)
-        model  = model_in.copy()
-        model[mask] *= dscale
-        mask = np.isfinite(data_in) & np.isfinite(model_in)
-        residual = signal.copy()
-        residual[~mask] = np.nan
-        residual[mask] -= model[mask]
-
-        # inititalize figure
-        figsize = (9.2, 8.5)
-        fig = plt.figure(figsize=figsize)
-        if title is not None:
-            fig.suptitle(title, fontsize=14,
-                         position=(0.5, 0.96), horizontalalignment='center')
-        gspec = GridSpec(4, 2)
-
-        # create top-pannel with measurements
-        ax1 = plt.subplot(gspec[0, :])
-        for xtl in ax1.get_xticklabels():
-            xtl.set_visible(False)
-        if sub_title is not None:
-            ax1.set_title(sub_title)
-        img = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower')
-        ax1.set_xlim([0, signal.shape[1]])
-        ax1.locator_params(axis='x', nbins=5)
-        ax1.set_ylim([0, signal.shape[0]])
-        ax1.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
-        ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax1.transAxes)
-        cbar = plt.colorbar(img)
-        if zlabel is not None:
-            cbar.set_label(zlabel)
-
-        # create centre-pannel with residuals
-        (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
-        ax2 = plt.subplot(gspec[1, :], sharex=ax1)
-        for xtl in ax2.get_xticklabels():
-            xtl.set_visible(False)
-        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, aspect='equal',
-                         interpolation='none', origin='lower')
-        ax2.set_xlim([0, signal.shape[1]])
-        ax2.locator_params(axis='x', nbins=5)
-        ax2.set_ylim([0, signal.shape[0]])
-        ax2.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
-        ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax2.transAxes)
-        cbar = plt.colorbar(img)
-        if zunit is None:
-            cbar.set_label('residuals')
-        else:
-            cbar.set_label('residuals {}'.format(zunit))
-
-        # create lower-pannel with reference (model, CKD, previous measurement)
-        ax3 = plt.subplot(gspec[2, :], sharex=ax1)
-        img = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower')
-        ax3.set_xlim([0, signal.shape[1]])
-        ax3.locator_params(axis='x', nbins=5)
-        ax3.set_ylim([0, signal.shape[0]])
-        ax3.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
-        ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax3.transAxes)
-        cbar = plt.colorbar(img)
-        if zunit is None:
-            cbar.set_label(model_label)
-        else:
-            cbar.set_label('{} {}'.format(model_label, zunit))
-
-        # ignore NaN's and flatten the images for the hostograms
-        mask = np.isfinite(data_in) & np.isfinite(model_in)
-        signal = dscale * data_in[mask]
-        residual = dscale * (data_in[mask] - model_in[mask])
-
-        ax4 = plt.subplot(gspec[3, 0])
-        ax4.hist(signal, range=[vmin, vmax], bins=15, normed=True,
-                 color=line_colors[0])
-        ax4.set_xlabel(zlabel)
-        ax4.set_ylabel('fraction')
-        ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
-
-        ax5 = plt.subplot(gspec[3, 1])
-        ax5.hist(residual, range=[rmin, rmax], bins=15, normed=True,
-                 color=line_colors[0])
-        if zunit is None:
-            ax5.set_xlabel('residual')
-        else:
-            ax5.set_xlabel('residual {}'.format(zunit))
-        ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
-
-        # save and close figure
-        plt.draw()
         self.__pdf.savefig()
         plt.close()
