@@ -66,7 +66,6 @@ class S5Pmsm(object):
         self.coords = None
         self.name = os.path.basename(h5_dset.name)
         self.fillvalue = h5_dset.fillvalue
-        print('index0 : ', index0)
         if index0 is None:
             self.value = np.squeeze(h5_dset.value)
             if h5_dset.shape[0] == 1:

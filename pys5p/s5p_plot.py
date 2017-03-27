@@ -28,7 +28,6 @@ from collections import OrderedDict
 import numpy as np
 
 import matplotlib as mpl
-#mpl.use('TkAgg')
 
 #
 # Suggestion for the name of the report/pdf-file
@@ -63,6 +62,42 @@ import matplotlib as mpl
 # etc.
 #
 
+#- local functions --------------------------------
+def convert_units(units, vmin, vmax):
+    dscale = 1.0
+    if units is None:
+        zunit = None
+    elif units.find('electron') >= 0:
+        max_value = max(abs(vmin), abs(vmax))
+
+        if max_value > 1000000000:
+            dscale = 1e9
+            zunit = units.replace('electron', 'Ge')
+        elif max_value > 1000000:
+            dscale = 1e6
+            zunit = units.replace('electron', 'Me')
+        elif max_value > 1000:
+            dscale = 1e3
+            zunit = units.replace('electron', 'ke')
+        else:
+            zunit = units.replace('electron', 'e')
+    elif units >= 'V':
+        max_value = max(abs(vmin), abs(vmax))
+
+        if max_value <= 1e-4:
+            dscale = 1e-6
+            zunit = units.replace('V', '$\mu$V')
+        elif max_value <= 0.1:
+            dscale = 1e-3
+            zunit = units.replace('V', 'mV')
+        else:
+            zunit = units
+    else:
+        zunit = units
+
+    return (zunit, dscale)
+
+#- main function __--------------------------------
 # pylint: disable=too-many-arguments, too-many-locals
 class S5Pplot(object):
     """
@@ -122,13 +157,14 @@ class S5Pplot(object):
         from datetime import datetime
 
         info_str = ""
-        for key in dict_info:
-            if isinstance(dict_info[key], float) \
-               or isinstance(dict_info[key], np.float32):
-                info_str += "{} : {:.5g}".format(key, dict_info[key])
-            else:
-                info_str += "{} : {}".format(key, dict_info[key])
-            info_str += '\n'
+        if dict_info is not None:
+            for key in dict_info:
+                if isinstance(dict_info[key], float) \
+                   or isinstance(dict_info[key], np.float32):
+                    info_str += "{} : {:.5g}".format(key, dict_info[key])
+                else:
+                    info_str += "{} : {}".format(key, dict_info[key])
+                info_str += '\n'
         info_str += 'created : ' \
                    + datetime.utcnow().isoformat(' ', timespec='minutes')
 
@@ -210,6 +246,7 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+        from .biweight import biweight
         from . import sron_colorschemes
 
         sron_colorschemes.register_cmap_rainbow()
@@ -247,15 +284,12 @@ class S5Pplot(object):
         print(msm.value.shape)
         (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
-        ymax = len(ydata)
         xdata = msm.coords[1]
-        xmax = len(xdata)
-        extent = [0, xmax, 0, ymax]
-        print(msm.coords._fields, ymax, xmax)
+        extent = [0, len(xdata), 0, len(ydata)]
+        print(msm.coords._fields, extent)
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
-        dscale = 1.0
         if vrange is None:
             if vperc is None:
                 vperc = (1., 99.)
@@ -267,24 +301,8 @@ class S5Pplot(object):
             assert len(vrange) == 2
             (vmin, vmax) = vrange
 
-        if msm.units is None:
-            zunit = None
-        elif msm.units.find('electron') >= 0:
-            max_value = max(abs(vmin), abs(vmax))
-
-            if max_value > 1000000000:
-                dscale = 1e9
-                zunit = msm.units.replace('electron', 'Ge')
-            elif max_value > 1000000:
-                dscale = 1e6
-                zunit = msm.units.replace('electron', 'Me')
-            elif max_value > 1000:
-                dscale = 1e3
-                zunit = msm.units.replace('electron', 'ke')
-            else:
-                zunit = msm.units.replace('electron', 'e')
-        else:
-            zunit = msm.units
+        # convert units from electrons to ke, Me, ...
+        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
@@ -297,6 +315,8 @@ class S5Pplot(object):
                             extent=extent, origin='lower',
                             vmin=vmin / dscale, vmax=vmax / dscale,
                             aspect='equal', interpolation='none')
+        xbins = len(ax_img.get_xticklabels())
+        ybins = len(ax_img.get_yticklabels())
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
@@ -307,48 +327,54 @@ class S5Pplot(object):
                     verticalalignment='bottom', rotation='vertical',
                     fontsize='xx-small', transform=ax_img.transAxes)
 
-        # create new axes on the right and on the top of the current axes
-        # The first argument of the new_vertical(new_horizontal) method is
-        # the height (width) of the axes to be created in inches.
+        # 'make_axes_locatable' returns an instance of the AxesLocator class,
+        # derived from the Locator. It provides append_axes method that creates
+        # a new axes on the given side of (“top”, “right”, “bottom” and “left”)
+        # of the original axes.
         divider = make_axes_locatable(ax_img)
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax)
+        plt.colorbar(img, cax=cax, label='{} [{}]'.format(msm.name, zunit))
         #
-        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
-        ax_medx.plot(xdata, data_row / dscale, lw=0.5, color=line_colors[0])
-        ax_medx.set_xlim([0, xmax])
+        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
+        ax_medx.plot(xdata, data_row / dscale,
+                     lw=0.5, color=line_colors[0])
+        xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
+        ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
         ax_medx.grid(True)
-        ax_medx.locator_params(axis='x', nbins=6)
-        ax_medx.locator_params(axis='y', nbins=4)
         ax_medx.set_xlabel(xlabel)
+        #ax_medx.locator_params(axis='x', nbins=5)
+        #ax_medx.locator_params(axis='y', nbins=4)
         #
-        print(ydata.shape, data_col.shape)
-        ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
-        ax_medy.plot(data_col / dscale, ydata, lw=0.5, color=line_colors[0])
-        ax_medy.set_ylim([0, ymax])
+        ax_medy = divider.append_axes("left", 1.1, pad=0.25)
+        ax_medy.plot(data_col / dscale, ydata,
+                     lw=0.5, color=line_colors[0])
+        ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
+        ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
+        ax_medy.locator_params(axis='y', nbins=ybins)
+        print(ystep, [ydata[0], ydata[-1] + ystep])
         ax_medy.grid(True)
-        ax_medy.locator_params(axis='x', nbins=4)
         ax_medy.set_ylabel(ylabel)
+        #ax_medy.locator_params(axis='x', nbins=5)
+        #ydata = np.append(ydata, ydata[-1]+1)
+        #print(ydata[::ydata.size//4])
+        #ax_medy.set_yticks(ydata[::ydata.size//4])
 
         # add annotation
-        if fig_info is None or time_axis is not None:
-            from .biweight import biweight
+        (median, spread) = biweight(msm.value, spread=True)
+        if zunit is not None:
+            median_str = '{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+        else:
+            median_str = '{:.5g}'.format(median)
+            spread_str = '{:.5g}'.format(spread)
 
-            (median, spread) = biweight(msm.value, spread=True)
-            if zunit is not None:
-                median_str = '{:.5g} {}'.format(median / dscale, zunit)
-                spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
-            else:
-                median_str = '{:.5g}'.format(median)
-                spread_str = '{:.5g}'.format(spread)
-
-            if fig_info is None:
-                fig_info = OrderedDict({'median' : median_str})
-            else:
-                fig_info.update({'median' : median_str})
-            fig_info.update({'spread' : spread_str})
+        if fig_info is None:
+            fig_info = OrderedDict({'median' : median_str})
+        else:
+            fig_info.update({'median' : median_str})
+        fig_info.update({'spread' : spread_str})
 
         # save and close figure
         self.__fig_info(fig, fig_info, aspect)
@@ -510,7 +536,7 @@ class S5Pplot(object):
     # --------------------------------------------------
     def draw_cmp_swir(self, msm, model_in, model_label='reference',
                       vrange=None, vperc=None,
-                      title=None, sub_title=None):
+                      title=None, sub_title=None, fig_info=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
         Top panel shows data, middle panel shows residuals (data - model)
@@ -548,7 +574,6 @@ class S5Pplot(object):
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
-        dscale = 1.0
         if vperc is None:
             vperc = (1., 99.)
         else:
@@ -561,27 +586,19 @@ class S5Pplot(object):
             assert len(vrange) == 2
             (vmin, vmax) = vrange
 
+        # convert units from electrons to ke, Me, ...
+        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
         if msm.units is None:
-            zunit = None
             zlabel = '{}'.format(msm.name)
-        elif msm.units.find('electron') >= 0:
-            max_value = max(abs(vmin), abs(vmax))
-
-            if max_value > 1000000000:
-                dscale = 1e9
-                zunit = msm.units.replace('electron', 'Ge')
-            elif max_value > 1000000:
-                dscale = 1e6
-                zunit = msm.units.replace('electron', 'Me')
-            elif max_value > 1000:
-                dscale = 1e3
-                zunit = msm.units.replace('electron', 'ke')
-            else:
-                zunit = msm.units.replace('electron', 'e')
-            zlabel = '{} [{}]'.format(msm.name, zunit)
         else:
-            zunit = msm.units
             zlabel = '{} [{}]'.format(msm.name, msm.units)
+
+        # set label and range of X/Y axis
+        print(msm.value.shape)
+        (ylabel, xlabel) = msm.coords._fields
+        ydata = msm.coords[0]
+        xdata = msm.coords[1]
+        extent = [0, len(xdata), 0, len(ydata)]
 
         # create residual image
         mask = np.isfinite(msm.value)
@@ -610,12 +627,7 @@ class S5Pplot(object):
         if sub_title is not None:
             ax1.set_title(sub_title)
         img = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower')
-        ax1.set_xlim([0, signal.shape[1]])
-        ax1.locator_params(axis='x', nbins=5)
-        ax1.set_ylim([0, signal.shape[0]])
-        ax1.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
+                         interpolation='none', origin='lower', extent=extent)
         ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax1.transAxes)
@@ -625,34 +637,28 @@ class S5Pplot(object):
 
         # create centre-pannel with residuals
         (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        # convert units from electrons to ke, Me, ...
+        (runit, rscale) = convert_units(msm.units, rmin, rmax)
+
         ax2 = plt.subplot(gspec[1, :], sharex=ax1)
         for xtl in ax2.get_xticklabels():
             xtl.set_visible(False)
-        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, aspect='equal',
+        img = ax2.imshow(residual / rscale, aspect='equal', extent=extent,
+                         vmin=rmin / rscale, vmax=rmax / rscale,
                          interpolation='none', origin='lower')
-        ax2.set_xlim([0, signal.shape[1]])
-        ax2.locator_params(axis='x', nbins=5)
-        ax2.set_ylim([0, signal.shape[0]])
-        ax2.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
         ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax2.transAxes)
         cbar = plt.colorbar(img)
-        if zunit is None:
+        if runit is None:
             cbar.set_label('residuals')
         else:
-            cbar.set_label('residuals [{}]'.format(zunit))
+            cbar.set_label('residuals [{}]'.format(runit))
 
         # create lower-pannel with reference (model, CKD, previous measurement)
         ax3 = plt.subplot(gspec[2, :], sharex=ax1)
         img = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower')
-        ax3.set_xlim([0, signal.shape[1]])
-        ax3.locator_params(axis='x', nbins=5)
-        ax3.set_ylim([0, signal.shape[0]])
-        ax3.set_yticks([0, signal.shape[0] // 4, signal.shape[0] // 2,
-                        3 * signal.shape[0] // 4, signal.shape[0]])
+                         interpolation='none', origin='lower', extent=extent)
         ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax3.transAxes)
@@ -685,6 +691,7 @@ class S5Pplot(object):
 
         # save and close figure
         plt.draw()
+        self.__fig_info(fig, fig_info)
         self.__pdf.savefig()
         plt.close()
 
