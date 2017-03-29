@@ -54,20 +54,36 @@ class S5Pmsm(object):
     """
     Definition of class S5Pmsm
     """
-    def __init__(self, h5_dset, index0=None):
+    def __init__(self, h5_dset, index0=None, datapoint=False):
         """
         Read measurement data from a Tropomi OCAL, ICM, of L1B product
+
+        Parameters
+        ----------
+        h5_dset   :  h5py.Dataset
+        index0    :  integer
+        datapoint :  boolean
+        
+        HDF5 compound datasets of type datapoint can be read as value & error
         """
         assert isinstance(h5_dset, h5py.Dataset)
         assert h5_dset.ndim <= 3
 
         keys = []
-        values = []
+        dims = []
+        self.error = None
         self.coords = None
         self.name = os.path.basename(h5_dset.name)
-        self.fillvalue = h5_dset.fillvalue
+        if datapoint:
+            self.fillvalue = h5_dset.fillvalue[0]
+        else:
+            self.fillvalue = h5_dset.fillvalue
         if index0 is None:
-            self.value = np.squeeze(h5_dset.value)
+            if datapoint:
+                self.value = np.squeeze(h5_dset.value['value'])
+                self.error = np.squeeze(h5_dset.value['error'])
+            else:
+                self.value = np.squeeze(h5_dset.value)
             if h5_dset.shape[0] == 1:
                 for ii in range(len(h5_dset.dims)-1):
                     keys.append(os.path.basename(h5_dset.dims[ii+1][0].name))
@@ -75,7 +91,7 @@ class S5Pmsm(object):
                     if np.all(buff == 0):
                         buff = np.arange(buff.size)
 
-                    values.append(buff)
+                    dims.append(buff)
             else:
                 for ii in range(len(h5_dset.dims)):
                     keys.append(os.path.basename(h5_dset.dims[ii][0].name))
@@ -83,9 +99,13 @@ class S5Pmsm(object):
                     if np.all(buff == 0):
                         buff = np.arange(buff.size)
 
-                    values.append(buff)
+                    dims.append(buff)
         else:
-            self.value = np.squeeze(h5_dset[index0,...])
+            if datapoint:
+                self.value = np.squeeze(h5_dset[index0,...]['value'])
+                self.error = np.squeeze(h5_dset[index0,...]['error'])
+            else:
+                self.value = np.squeeze(h5_dset[index0,...])
             if len(list(index0)) == 1:
                 for ii in range(len(h5_dset.dims)-1):
                     keys.append(os.path.basename(h5_dset.dims[ii+1][0].name))
@@ -93,7 +113,7 @@ class S5Pmsm(object):
                     if np.all(buff == 0):
                         buff = np.arange(buff.size)
 
-                    values.append(buff)
+                    dims.append(buff)
             else:
                 for ii in range(len(h5_dset.dims)):
                     keys.append(os.path.basename(h5_dset.dims[ii][0].name))
@@ -102,11 +122,11 @@ class S5Pmsm(object):
                         buff = np.arange(buff.size)
 
                     if ii == 0:
-                        values.append(buff[index0])
+                        dims.append(buff[index0])
                     else:
-                        values.append(buff)
+                        dims.append(buff)
         coords_namedtuple = namedtuple('Coords', keys)
-        self.coords = coords_namedtuple._make(values)
+        self.coords = coords_namedtuple._make(dims)
 
         if 'units' in h5_dset.attrs:
             self.units = h5_dset.attrs['units']
@@ -123,22 +143,28 @@ class S5Pmsm(object):
         Combine data of two measurment datasets
         Note:
          - the two datasets have to be from the same detector
-         - it is required to first read the first (left band)
+         - it is required to initialize the class with band[2*chan-1]
         """
-        _msm = S5Pmsm(h5_dset, index0=index0)
+        if self.error is not None:
+            _msm = S5Pmsm(h5_dset, index0=index0, datapoint=True)
+        else:
+            _msm = S5Pmsm(h5_dset, index0=index0)
 
         xdim = _msm.value.ndim-1
         if self.value.shape[-1] == _msm.value.shape[-1]:
             self.value = np.concatenate((self.value, _msm.value), axis=xdim)
+            if self.error is not None:
+                self.error = np.concatenate((self.error, _msm.error), axis=xdim)
         else:
-            data1 = self.value.copy()
-            data2 = _msm.value.copy()
-            (data1, data2) = pad_rows(data1, data2)
-            self.value = np.concatenate((data1, data2), axis=xdim)
+            self.value = np.concatenate(pad_rows(self.value, _msm.value),
+                                        axis=xdim)
+            if self.error is not None:
+                self.error = np.concatenate(pad_rows(self.error, _msm.error),
+                                            axis=xdim)
         key = self.coords._fields[xdim]
-        values = np.concatenate((self.coords[xdim],
+        dims = np.concatenate((self.coords[xdim],
                                  len(self.coords[xdim]) + _msm.coords[xdim]))
-        self.coords = self.coords._replace(**{key : values})
+        self.coords = self.coords._replace(**{key : dims})
 
     def set_units(self, name, force=False):
         """
@@ -157,6 +183,21 @@ class S5Pmsm(object):
     def fill_as_nan(self):
         """
         Replace fillvalues in data with NaN's
+
+        Works only on datasets with HDF5 datatype 'float' or 'datapoints'
         """
         if self.fillvalue == float.fromhex('0x1.ep+122'):
             self.value[(self.value == self.fillvalue)] = np.nan
+
+    def remove_row257(self):
+        """
+        Remove last (not used) row from the data (SWIR, only)
+        """
+        if ndim == 2:
+            self.value = self.value[:-1,:]
+            if self.error is not None:
+                self.error = self.error[:-1,:]
+        elif ndim == 3:
+            self.value = self.value[:,:-1,:]
+            if self.error is not None:
+                self.error = self.error[:,:-1,:]
