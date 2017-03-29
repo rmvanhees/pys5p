@@ -63,7 +63,7 @@ class S5Pmsm(object):
         h5_dset   :  h5py.Dataset
         index0    :  integer
         datapoint :  boolean
-        
+
         HDF5 compound datasets of type datapoint can be read as value & error
         """
         assert isinstance(h5_dset, h5py.Dataset)
@@ -163,7 +163,7 @@ class S5Pmsm(object):
                                             axis=xdim)
         key = self.coords._fields[xdim]
         dims = np.concatenate((self.coords[xdim],
-                                 len(self.coords[xdim]) + _msm.coords[xdim]))
+                               len(self.coords[xdim]) + _msm.coords[xdim]))
         self.coords = self.coords._replace(**{key : dims})
 
     def set_units(self, name, force=False):
@@ -193,11 +193,11 @@ class S5Pmsm(object):
         """
         Remove last (not used) row from the data (SWIR, only)
         """
-        if ndim == 2:
+        if self.value.ndim == 2:
             self.value = self.value[:-1,:]
             if self.error is not None:
                 self.error = self.error[:-1,:]
-        elif ndim == 3:
+        elif self.value.ndim == 3:
             self.value = self.value[:,:-1,:]
             if self.error is not None:
                 self.error = self.error[:,:-1,:]
