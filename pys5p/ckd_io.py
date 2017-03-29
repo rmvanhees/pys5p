@@ -58,28 +58,16 @@ class CKDio(object):
             '*** Fatal, can not find darkflux directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.dark.detector4.nc')
-        if not os.path.isfile(file_ch4):
-            print( '# *** Warning no darkflux CKD found on the system' )
-            return (np.zeros((256, 1000), dtype=np.float64),
-                    np.zeros((256, 1000), dtype=np.float64))
-        else:
-            with h5py.File(file_ch4, 'r') as fid:
-                dset = fid['/BAND7/long_term_swir']
-                dark_b7 = dset[:-1, :]['value']
-                dark_b7[(dark_b7 == FILLVALUE)] = np.nan
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no darkflux CKD found on the system' )
 
-                error_b7 = dset[:-1, :]['error']
-                error_b7[(error_b7 == FILLVALUE)] = np.nan
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True)
+            ckd.combine_bands(fid['/BAND8/long_term_swir'])
 
-                dset = fid['/BAND8/long_term_swir']
-                dark_b8 = dset[:-1, :]['value']
-                dark_b8[(dark_b8 == FILLVALUE)] = np.nan
-
-                error_b8 = dset[:-1, :]['error']
-                error_b8[(error_b8 == FILLVALUE)] = np.nan
-
-            return (np.hstack((dark_b7, dark_b8)),
-                    np.hstack((error_b7, error_b8)))
+        ckd.set_long_name('SWIR dark-flux CKD')
+        ckd.remove_row257()
+        return ckd
 
     def get_swir_dpqf(self, threshold=None):
         """
@@ -90,10 +78,8 @@ class CKDio(object):
             '*** Fatal, can not find DPQF-CKD directory: {}'.format(ckd_dir)
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
-
-        if not os.path.isfile(ckd_file):
-            print( '# *** Warning no DPQF-CKD found on the system' )
-            return np.zeros((256, 1000), dtype=np.bool)
+        assert os.path.isfile(ckd_file), \
+            '# *** Fatal, no DPQF-CKD found on the system' )
 
         with h5py.File(ckd_file, 'r' ) as fid:
             if threshold is None:
@@ -115,28 +101,16 @@ class CKDio(object):
             '*** Fatal, can not find offset directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.offset.detector4.nc')
-        if not os.path.isfile(file_ch4):
-            print( '# *** Warning no offset CKD found on the system' )
-            return (np.zeros((256, 1000), dtype=np.float64),
-                    np.zeros((256, 1000), dtype=np.float64))
-        else:
-            with h5py.File(file_ch4, 'r') as fid:
-                dset = fid['/BAND7/analog_offset_swir']
-                offs_b7 = dset[:-1, :]['value']
-                offs_b7[(offs_b7 == FILLVALUE)] = np.nan
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no offset CKD found on the system' )
 
-                error_b7 = dset[:-1, :]['error']
-                error_b7[(error_b7 == FILLVALUE)] = np.nan
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/analog_offset_swir'], datapoint=True)
+            ckd.combine_bands(fid['/BAND8/analog_offset_swir'])
 
-                dset = fid['/BAND8/analog_offset_swir']
-                offs_b8 = dset[:-1, :]['value']
-                offs_b8[(offs_b8 == FILLVALUE)] = np.nan
-
-                error_b8 = dset[:-1, :]['error']
-                error_b8[(error_b8 == FILLVALUE)] = np.nan
-
-            return (np.hstack((offs_b7, offs_b8)),
-                    np.hstack((error_b7, error_b8)))
+        ckd.set_long_name('SWIR offset CKD')
+        ckd.remove_row257()
+        return ckd
 
     def get_swir_prnu(self):
         """
@@ -150,19 +124,18 @@ class CKDio(object):
 
         file_b7 = os.path.join(ckd_dir, 'stitch.band7.ckd.nc')
         file_b8 = os.path.join(ckd_dir, 'stitch.band8.ckd.nc')
-        if not os.path.isfile(file_b7) or not os.path.isfile(file_b8):
-            print( '# *** Warning no PRNU CKD found on the system' )
-            return np.ones((256, 1000), dtype=np.float)
-        else:
-            with h5py.File(file_b7, 'r') as fid:
-                dset = fid['/BAND7/PRNU']
-                prnu_b7 = dset[:-1, :]['value']
+        assert os.path.isfile(file_b7) and os.path.isfile(file_b8), \
+            '*** Fatal, no PRNU CKD found on the system'
 
-            with h5py.File(file_b8, 'r') as fid:
-                dset = fid['/BAND8/PRNU']
-                prnu_b8 = dset[:-1, :]['value']
+        with h5py.File(file_b7, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/PRNU'], datapoint=True)
 
-            return np.hstack((prnu_b7, prnu_b8))
+        with h5py.File(file_b8, 'r') as fid:
+            ckd.combine_bands(fid['/BAND8/PRNU'])
+
+        ckd.set_long_name('SWIR PRNU CKD')
+        ckd.remove_row257()
+        return ckd
 
     def get_swir_saturation(self):
         """
@@ -176,17 +149,16 @@ class CKDio(object):
             '*** Fatal, can not find saturation directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.saturation_preoffset.detector4.nc')
-        if not os.path.isfile(file_ch4):
-            print( '# *** Warning no saturation CKD found on the system' )
-            return np.full((256,1000), np.nan)
-        else:
-            with h5py.File(file_ch4, 'r') as fid:
-                dset = fid['/BAND7/saturation_preoffset']
-                satur_b7 = dset[:-1, :]
-                dset = fid['/BAND8/saturation_preoffset']
-                satur_b8 = dset[:-1, :]
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no saturation CKD found on the system' )
 
-            return np.hstack((satur_b7, satur_b8))
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/saturation_preoffset'])
+            ckd.combine_bands(fid['/BAND8/saturation_preoffset'])
+
+        ckd.set_long_name('SWIR saturation(pre-offset) CKD')
+        ckd.remove_row257()
+        return ckd
 
     def get_swir_v2c(self):
         """
@@ -199,14 +171,14 @@ class CKDio(object):
             '*** Fatal, can not find V2C-CKD directory: {}'.format(ckd_dir)
 
         ckd_file = os.path.join(ckd_dir, 'ckd.v2c_factor.detector4.nc')
-        if not os.path.isfile(ckd_file):
-            print( '# *** Warning no V2C-CKD found on the system' )
-            return np.ones((4,), dtype=np.float32)
+        assert os.path.isfile(ckd_file), \
+            '*** Fatal, no V2C-CKD found on the system'
 
         with h5py.File(ckd_file, 'r' ) as fid:
-            v2c = fid['/BAND7/v2c_factor_swir']['value']
+            ckd = S5Pmsm(fid['/BAND7/v2c_factor_swir'], datapoint=True)
 
-        return v2c
+        ckd.set_long_name('SWIR voltage to charge CKD')
+        return ckd
 
     def get_swir_wavelength(self):
         """
@@ -219,14 +191,13 @@ class CKDio(object):
             '*** Fatal, can not find wavelength directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.wavelength.detector4.nc')
-        if not os.path.isfile(file_ch4):
-            print( '# *** Warning no wavelength CKD found on the system' )
-            return np.zeros((256, 1000), dtype=np.float64)
-        else:
-            with h5py.File(file_ch4, 'r') as fid:
-                dset = fid['/BAND7/wavelength_map']
-                wv_b7 = dset[:-1, :]
-                dset = fid['/BAND8/wavelength_map']
-                wv_b8 = dset[:-1, :]
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no wavelength CKD found on the system'
 
-            return np.hstack((wv_b7, wv_b8))
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/wavelength_map'])
+            ckd.combine_bands(fid['/BAND8/wavelength_map'])
+
+        ckd.set_long_name('SWIR wavelength CKD')
+        ckd.remove_row257()
+        return ckd
