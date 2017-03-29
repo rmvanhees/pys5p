@@ -19,6 +19,7 @@ import os.path
 import numpy as np
 import h5py
 
+#- global parameters ------------------------------
 def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
@@ -44,7 +45,7 @@ def pad_rows(arr1, arr2):
 
     return (arr1, arr2)
 
-#--------------------------------------------------
+#- class definition -------------------------------
 class ICMio(object):
     """
     This class should offer all the necessary functionality to read Tropomi
@@ -263,8 +264,9 @@ class ICMio(object):
         """
         from datetime import datetime, timedelta
 
+        ref_time = datetime(2010,1,1,0,0,0) 
         if self.__msm_path is None:
-            return None
+            return ref_time
 
         if band is None:
             band = self.bands[0]
@@ -282,8 +284,7 @@ class ICMio(object):
                                         name.decode('ascii'))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
-                ref_time = (datetime(2010,1,1,0,0,0) \
-                            + timedelta(seconds=int(sgrp['time'][0])))
+                ref_time += timedelta(seconds=int(sgrp['time'][0]))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
             grp_path = os.path.join(os.path.dirname(msm_path),
                                     'ANALOG_OFFSET_SWIR')
@@ -295,13 +296,11 @@ class ICMio(object):
                                         name.decode('ascii'))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
-                ref_time = (datetime(2010,1,1,0,0,0) \
-                            + timedelta(seconds=int(sgrp['time'][0])))
+                ref_time += timedelta(seconds=int(sgrp['time'][0]))
         else:
             grp = self.fid[msm_path]
             sgrp = grp['OBSERVATIONS']
-            ref_time = (datetime(2010,1,1,0,0,0) \
-                        + timedelta(seconds=int(sgrp['time'][0])))
+            ref_time += timedelta(seconds=int(sgrp['time'][0]))
         return ref_time
 
     def get_delta_time(self, band=None):
@@ -600,6 +599,8 @@ class ICMio(object):
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
+        columns    : [i, j]
+            Slice data on fastest axis (columns) as from index 'i' to 'j'
         msm_to_row : {None, 'padding', 'rebin'}
             Return the measurement data as stored in the product (None), padded
             with NaN's for the spectral band with largest number of rows, or
