@@ -1,3 +1,4 @@
+
 """
 This file is part of pyS5p
 
@@ -86,7 +87,7 @@ def convert_units(units, vmin, vmax):
 
         if max_value <= 1e-4:
             dscale = 1e-6
-            zunit = units.replace('V', '$\mu$V')
+            zunit = units.replace('V', r'$\mu \mathrm{V}$')
         elif max_value <= 0.1:
             dscale = 1e-3
             zunit = units.replace('V', 'mV')
@@ -170,35 +171,35 @@ class S5Pplot(object):
 
         if aspect == 4:
             fig.text(0.9, 0.975, info_str,
-                     fontsize=fontsize, style='italic',
+                     fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         elif aspect == 3:
             fig.text(0.9, 0.975, info_str,
-                     fontsize=fontsize, style='italic',
+                     fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         elif aspect == 2:
             fig.text(1, 1, info_str,
-                     fontsize=fontsize, style='italic',
+                     fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         elif aspect == 1:
             fig.text(0.3, 0.225, info_str,
-                     fontsize=fontsize, style='italic',
+                     fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         else:
             fig.text(0.9, 0.965, info_str,
-                     fontsize=fontsize, style='italic',
+                     fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
@@ -207,7 +208,7 @@ class S5Pplot(object):
     # --------------------------------------------------
     def draw_signal(self, msm, data_col=None, data_row=None,
                     title=None, sub_title=None, fig_info=None,
-                    vperc=None, vrange=None, time_axis=None):
+                    vperc=None, vrange=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -237,8 +238,7 @@ class S5Pplot(object):
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date and if 
-        parameter 'time_axis' is not None' or 'fig_info' is None the data 
+        in a small box. In addition, we display the creation date and the data 
         median & spread.
         """
         import warnings
@@ -421,7 +421,7 @@ class S5Pplot(object):
             qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = qmsm.shape
+        dims = qdata.shape
         xdata = np.arange(dims[1], dtype=float)
         ydata = np.arange(dims[0], dtype=float)
         extent = [0, dims[1], 0, dims[0]]
