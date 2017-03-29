@@ -20,7 +20,9 @@ import os.path
 import numpy as np
 import h5py
 
-#--------------------------------------------------
+#- global parameters ------------------------------
+
+#- class definition -------------------------------
 class OCMio(object):
     """
     This class should offer all the necessary functionality to read Tropomi
@@ -247,6 +249,12 @@ class OCMio(object):
         msm_dset    :  string
             name of measurement dataset
             if msm_dset is None then show names of available datasets
+
+        columns    : [i, j]
+            Slice data on fastest axis (columns) as, from index 'i' to 'j'
+
+        frames    : [i, j]
+            Slice data on slowest axis (time) as, from index 'i' to 'j'
 
         fill_as_nan :  boolean
             replace (float) FillValues with Nan's
