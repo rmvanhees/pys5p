@@ -20,11 +20,11 @@ import os.path
 import numpy as np
 import h5py
 
+from .s5p_msm import S5Pmsm
+
 #- global parameters ------------------------------
 
-FILLVALUE = float.fromhex('0x1.ep+122')
-
-#- local functions --------------------------------
+#- class definition -------------------------------
 class CKDio(object):
     """
     This class should offer all the necessary functionality to read Tropomi
@@ -59,7 +59,7 @@ class CKDio(object):
 
         file_ch4 = os.path.join(ckd_dir,'ckd.dark.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no darkflux CKD found on the system' )
+            '*** Fatal, no darkflux CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True)
@@ -79,7 +79,7 @@ class CKDio(object):
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
         assert os.path.isfile(ckd_file), \
-            '# *** Fatal, no DPQF-CKD found on the system' )
+            '# *** Fatal, no DPQF-CKD found on the system'
 
         with h5py.File(ckd_file, 'r' ) as fid:
             if threshold is None:
@@ -102,7 +102,7 @@ class CKDio(object):
 
         file_ch4 = os.path.join(ckd_dir,'ckd.offset.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no offset CKD found on the system' )
+            '*** Fatal, no offset CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/analog_offset_swir'], datapoint=True)
@@ -150,7 +150,7 @@ class CKDio(object):
 
         file_ch4 = os.path.join(ckd_dir,'ckd.saturation_preoffset.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no saturation CKD found on the system' )
+            '*** Fatal, no saturation CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/saturation_preoffset'])
