@@ -20,6 +20,11 @@ import os.path
 import numpy as np
 import h5py
 
+#from .s5p_msm import S5Pmsm
+
+#- global parameters ------------------------------
+
+#- local functions --------------------------------
 def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
@@ -45,7 +50,7 @@ def pad_rows(arr1, arr2):
 
     return (arr1, arr2)
 
-#--------------------------------------------------
+#- class definition -------------------------------
 class L1Bio(object):
     """
     super class with general function to access Tropomi offline L1b products
@@ -339,7 +344,7 @@ class L1Bio(object):
 
         ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
         if attr_name in self.fid[ds_path].attrs.keys():
-            attr = self.fid[ds_path].attrs['units']
+            attr = self.fid[ds_path].attrs[attr_name]
             if isinstance(attr, bytes):
                 return attr.decode('ascii')
             else:

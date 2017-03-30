@@ -34,6 +34,7 @@ def test_ckd_dpqf():
 
     """
     from ..get_data_dir import get_data_dir
+    from ..ckd_io   import CKDio
     from ..s5p_plot import S5Pplot
 
     # obtain path to directory pys5p-data
@@ -41,12 +42,9 @@ def test_ckd_dpqf():
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    dpqm_fl = os.path.join(data_dir, 'CKD', 'dpqf', 'ckd.dpqf.detector4.nc')
 
-    with h5py.File(dpqm_fl, 'r') as fid:
-        band7 = fid['BAND7/dpqf_map'][:-1,:]
-        band8 = fid['BAND8/dpqf_map'][:-1,:]
-        dpqm = np.hstack((band7, band8))
+    ckd = CKDio(ckd_dir=os.path.join(data_dir, 'CKD'))
+    dpqm = ckd.get_swir_dpqm()
 
     # generate figure
     plot = S5Pplot('test_plot_ckd_dpqm.pdf')

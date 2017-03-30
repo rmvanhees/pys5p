@@ -19,31 +19,11 @@ import os.path
 import numpy as np
 import h5py
 
-#- global parameters ------------------------------
-def pad_rows(arr1, arr2):
-    """
-    Pad the array with the least numer of rows with NaN's
-    """
-    if arr2.ndim == 2:
-        if arr1.shape[0] < arr2.shape[0]:
-            buff = arr1.copy()
-            arr1 = np.full_like(arr2, np.nan)
-            arr1[0:buff.shape[0], :] = buff
-        elif arr1.shape[0] > arr2.shape[0]:
-            buff = arr2.copy()
-            arr2 = np.full_like(arr1, np.nan)
-            arr2[0:buff.shape[0], :] = buff
-    else:
-        if arr1.shape[1] < arr2.shape[1]:
-            buff = arr1.copy()
-            arr1 = np.full_like(arr2, np.nan)
-            arr1[:, 0:buff.shape[1], :] = buff
-        elif arr1.shape[1] > arr2.shape[1]:
-            buff = arr2.copy()
-            arr2 = np.full_like(arr1, np.nan)
-            arr2[:, 0:buff.shape[1], :] = buff
+from .s5p_msm import S5Pmsm
 
-    return (arr1, arr2)
+#- global parameters ------------------------------
+
+#- local functions --------------------------------
 
 #- class definition -------------------------------
 class ICMio(object):
@@ -264,7 +244,7 @@ class ICMio(object):
         """
         from datetime import datetime, timedelta
 
-        ref_time = datetime(2010,1,1,0,0,0) 
+        ref_time = datetime(2010, 1, 1, 0, 0, 0)
         if self.__msm_path is None:
             return ref_time
 
@@ -475,7 +455,7 @@ class ICMio(object):
     #-------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
         """
-        Returns value attribute of measurement dataset "msm_dset"
+        Returns attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
@@ -586,8 +566,7 @@ class ICMio(object):
 
         return res
 
-    def get_msm_data(self, msm_dset, band='78', columns=None,
-                     msm_to_row=None, fill_as_nan=True):
+    def get_msm_data(self, msm_dset, band='78', columns=None, fill_as_nan=True):
         """
         Read datasets from a measurement selected by class-method "select"
 
@@ -601,12 +580,6 @@ class ICMio(object):
             Default is '78' which combines band 7/8 to SWIR detector layout
         columns    : [i, j]
             Slice data on fastest axis (columns) as from index 'i' to 'j'
-        msm_to_row : {None, 'padding', 'rebin'}
-            Return the measurement data as stored in the product (None), padded
-            with NaN's for the spectral band with largest number of rows, or
-            rebinned according 'measurement_to_detector_row_table'
-            - Default for spectral bands is to return the data as stored.
-            - Default for spectral channels is to apply padding.
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
@@ -621,11 +594,7 @@ class ICMio(object):
         assert len(band) > 0 and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
-            if msm_to_row is None:
-                msm_to_row = 'padding'
         assert self.bands.find(band) >= 0
-
-        fillvalue = float.fromhex('0x1.ep+122')
 
         res = None
         for ii in band:
@@ -636,22 +605,20 @@ class ICMio(object):
                     continue
 
                 if columns is None:
-                    data = np.squeeze(self.fid[ds_path])
+                    data_sel = None
                 else:
-                    data = self.fid[ds_path][...,columns[0]:columns[1]]
-                    data = np.squeeze(data)
-                if fill_as_nan \
-                   and self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                    data[(data == fillvalue)] = np.nan
+                    data_sel = np.s_[...,columns[0]:columns[1]]
 
                 if res is None:
-                    res = data
+                    res = S5Pmsm(self.fid[ds_path], data_sel=data_sel)
+                    if fill_as_nan:
+                        res.fill_as_nan()
                 else:
-                    if msm_to_row == 'padding':
-                        (res, data) = pad_rows(res, data)
+                    _tmp = S5Pmsm(self.fid[ds_path], data_sel=data_sel)
+                    if fill_as_nan:
+                        _tmp.fill_as_nan()
 
-                    res = np.concatenate((res, data), axis=data.ndim-1)
-
+                    res.concatenate(_tmp, axis=_tmp.value.ndim-1)
         return res
 
     #-------------------------

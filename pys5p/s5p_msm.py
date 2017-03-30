@@ -54,117 +54,92 @@ class S5Pmsm(object):
     """
     Definition of class S5Pmsm
     """
-    def __init__(self, h5_dset, index0=None, datapoint=False):
+    def __init__(self, h5_dset, data_sel=None, datapoint=False):
         """
         Read measurement data from a Tropomi OCAL, ICM, of L1B product
 
         Parameters
         ----------
         h5_dset   :  h5py.Dataset
-        index0    :  integer
+           h5py dataset fromwhich the data is read
+        data_sel  :  numpy slice
+           a numpy slice generated for example numpy.s_
         datapoint :  boolean
+           to indicate that the dataset is a compound of type datapoint
 
-        HDF5 compound datasets of type datapoint can be read as value & error
+        Returns
+        -------
+        numpy structure with dataset data and attributes, including data,
+        fillvalue, coordinates, units, ...
         """
         assert isinstance(h5_dset, h5py.Dataset)
-        assert h5_dset.ndim <= 3
 
-        keys = []
-        dims = []
+        # initialize object
+        self.name = os.path.basename(h5_dset.name)
         self.error = None
         self.coords = None
-        self.name = os.path.basename(h5_dset.name)
+        self.units = None
+        self.long_name = None
+
+        # copy dataset values (and error) to object
+        if data_sel is None:
+            if datapoint:
+                self.value = np.array(h5_dset.value['value'])
+                self.error = np.array(h5_dset.value['error'])
+            else:
+                self.value = np.array(h5_dset.value)
+        else:
+            if datapoint:
+                self.value = np.array(h5_dset[data_sel]['value'])
+                self.error = np.array(h5_dset[data_sel]['error'])
+            else:
+                self.value = np.array(h5_dset[data_sel])
+
+        # copy all dimensions with size longer then 1
+        # ToDo what happens when no dimensions are assigned to dataset?
+        keys = []
+        dims = []
+        for ii in range(h5_dset.ndim):
+            if self.value.shape[ii] == 1:
+                continue
+            elif self.value.shape[ii] == h5_dset.shape[ii]:
+                keys.append(os.path.basename(h5_dset.dims[ii][0].name))
+                buff = h5_dset.dims[ii][0][:]
+                if np.all(buff == 0):
+                    buff = np.arange(buff.size)
+                dims.append(buff)
+            else:
+                keys.append(os.path.basename(h5_dset.dims[ii][0].name))
+                buff = h5_dset.dims[ii][0][:]
+                if np.all(buff == 0):
+                    buff = np.arange(buff.size)
+                dims.append(buff[data_sel[ii]])
+
+        # add dimensions as a namedtuple
+        coords_namedtuple = namedtuple('Coords', keys)
+        self.coords = coords_namedtuple._make(dims)
+
+        # remove all dimensions with size equal 1 from value (and error)
+        self.value = np.squeeze(self.value)
+        if datapoint:
+            self.error = np.squeeze(self.error)
+
+        # copy FillValue (same for value/error in a datapoint)
         if datapoint:
             self.fillvalue = h5_dset.fillvalue[0]
         else:
             self.fillvalue = h5_dset.fillvalue
-        if index0 is None:
-            if datapoint:
-                self.value = np.squeeze(h5_dset.value['value'])
-                self.error = np.squeeze(h5_dset.value['error'])
-            else:
-                self.value = np.squeeze(h5_dset.value)
-            if h5_dset.shape[0] == 1:
-                for ii in range(len(h5_dset.dims)-1):
-                    keys.append(os.path.basename(h5_dset.dims[ii+1][0].name))
-                    buff = h5_dset.dims[ii+1][0][:]
-                    if np.all(buff == 0):
-                        buff = np.arange(buff.size)
 
-                    dims.append(buff)
-            else:
-                for ii in range(len(h5_dset.dims)):
-                    keys.append(os.path.basename(h5_dset.dims[ii][0].name))
-                    buff = h5_dset.dims[ii][0][:]
-                    if np.all(buff == 0):
-                        buff = np.arange(buff.size)
-
-                    dims.append(buff)
-        else:
-            if datapoint:
-                self.value = np.squeeze(h5_dset[index0,...]['value'])
-                self.error = np.squeeze(h5_dset[index0,...]['error'])
-            else:
-                self.value = np.squeeze(h5_dset[index0,...])
-            if len(list(index0)) == 1:
-                for ii in range(len(h5_dset.dims)-1):
-                    keys.append(os.path.basename(h5_dset.dims[ii+1][0].name))
-                    buff = h5_dset.dims[ii+1][0][:]
-                    if np.all(buff == 0):
-                        buff = np.arange(buff.size)
-
-                    dims.append(buff)
-            else:
-                for ii in range(len(h5_dset.dims)):
-                    keys.append(os.path.basename(h5_dset.dims[ii][0].name))
-                    buff = h5_dset.dims[ii][0][:]
-                    if np.all(buff == 0):
-                        buff = np.arange(buff.size)
-
-                    if ii == 0:
-                        dims.append(buff[index0])
-                    else:
-                        dims.append(buff)
-        coords_namedtuple = namedtuple('Coords', keys)
-        self.coords = coords_namedtuple._make(dims)
-
+        # copy its units
         if 'units' in h5_dset.attrs:
-            self.units = h5_dset.attrs['units']
-        else:
-            self.units = None
+            if isinstance(h5_dset.attrs['units'], bytes):
+                self.units = h5_dset.attrs['units'].decode('ascii')
+            else:
+                self.units = h5_dset.attrs['units']
 
+        # copy its long_name
         if 'long_name' in h5_dset.attrs:
             self.long_name = h5_dset.attrs['long_name']
-        else:
-            self.long_name = None
-
-    def combine_bands(self, h5_dset, index0=None):
-        """
-        Combine data of two measurment datasets
-        Note:
-         - the two datasets have to be from the same detector
-         - it is required to initialize the class with band[2*chan-1]
-        """
-        if self.error is not None:
-            _msm = S5Pmsm(h5_dset, index0=index0, datapoint=True)
-        else:
-            _msm = S5Pmsm(h5_dset, index0=index0)
-
-        xdim = _msm.value.ndim-1
-        if self.value.shape[-1] == _msm.value.shape[-1]:
-            self.value = np.concatenate((self.value, _msm.value), axis=xdim)
-            if self.error is not None:
-                self.error = np.concatenate((self.error, _msm.error), axis=xdim)
-        else:
-            self.value = np.concatenate(pad_rows(self.value, _msm.value),
-                                        axis=xdim)
-            if self.error is not None:
-                self.error = np.concatenate(pad_rows(self.error, _msm.error),
-                                            axis=xdim)
-        key = self.coords._fields[xdim]
-        dims = np.concatenate((self.coords[xdim],
-                               len(self.coords[xdim]) + _msm.coords[xdim]))
-        self.coords = self.coords._replace(**{key : dims})
 
     def set_units(self, name, force=False):
         """
@@ -189,15 +164,191 @@ class S5Pmsm(object):
         if self.fillvalue == float.fromhex('0x1.ep+122'):
             self.value[(self.value == self.fillvalue)] = np.nan
 
-    def remove_row257(self):
+    def concatenate(self, msm, axis=0):
         """
-        Remove last (not used) row from the data (SWIR, only)
+        Concatenate two measurement datasets, the current with another.
+
+        Parameters
+        ----------
+        msm   :  pys5p.S5Pmsm
+           an S5Pmsm object
+        axis  : int, optional
+           The axis along which the arrays will be joined. Default is 0.
+
+        Returns
+        -------
+        The data of the new dataset is concatenated to the existing data along
+        an existing axis. The affected coordinate is also extended.
+
+        Note:
+         - The arrays must have the same shape, except in the dimension
+        corresponding to axis (the first, by default).
         """
-        if self.value.ndim == 2:
-            self.value = self.value[:-1,:]
+        assert self.name == os.path.basename(msm.name), \
+            '*** Fatal, only combine the same dataset from different bands'
+
+        if self.error is None and msm.error is None:
+            datapoint = False
+        elif  self.error is not None and msm.error is not None:
+            datapoint = True
+        else:
+            raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
+
+        # all but the last 2 dimensions have to be equal
+        assert self.value.shape[:-2] == msm.value.shape[:-2]
+
+        if axis == 0:
+            self.value = np.concatenate((self.value, msm.value), axis=axis)
+            if datapoint:
+                self.error = np.concatenate((self.error, msm.error),
+                                            axis=axis)
+        elif axis == 1:
+            if self.value.shape[0] == msm.value.shape[0]:
+                self.value = np.concatenate((self.value, msm.value), axis=axis)
+                if datapoint:
+                    self.error = np.concatenate((self.error, msm.error),
+                                                axis=axis)
+            else:
+                self.value = np.concatenate(pad_rows(self.value, msm.value),
+                                            axis=axis)
+                if datapoint:
+                    self.error = np.concatenate(pad_rows(self.error, msm.error),
+                                                axis=axis)
+        elif axis == 2:
+            if self.value.shape[1] == msm.value.shape[1]:
+                self.value = np.concatenate((self.value, msm.value), axis=axis)
+                if datapoint:
+                    self.error = np.concatenate((self.error, msm.error),
+                                                axis=axis)
+            else:
+                self.value = np.concatenate(pad_rows(self.value, msm.value),
+                                            axis=axis)
+                if datapoint:
+                    self.error = np.concatenate(pad_rows(self.error, msm.error),
+                                                axis=axis)
+        else:
+            raise ValueError("S5Pmsm: implemented for ndim <= 3")
+
+        # now extent coordinate of the fastest axis
+        key = self.coords._fields[axis]
+        if msm.coords[axis][0] == 0:
+            dims = np.concatenate((self.coords[axis],
+                                   len(self.coords[axis]) + msm.coords[axis]))
+        else:
+            dims = np.concatenate((self.coords[axis], msm.coords[axis]))
+        self.coords = self.coords._replace(**{key : dims})
+
+    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
+        """
+        Returns median of the data in the S5Pmsm
+
+        Parameters
+        ----------
+        data_sel  :  numpy slice
+           A numpy slice generated for example numpy.s_. Can be used to skip
+           the first and/or last frame
+        axis      : int, optional
+           Axis or axes along which the medians are computed. Default is 0.
+        keepdims  : bool, optional
+           If this is set to True, the axes which are reduced are left in the
+           result as dimensions with size one. With this option, the result
+           will broadcast correctly against the original arr.
+
+        Returns
+        -------
+        S5Pmsm object with data (value & error) is replaced by their medians
+        and the coordinates are adjusted
+        """
+        if data_sel is None:
             if self.error is not None:
-                self.error = self.error[:-1,:]
-        elif self.value.ndim == 3:
-            self.value = self.value[:,:-1,:]
+                self.error = np.nanmedian(self.error,
+                                          axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value, axis=axis, keepdims=keepdims)
+            self.value = np.nanmedian(self.value, axis=axis, keepdims=keepdims)
+        else:
             if self.error is not None:
-                self.error = self.error[:,:-1,:]
+                self.error = np.nanmedian(self.error[data_sel],
+                                          axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value[data_sel],
+                                       axis=axis, keepdims=keepdims)
+            self.value = np.nanmedian(self.value[data_sel],
+                                      axis=axis, keepdims=keepdims)
+
+        # adjust the coordinates
+        if keepdims:
+            key = self.coords._fields[axis]
+            if self.coords[axis][0] == 0:
+                dims = [0]
+            else:
+                dims = np.median(self.coords[axis], keepdims=keepdims)
+            self.coords = self.coords._replace(**{key : dims})
+        else:
+            keys = []
+            dims = []
+            for ii in range(self.value.ndim+1):
+                if ii != axis:
+                    keys.append(self.coords._fields[ii])
+                    dims.append(self.coords[ii][:])
+            coords_namedtuple = namedtuple('Coords', keys)
+            self.coords = coords_namedtuple._make(dims)
+
+    def biweight(self, data_sel=None, axis=0, keepdims=False):
+        """
+        Returns biweight median of the data in the S5Pmsm
+
+        Parameters
+        ----------
+        data_sel  :  numpy slice
+           A numpy slice generated for example numpy.s_. Can be used to skip
+           the first and/or last frame
+        axis  : int, optional
+           Axis or axes along which the medians are computed. Default is 0.
+        keepdims  : bool, optional
+           If this is set to True, the axes which are reduced are left in the
+           result as dimensions with size one. With this option, the result
+           will broadcast correctly against the original arr.
+
+        Returns
+        -------
+        S5Pmsm object with data (value & error) is replaced by their medians
+        and the coordinates are adjusted
+        """
+        from .biweight import biweight
+
+        if data_sel is None:
+            if self.error is not None:
+                self.value = biweight(self.value, axis=axis)
+                self.error = biweight(self.error, axis=axis)
+            else:
+                (self.value, self.error) = biweight(self.value,
+                                                    axis=axis, spread=True)
+        else:
+            if self.error is not None:
+                self.value = biweight(self.value[data_sel], axis=axis)
+                self.error = biweight(self.error[data_sel], axis=axis)
+            else:
+                (self.value, self.error) = biweight(self.value[data_sel],
+                                                    axis=axis, spread=True)
+        if keepdims:
+            self.value = np.expand_dims(self.value, axis=axis)
+            self.error = np.expand_dims(self.error, axis=axis)
+
+        # adjust the coordinates
+        if keepdims:
+            key = self.coords._fields[axis]
+            if self.coords[axis][0] == 0:
+                dims = [0]
+            else:
+                dims = np.median(self.coords[axis], keepdims=keepdims)
+            self.coords = self.coords._replace(**{key : dims})
+        else:
+            keys = []
+            dims = []
+            for ii in range(self.value.ndim+1):
+                if ii != axis:
+                    keys.append(self.coords._fields[ii])
+                    dims.append(self.coords[ii][:])
+            coords_namedtuple = namedtuple('Coords', keys)
+            self.coords = coords_namedtuple._make(dims)

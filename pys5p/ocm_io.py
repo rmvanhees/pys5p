@@ -20,7 +20,98 @@ import os.path
 import numpy as np
 import h5py
 
+from .s5p_msm import S5Pmsm
+
 #- global parameters ------------------------------
+
+#- local functions --------------------------------
+def band2channel(dict_a, dict_b,
+                 skip_first=False, skip_last=False, mode=None):
+    """
+    Store data from a dictionary as returned by get_msm_data to a ndarray
+
+    Parameters
+    ----------
+    dict_a      :  dictionary
+    dict_b      :  dictionary
+    skip_first  :  boolean
+        default is False
+    skip_last   :  boolean
+        default is False
+    mode        :  list ['combined', 'median']
+        default is None
+
+    Returns
+    -------
+    out  :  ndarray
+        Data from dictionary stored in a numpy array
+
+    Notes
+    -----
+
+    Examples
+    --------
+    >>> data = ocm.band2channel(dict_a, dict_b,
+                                mode=['combined', 'median'])
+    >>>
+    """
+    if dict_b is None:
+        dict_b = {}
+    if mode is None:
+        mode = []
+
+    data_a = None
+    data_b = None
+    for key in sorted(dict_a):
+        if skip_last:
+            if skip_first:
+                buff = dict_a[key].value[1:-1, ...]
+            else:
+                buff = dict_a[key].value[0:-1, ...]
+        else:
+            if skip_first:
+                buff = dict_a[key].value[1:, ...]
+            else:
+                buff = dict_a[key].value[0:, ...]
+
+        if 'combine' not in mode and 'median' in mode:
+            buff = np.nanmedian(buff, axis=0)
+
+        if data_a is None:
+            data_a = buff
+        else:
+            data_a = np.vstack((data_a, buff))
+
+    if 'combine' in mode and 'median' in mode:
+        data_a = np.nanmedian(data_a, axis=0)
+
+    for key in sorted(dict_b):
+        if skip_last:
+            if skip_first:
+                buff = dict_b[key].value[1:-1, ...]
+            else:
+                buff = dict_b[key].value[0:-1, ...]
+        else:
+            if skip_first:
+                buff = dict_b[key].value[1:, ...]
+            else:
+                buff = dict_b[key].value[0:, ...]
+
+        if 'combine' not in mode and 'median' in mode:
+            buff = np.nanmedian(buff, axis=0)
+
+        if data_b is None:
+            data_b = buff
+        else:
+            data_b = np.vstack((data_b, buff))
+
+    if 'combine' in mode and 'median' in mode:
+        data_b = np.nanmedian(data_b, axis=0)
+
+    if data_b is None:
+        return data_a
+    else:
+        return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
 
 #- class definition -------------------------------
 class OCMio(object):
@@ -209,7 +300,7 @@ class OCMio(object):
     #-------------------------
     def get_msm_attr(self, msm_dset, attr_name):
         """
-        Returns value attribute of measurement dataset "msm_dset"
+        Returns attribute of measurement dataset "msm_dset"
 
         Parameters
         ----------
@@ -232,7 +323,7 @@ class OCMio(object):
             ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
 
             if attr_name in grp[ds_path].attrs.keys():
-                attr = grp[ds_path].attrs['units']
+                attr = grp[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
                     return attr.decode('ascii')
                 else:
@@ -262,127 +353,43 @@ class OCMio(object):
         Returns
         -------
         out   :   dictionary
-           Python dictionary with msm_names as keys and their values
-
+           Python dictionary with names of msm_groups as keys and their S5Pmsm's
         """
-        fillvalue = float.fromhex('0x1.ep+122')
-
         res = {}
         if len(self.__msm_path) == 0:
             return res
 
         grp = self.fid['BAND{}'.format(self.band)]
+
+        # show HDF5 dataset names and return
         if msm_dset is None:
             ds_path = os.path.join(self.__msm_path[0], 'OBSERVATIONS')
             for kk in grp[ds_path]:
                 print(kk)
-        else:
-            for msm in sorted(self.__msm_path):
-                ds_path = os.path.join(msm, 'OBSERVATIONS', msm_dset)
+            return {}
 
-                if frames is None and columns is None:
-                    data = grp[ds_path][:, :-1, :]
-                elif frames is not None:
-                    if columns is not None:
-                        data = grp[ds_path][frames[0]:frames[1],
-                                            :-1, columns[0]:columns[1]]
-                    else:
-                        data = grp[ds_path][frames[0]:frames[1], :-1, :]
+        # combine S5Pmsm object found in the measurement groups
+        for msm_grp in sorted(self.__msm_path):
+            ds_path = os.path.join(msm_grp, 'OBSERVATIONS', msm_dset)
+
+            if frames is None and columns is None:
+                msm = S5Pmsm(grp[ds_path], data_sel=np.s_[:, :-1, :])
+            elif frames is not None:
+                if columns is not None:
+                    msm = S5Pmsm(grp[ds_path],
+                                 data_sel=np.s_[frames[0]:frames[1], :-1,
+                                                columns[0]:columns[1]])
                 else:
-                    data = grp[ds_path][:, :-1, columns[0]:columns[1]]
+                    msm = S5Pmsm(grp[ds_path],
+                                 data_sel=np.s_[frames[0]:frames[1], :-1, :])
+            else:
+                msm = S5Pmsm(grp[ds_path],
+                             data_sel=np.s_[:, :-1, columns[0]:columns[1]])
 
-                if fill_as_nan \
-                   and grp[ds_path].attrs['_FillValue'] == fillvalue:
-                    data[(data == fillvalue)] = np.nan
+            if fill_as_nan:
+                msm.fill_as_nan()
 
-                res[msm] = data
+            res[msm_grp] = msm
 
         return res
 
-    @staticmethod
-    def band2channel(dict_a, dict_b,
-                     skip_first=False, skip_last=False, mode=None):
-        """
-        Store data from a dictionary as returned by get_msm_data to a ndarray
-
-        Parameters
-        ----------
-        dict_a      :  dictionary
-        dict_b      :  dictionary
-        skip_first  :  boolean
-           default is False
-        skip_last   :  boolean
-           default is False
-        mode        :  list ['combined', 'median']
-           default is None
-        Returns
-        -------
-        out  :  ndarray
-           Data from dictionary stored in a numpy array
-
-        Notes
-        -----
-
-        Examples
-        --------
-        >>> data = ocm.band2channel(dict_a, dict_b,
-        mode=['combined', 'median'])
-        >>>
-        """
-        if dict_b is None:
-            dict_b = {}
-        if mode is None:
-            mode = []
-
-        data_a = None
-        data_b = None
-        for key in sorted(dict_a):
-            if skip_last:
-                if skip_first:
-                    buff = dict_a[key][1:-1, ...]
-                else:
-                    buff = dict_a[key][0:-1, ...]
-            else:
-                if skip_first:
-                    buff = dict_a[key][1:, ...]
-                else:
-                    buff = dict_a[key][0:, ...]
-
-            if 'combine' not in mode and 'median' in mode:
-                buff = np.nanmedian(buff, axis=0)
-
-            if data_a is None:
-                data_a = buff
-            else:
-                data_a = np.vstack((data_a, buff))
-
-        if 'combine' in mode and 'median' in mode:
-            data_a = np.nanmedian(data_a, axis=0)
-
-        for key in sorted(dict_b):
-            if skip_last:
-                if skip_first:
-                    buff = dict_b[key][1:-1, ...]
-                else:
-                    buff = dict_b[key][0:-1, ...]
-            else:
-                if skip_first:
-                    buff = dict_b[key][1:, ...]
-                else:
-                    buff = dict_b[key][0:, ...]
-
-            if 'combine' not in mode and 'median' in mode:
-                buff = np.nanmedian(buff, axis=0)
-
-            if data_b is None:
-                data_b = buff
-            else:
-                data_b = np.vstack((data_b, buff))
-
-        if 'combine' in mode and 'median' in mode:
-            data_b = np.nanmedian(data_b, axis=0)
-
-        if data_b is None:
-            return data_a
-        else:
-            return np.concatenate((data_a, data_b), axis=data_a.ndim-1)

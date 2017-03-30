@@ -22,6 +22,8 @@ from __future__ import print_function
 
 import os.path
 
+import numpy as np
+
 from glob import glob
 #from unittest import TestCase
 
@@ -73,30 +75,50 @@ def test_frame():
         dict_b8_std = ocm8.get_msm_data('signal_error_vals')
 
     # Combine band 7 & 8 data
+    msm = None
+    msm_err = None
     for key in dict_b7:
-        print(key, dict_b7[key].shape)
-    data = ocm7.band2channel(dict_b7, dict_b8,
-                             mode=['combine', 'median'],
-                             skip_first=True, skip_last=True)
-    error = ocm7.band2channel(dict_b7_std, dict_b8_std,
-                              mode=['combine', 'median'],
-                              skip_first=True, skip_last=True)
+        if msm is None:
+            msm = dict_b7[key]
+            msm_err = dict_b7_std[key]
+        else:
+            msm.concatenate(dict_b7[key], axis=0)
+            msm_err.concatenate(dict_b7_std[key], axis=0)
+        print(key, msm.value.shape, msm.coords._fields)
+    msm.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    msm_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    print('msm_b7: ', msm.name, msm.value.shape, msm.coords._fields)
+
+    msm_b8 = None
+    msm_b8_err = None
+    for key in dict_b8:
+        if msm_b8 is None:
+            msm_b8 = dict_b8[key]
+            msm_b8_err = dict_b8_std[key]
+        else:
+            msm_b8.concatenate(dict_b8[key], axis=0)
+            msm_b8_err.concatenate(dict_b8_std[key], axis=0)
+        print(key, msm_b8.value.shape, msm_b8.coords._fields)
+    msm_b8.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    msm_b8_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    print('msm_b8: ', msm_b8.name, msm_b8.value.shape, msm_b8.coords._fields)
+
+    msm.concatenate(msm_b8, axis=1)
+    msm_err.concatenate(msm_b8_err, axis=1)
+    print('msm: ', msm.name, msm.value.shape)
 
     # Generate figure
     plot = S5Pplot('test_plot_frame.pdf')
-    plot.draw_signal(data,
+    plot.draw_signal(msm,
                      title=ocm7.get_attr('title'),
                      sub_title='signal ICID={}'.format(icid),
                      fig_info=None)
-    plot.draw_signal(error,
+    plot.draw_signal(msm_err,
                      title=ocm7.get_attr('title'),
                      sub_title='signal_error_vals ICID={}'.format(icid),
                      fig_info=None)
-    plot.draw_hist(data, error,
-                   error_label='signal_error_vals',
-                   title=ocm7.get_attr('title'),
-                   sub_title='signal ICID={}'.format(icid),
-                   fig_info=None)
+    plot.draw_hist(msm, msm_err,
+                   title=ocm7.get_attr('title'), fig_info=None)
     del plot
     del ocm7
     del ocm8

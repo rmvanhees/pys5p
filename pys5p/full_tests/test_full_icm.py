@@ -97,12 +97,14 @@ def test_rd_icm(msm_dset=None):
                     dset_name = msm_dset
 
                 for ib in icm.bands:
-                    dset = icm.get_msm_data( dset_name, band=ib )
-                    print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
+                    msm = icm.get_msm_data( dset_name, band=ib )
+                    print('\t {}[{}]: {}'.format(msm.name, ib,
+                                                 msm.value.shape))
 
                 for ib in re.findall('..', icm.bands):
-                    dset = icm.get_msm_data( dset_name, band=ib )
-                    print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
+                    msm = icm.get_msm_data( msm.name, band=ib )
+                    print('\t {}[{}]: {}'.format(msm.name, ib,
+                                                 msm.value.shape))
 
         del icm
 

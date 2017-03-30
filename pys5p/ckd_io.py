@@ -62,11 +62,13 @@ class CKDio(object):
             '*** Fatal, no darkflux CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True)
-            ckd.combine_bands(fid['/BAND8/long_term_swir'])
+            ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True,
+                         data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/long_term_swir'], datapoint=True,
+                         data_sel=np.s_[:-1, :])
 
+        ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR dark-flux CKD')
-        ckd.remove_row257()
         return ckd
 
     def get_swir_dpqf(self, threshold=None):
@@ -92,6 +94,27 @@ class CKDio(object):
 
         return np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
+    def get_swir_dpqm(self, ds_name='dpqf_map'):
+        """
+        returns Detector Pixel Quality Mask for SWIR, except row 257
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'dpqf')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find DPQF-CKD directory: {}'.format(ckd_dir)
+
+        ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
+        assert os.path.isfile(ckd_file), \
+            '# *** Fatal, no DPQF-CKD found on the system'
+
+        with h5py.File(ckd_file, 'r' ) as fid:
+            ckd = S5Pmsm(fid['/BAND7/' + ds_name], data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/' + ds_name],
+                            data_sel=np.s_[:-1, :])
+
+        ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_long_name('SWIR {} CKD'.format(ds_name))
+        return ckd
+
     def get_swir_offset(self):
         """
         returns offset CKD for SWIR, except row 257
@@ -105,11 +128,13 @@ class CKDio(object):
             '*** Fatal, no offset CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/analog_offset_swir'], datapoint=True)
-            ckd.combine_bands(fid['/BAND8/analog_offset_swir'])
+            ckd = S5Pmsm(fid['/BAND7/analog_offset_swir'], datapoint=True,
+                         data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/analog_offset_swir'], datapoint=True,
+                            data_sel=np.s_[:-1, :])
 
+        ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR offset CKD')
-        ckd.remove_row257()
         return ckd
 
     def get_swir_prnu(self):
@@ -128,13 +153,15 @@ class CKDio(object):
             '*** Fatal, no PRNU CKD found on the system'
 
         with h5py.File(file_b7, 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/PRNU'], datapoint=True)
+            ckd = S5Pmsm(fid['/BAND7/PRNU'], datapoint=True,
+                         data_sel=np.s_[:-1, :])
 
         with h5py.File(file_b8, 'r') as fid:
-            ckd.combine_bands(fid['/BAND8/PRNU'])
+            ckd_b8 = S5Pmsm(fid['/BAND8/PRNU'], datapoint=True,
+                            data_sel=np.s_[:-1, :])
 
+        ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR PRNU CKD')
-        ckd.remove_row257()
         return ckd
 
     def get_swir_saturation(self):
@@ -153,11 +180,13 @@ class CKDio(object):
             '*** Fatal, no saturation CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/saturation_preoffset'])
-            ckd.combine_bands(fid['/BAND8/saturation_preoffset'])
+            ckd = S5Pmsm(fid['/BAND7/saturation_preoffset'],
+                         data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/saturation_preoffset'],
+                            data_sel=np.s_[:-1, :])
 
+        ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR saturation(pre-offset) CKD')
-        ckd.remove_row257()
         return ckd
 
     def get_swir_v2c(self):
@@ -195,9 +224,11 @@ class CKDio(object):
             '*** Fatal, no wavelength CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/wavelength_map'])
-            ckd.combine_bands(fid['/BAND8/wavelength_map'])
+            ckd = S5Pmsm(fid['/BAND7/wavelength_map'],
+                         data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/wavelength_map'],
+                            data_sel=np.s_[:-1, :])
 
+        ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR wavelength CKD')
-        ckd.remove_row257()
         return ckd

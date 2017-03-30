@@ -302,6 +302,7 @@ class S5Pplot(object):
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
+        print(msm.units)
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
         # inititalize figure
@@ -421,7 +422,7 @@ class S5Pplot(object):
             qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = qdata.shape
+        dims = qdata.value.shape
         xdata = np.arange(dims[1], dtype=float)
         ydata = np.arange(dims[0], dtype=float)
         extent = [0, dims[1], 0, dims[0]]
@@ -441,10 +442,10 @@ class S5Pplot(object):
         # scale data to integers between [0, 10]
         thres_min = 10 * low_thres
         thres_max = 10 * high_thres
-        qmask = (qdata * 10).astype(np.int8)
+        qmask = (qdata.value * 10).astype(np.int8)
 
         # set columns and row with at least 75% dead-pixels to -1
-        qmask[~np.isfinite(qdata)] = -1
+        qmask[~np.isfinite(qdata.value)] = -1
         qmask[qmask < -1] = -1
         unused_cols = np.all(qmask <= 0, axis=0)
         if unused_cols.size > 0:
@@ -591,7 +592,7 @@ class S5Pplot(object):
         if msm.units is None:
             zlabel = '{}'.format(msm.name)
         else:
-            zlabel = '{} [{}]'.format(msm.name, msm.units)
+            zlabel = '{} [{}]'.format(msm.name, zunit)
 
         # set label and range of X/Y axis
         print(msm.value.shape)
