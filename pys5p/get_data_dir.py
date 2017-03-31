@@ -54,7 +54,6 @@ def get_data_dir():
 
     for key in guesses_data_dir:
         if os.path.isdir(key):
-            print(key)
             return key
 
     raise FileNotFoundError
