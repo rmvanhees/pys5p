@@ -19,8 +19,6 @@ import os.path
 import numpy as np
 import h5py
 
-from .s5p_msm import S5Pmsm
-
 #- global parameters ------------------------------
 
 #- local functions --------------------------------
@@ -588,6 +586,8 @@ class ICMio(object):
         out  :  array
            Data of measurement dataset "msm_dset"
         """
+        fillvalue = float.fromhex('0x1.ep+122')
+
         if self.__msm_path is None:
             return None
 
@@ -596,29 +596,61 @@ class ICMio(object):
             assert band == '12' or band == '34' or band == '56' or band == '78'
         assert self.bands.find(band) >= 0
 
-        res = None
+        # skip row257 from the SWIR detector
+        rows = None
+        if int(band[0]) > 6:
+            rows = [0, -1]
+
+        # list potential names of the dataset dimensions
+        time_list = ['time', 'scanline']
+        row_list = ['width', 'pixel', 'ground_pixel']
+        column_list = ['height', 'spectral_channel']
+
+        data = []
+        column_dim = None   # column dimension is unkown
         for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
                 ds_path = os.path.join(self.__msm_path.replace('%', ii),
                                        dset_grp, msm_dset)
                 if ds_path not in self.fid:
                     continue
+                dset = self.fid[ds_path]
 
-                if columns is None:
-                    data_sel = None
-                else:
-                    data_sel = np.s_[...,columns[0]:columns[1]]
+                skipped = 0
+                data_sel = ()
+                for xx in range(dset.ndim):
+                    if len(dset.dims[xx][0][:]) == 1:
+                        skipped += 1
+                    if os.path.basename(dset.dims[xx][0].name) in time_list:
+                        data_sel += (np.s_[:],)
+                    elif os.path.basename(dset.dims[xx][0].name) in row_list:
+                        if rows is None:
+                            data_sel += (np.s_[:],)
+                        else:
+                            data_sel += (np.s_[rows[0]:rows[1]],)
+                    elif os.path.basename(dset.dims[xx][0].name) in column_list:
+                        column_dim = xx - skipped
+                        if columns is None:
+                            data_sel += (np.s_[:],)
+                        else:
+                            data_sel += (np.s_[columns[0]:columns[1]],)
+                    else:
+                        raise ValueError
 
-                if res is None:
-                    res = S5Pmsm(self.fid[ds_path], data_sel=data_sel)
-                    if fill_as_nan:
-                        res.fill_as_nan()
-                else:
-                    _tmp = S5Pmsm(self.fid[ds_path], data_sel=data_sel)
-                    if fill_as_nan:
-                        _tmp.fill_as_nan()
+                res = np.squeeze(dset[data_sel])
+                if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                    res[(res == fillvalue)] = np.nan
+                data.append(res)
 
-                    res.concatenate(_tmp, axis=_tmp.value.ndim-1)
+        # Note the current implementation will not work for channels where
+        # the output of its bands can have different spatial dimensions (rows)
+        # or different integration times (frames/scanlines)
+        if len(data) == 1:         # return selected band
+            return data[0]
+        elif column_dim is None:   # return bands stacked
+            return np.stack(data)
+        else:                      # return band in detector lauyout
+            return np.concatenate(data, axis=column_dim)
         return res
 
     #-------------------------
@@ -671,48 +703,63 @@ class ICMio(object):
 
         """
         assert self.__rw
-        assert self.bands.find(band) >= 0
-
         if self.__msm_path is None:
             return None
 
-        init = True
+        assert len(band) > 0 and len(band) <= 2
+        if len(band) == 2:
+            assert band == '12' or band == '34' or band == '56' or band == '78'
+        assert self.bands.find(band) >= 0
+
         fillvalue = float.fromhex('0x1.ep+122')
 
-        col = 0
+        # skip row257 from the SWIR detector
+        rows = None
+        if int(band[0]) > 6:
+            rows = [0, -1]
+
+        # list potential names of the dataset dimensions
+        time_list = ['time', 'scanline']
+        row_list = ['width', 'pixel', 'ground_pixel']
+        column_list = ['height', 'spectral_channel']
+
+        indx = 0
         for ii in band:
-            ds_path = os.path.join(self.__msm_path.replace('%', ii),
-                                   'ANALYSIS', msm_dset)
-            if ds_path in self.fid:
-                dim = self.fid[ds_path].shape
+            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+                ds_path = os.path.join(self.__msm_path.replace('%', ii),
+                                       dset_grp, msm_dset)
+                if ds_path not in self.fid:
+                    continue
+                dset = self.fid[ds_path]
+            
+                skipped = 0
+                data_sel = ()
+                for xx in range(dset.ndim):
+                    if len(dset.dims[xx][0][:]) == 1:
+                        data_sel += (np.s_[0],)
+                    elif os.path.basename(dset.dims[xx][0].name) in time_list:
+                        data_sel += (np.s_[:],)
+                    elif os.path.basename(dset.dims[xx][0].name) in row_list:
+                        if rows is None:
+                            data_sel += (np.s_[:],)
+                        else:
+                            data_sel += (np.s_[rows[0]:rows[1]],)
+                    elif os.path.basename(dset.dims[xx][0].name) in column_list:
+                        if len(band) == 2:
+                            jj = data.ndim-1
+                            data = np.stack(np.split(cc, 2, axis=jj))
+                        data_sel += (np.s_[:],)
+                    else:
+                        raise ValueError
 
-                if init:
-                    if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                        data[np.isnan(data)] = fillvalue
-                    self.fid[ds_path][...] = data[...,col:col+dim[-1]]
-                    col += dim[-1]
-                    init = False
+                if len(band) == 2:
+                    if dset.attrs['_FillValue'] == fillvalue:
+                        data[indx, np.isnan(data[indx,...])] = fillvalue
+                    dset[data_sel] = data[indx,...]
+                    indx += 1
                 else:
-                    self.fid[ds_path][...] = data[...,col:col+dim[-1]]
+                    if dset.attrs['_FillValue'] == fillvalue:
+                        data[np.isnan(data)] = fillvalue
+                    dset[data_sel] = data
 
                 self.__patched_msm.append(ds_path)
-
-            ds_path = os.path.join(self.__msm_path.replace('%', ii),
-                                   'OBSERVATIONS', msm_dset)
-            if ds_path in self.fid:
-                dim = self.fid[ds_path].shape
-
-                if init:
-                    if self.fid[ds_path].attrs['_FillValue'] == fillvalue:
-                        data[np.isnan(data)] = fillvalue
-                    self.fid[ds_path][0,...] = data[...,col:col+dim[-1]]
-                    col += dim[-1]
-                    init = False
-                else:
-                    self.fid[ds_path][0,...] = data[...,col:col+dim[-1]]
-
-                self.__patched_msm.append(ds_path)
-
-        # display warning when no dataset is updated
-        if init:
-            print('WARNING: dataset {} not found'.format(msm_dset))

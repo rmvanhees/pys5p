@@ -20,8 +20,6 @@ import os.path
 import numpy as np
 import h5py
 
-from .s5p_msm import S5Pmsm
-
 #- global parameters ------------------------------
 
 #- local functions --------------------------------
@@ -355,41 +353,54 @@ class OCMio(object):
         out   :   dictionary
            Python dictionary with names of msm_groups as keys and their S5Pmsm's
         """
-        res = {}
-        if len(self.__msm_path) == 0:
-            return res
+        fillvalue = float.fromhex('0x1.ep+122')
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        if len(self.__msm_path) == 0:
+            return {}
 
         # show HDF5 dataset names and return
+        grp = self.fid['BAND{}'.format(self.band)]
         if msm_dset is None:
             ds_path = os.path.join(self.__msm_path[0], 'OBSERVATIONS')
             for kk in grp[ds_path]:
                 print(kk)
             return {}
 
-        # combine S5Pmsm object found in the measurement groups
+        # skip row257 from the SWIR detector
+        rows = None
+        if self.band == '7' or self.band == '8':
+            rows = [0, -1]
+
+        # combine data of all measurement groups in dictionary
+        res = {}
         for msm_grp in sorted(self.__msm_path):
-            ds_path = os.path.join(msm_grp, 'OBSERVATIONS', msm_dset)
-
-            if frames is None and columns is None:
-                msm = S5Pmsm(grp[ds_path], data_sel=np.s_[:, :-1, :])
-            elif frames is not None:
-                if columns is not None:
-                    msm = S5Pmsm(grp[ds_path],
-                                 data_sel=np.s_[frames[0]:frames[1], :-1,
-                                                columns[0]:columns[1]])
+            dset = grp[os.path.join(msm_grp, 'OBSERVATIONS', msm_dset)]
+            data_sel = ()
+            for ii in range(dset.ndim):
+                if os.path.basename(dset.dims[ii][0].name) == 'msmt_time':
+                    if frames is None:
+                        data_sel += (np.s_[:],)
+                    else:
+                        data_sel += (np.s_[frames[0]:frames[1]],)
+                elif os.path.basename(dset.dims[ii][0].name) == 'row':
+                    if rows is None:
+                        data_sel += (np.s_[:],)
+                    else:
+                        data_sel += (np.s_[rows[0]:rows[1]],)
+                elif os.path.basename(dset.dims[ii][0].name) == 'column':
+                    if columns is None:
+                        data_sel += (np.s_[:],)
+                    else:
+                        data_sel += (np.s_[columns[0]:columns[1]],)
                 else:
-                    msm = S5Pmsm(grp[ds_path],
-                                 data_sel=np.s_[frames[0]:frames[1], :-1, :])
-            else:
-                msm = S5Pmsm(grp[ds_path],
-                             data_sel=np.s_[:, :-1, columns[0]:columns[1]])
+                    raise ValueError
 
-            if fill_as_nan:
-                msm.fill_as_nan()
+            # read data
+            data = np.squeeze(dset[data_sel])
+            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                data[(data == fillvalue)] = np.nan
 
-            res[msm_grp] = msm
+            # add data to dictionary
+            res[msm_grp] = data
 
         return res
-

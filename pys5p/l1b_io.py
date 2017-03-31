@@ -658,19 +658,17 @@ class L1BioCAL(L1Bio):
                 msm_to_row = 'padding'
         assert self.bands.find(band) >= 0
 
-        res = None
+        data = ()
         for ii in band:
-            data = super()._get_msm_data(self.__msm_path.replace('%', ii),
-                                         msm_dset)
-            if res is None:
-                res = data
-            else:
-                if msm_to_row == 'padding':
-                    (res, data) = pad_rows(res, data)
+            data += (super()._get_msm_data(self.__msm_path.replace('%', ii),
+                                           msm_dset),)
+        if len(data) == 1:
+            return data[0]
+        else:
+            if msm_to_row == 'padding':
+                data = pad_rows(data[0], data[1])
 
-                res = np.concatenate((res, data), axis=data.ndim-1)
-
-        return res
+            return np.concatenate(data, axis=data[0].ndim-1)
 
     # ---------- class L1BioCAL::
     def set_msm_data(self, msm_dset, data, band='78'):
@@ -684,7 +682,7 @@ class L1BioCAL(L1Bio):
         data       :  array-like
             data to be written with same dimensions as dataset "msm_dset"
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
-            Select data from one spectral band or channel
+            Write data to one spectral band or a channel
             Default is '78' which combines band 7/8 to SWIR detector layout
         """
         assert self.bands.find(band) >= 0
