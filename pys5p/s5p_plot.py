@@ -28,6 +28,8 @@ from collections import OrderedDict
 
 import numpy as np
 
+from .s5p_msm import S5Pmsm
+
 import matplotlib as mpl
 
 #
@@ -238,7 +240,7 @@ class S5Pplot(object):
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date and the data 
+        in a small box. In addition, we display the creation date and the data
         median & spread.
         """
         import warnings
@@ -249,8 +251,14 @@ class S5Pplot(object):
         from .biweight import biweight
         from . import sron_colorschemes
 
+        # define colors
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
+
+        # assert that we have some data to show
+        if isinstance(msm, np.ndarray):
+            msm = S5Pmsm(msm)
+        assert isinstance(msm, S5Pmsm)
 
         # calculate column/row medians (if required)
         if data_col is None:
@@ -316,7 +324,7 @@ class S5Pplot(object):
                             extent=extent, origin='lower',
                             vmin=vmin / dscale, vmax=vmax / dscale,
                             aspect='equal', interpolation='none')
-        xbins = len(ax_img.get_xticklabels())
+        #xbins = len(ax_img.get_xticklabels())
         ybins = len(ax_img.get_yticklabels())
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
@@ -383,14 +391,14 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality(self, qdata, low_thres=0.1, high_thres=0.8,
+    def draw_quality(self, qmsm, low_thres=0.1, high_thres=0.8,
                      qlabels=None, title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
 
         Parameters
         ----------
-        qdata        :  ndarray
+        qmsm        :  S5Pmsm or ndarray
            Numpy array (2D) holding quality data, range [0, 1] or NaN.
            Zero is for dead pixels and one is for excellent pixels.
         low_thres   :  float
@@ -412,21 +420,23 @@ class S5Pplot(object):
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date, 'thres_01', 
+        in a small box. In addition, we display the creation date, 'thres_01',
         'qmask_01', 'thres_08' and 'qmask_08'.
         """
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+        # assert that we have some data to show
+        if isinstance(qmsm, np.ndarray):
+            qmsm = S5Pmsm(qmsm)
+        assert isinstance(qmsm, S5Pmsm)
+
         if qlabels is None:
             qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = qdata.value.shape
-        xdata = np.arange(dims[1], dtype=float)
-        ydata = np.arange(dims[0], dtype=float)
-        extent = [0, dims[1], 0, dims[0]]
-        aspect = int(np.round(dims[1] / dims[0]))
+        dims = qmsm.value.shape
+        aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
 
         if aspect == 1:
             figsize = (10, 9)
@@ -439,13 +449,20 @@ class S5Pplot(object):
             print('*** FATAL: aspect ratio not implemented, exit')
             return
 
+        # set label and range of X/Y axis
+        (ylabel, xlabel) = qmsm.coords._fields
+        ydata = qmsm.coords[0]
+        xdata = qmsm.coords[1]
+        extent = [0, len(xdata), 0, len(ydata)]
+        print(qmsm.coords._fields, extent)
+
         # scale data to integers between [0, 10]
         thres_min = 10 * low_thres
         thres_max = 10 * high_thres
-        qmask = (qdata.value * 10).astype(np.int8)
+        qmask = (qmsm.value * 10).astype(np.int8)
 
         # set columns and row with at least 75% dead-pixels to -1
-        qmask[~np.isfinite(qdata.value)] = -1
+        qmask[~np.isfinite(qmsm.value)] = -1
         qmask[qmask < -1] = -1
         unused_cols = np.all(qmask <= 0, axis=0)
         if unused_cols.size > 0:
@@ -463,10 +480,6 @@ class S5Pplot(object):
                    (bounds[3] + bounds[2]) / 2,
                    (bounds[4] + bounds[3]) / 2]
         norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-
-        # set label and range of X/Y axis
-        xlabel = 'column'
-        ylabel = 'row'
 
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
@@ -570,8 +583,14 @@ class S5Pplot(object):
 
         from . import sron_colorschemes
 
+        # refine colors
         sron_colorschemes.register_cmap_rainbow()
         line_colors = sron_colorschemes.get_line_colors()
+
+        # assert that we have some data to show
+        if isinstance(msm, np.ndarray):
+            msm = S5Pmsm(None, data=msm)
+        assert isinstance(msm, S5Pmsm)
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -595,8 +614,7 @@ class S5Pplot(object):
             zlabel = '{} [{}]'.format(msm.name, zunit)
 
         # set label and range of X/Y axis
-        print(msm.value.shape)
-        (ylabel, xlabel) = msm.coords._fields
+        #(ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
@@ -714,7 +732,7 @@ class S5Pplot(object):
            Dictionary holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date, signal 
+        in a small box. In addition, we display the creation date, signal
         median & spread adn error meadian & spread.
         """
         from matplotlib import pyplot as plt
@@ -723,8 +741,16 @@ class S5Pplot(object):
         from .biweight import biweight
         from .sron_colorschemes import get_line_colors
 
-        line_colors = get_line_colors()
+        # assert that we have some data to show
+        if isinstance(msm, np.ndarray):
+            msm = S5Pmsm(None, data=msm)
+        assert isinstance(msm, S5Pmsm)
 
+        if isinstance(msm_err, np.ndarray):
+            msm_err = S5Pmsm(None, data=msm_err)
+        assert isinstance(msm_err, S5Pmsm)
+
+        # define information for legend
         if fig_info is None:
             fig_info = OrderedDict({'num_sigma' : 3})
         else:
@@ -756,6 +782,7 @@ class S5Pplot(object):
         else:
             e_label = msm_err.name
 
+        line_colors = get_line_colors()
         fig = plt.figure(figsize=(12,7))
         if title is not None:
             fig.suptitle(title, fontsize=14,
@@ -892,7 +919,7 @@ class S5Pplot(object):
         glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
         glx.xformatter = LONGITUDE_FORMATTER
         glx.yformatter = LATITUDE_FORMATTER
-
+        print('MARKERING A')
         # draw footprint
         if not subsatellite:
             if sequence is None:
@@ -901,11 +928,13 @@ class S5Pplot(object):
                 lon = np.concatenate((lons[0, :], lons[1:-1, -1],
                                       lons[-1, ::-1], lons[1:-1:-1, 0]))
 
+                print('MARKERING B')
                 poly = Polygon(xy=list(zip(lon, lat)), closed=True,
                                alpha=0.6, facecolor=s5p_color,
                                transform=ccrs.PlateCarree())
                 axx.add_patch(poly)
             else:
+                print('Unique sequence: {}'.format(np.unique(sequence)))
                 for ii in np.unique(sequence):
                     indx = np.unique(np.where(sequence == ii)[0])
                     indx_rev = indx[::-1]
@@ -917,24 +946,36 @@ class S5Pplot(object):
                                           lons[indx, -1],
                                           lons[indx[-1], ::-1],
                                           lons[indx_rev, 0]))
+                    print(lat, lon)
 
+                    print('MARKERING C {}'.format(ii))
                     poly = Polygon(xy=list(zip(lon, lat)), closed=True,
                                    alpha=0.6, facecolor=s5p_color,
                                    transform=ccrs.PlateCarree())
+                    print('MARKERING D {}'.format(ii))
                     axx.add_patch(poly)
+                    print('MARKERING E {}'.format(ii))
 
+        print('MARKERING F')
         # draw sub-satellite coordinates
         if subsatellite:
+            print('MARKERING G')
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
 
+        print('MARKERING H')
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
+        print('MARKERING I')
         self.__fig_info(fig, fig_info, aspect=1)
+        print('MARKERING J')
         plt.tight_layout()
+        print('MARKERING K')
         self.__pdf.savefig()
+        print('MARKERING L')
         plt.close()
+        print('MARKERING M')
