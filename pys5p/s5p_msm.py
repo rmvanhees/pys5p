@@ -54,14 +54,15 @@ class S5Pmsm(object):
     """
     Definition of class S5Pmsm
     """
-    def __init__(self, h5_dset, data_sel=None, datapoint=False):
+    def __init__(self, dset, data_sel=None, datapoint=False):
         """
         Read measurement data from a Tropomi OCAL, ICM, of L1B product
 
         Parameters
         ----------
-        h5_dset   :  h5py.Dataset
-           h5py dataset fromwhich the data is read
+        dset      :  h5py.Dataset or ndarray
+           h5py dataset from which the data is read, data is used to 
+           initalize S5Pmsm object
         data_sel  :  numpy slice
            a numpy slice generated for example numpy.s_
         datapoint :  boolean
@@ -71,15 +72,27 @@ class S5Pmsm(object):
         -------
         numpy structure with dataset data and attributes, including data,
         fillvalue, coordinates, units, ...
-        """
-        assert isinstance(h5_dset, h5py.Dataset)
 
+        """
         # initialize object
-        self.name = os.path.basename(h5_dset.name)
+        self.name = 'value'
+        self.value = np.empty(())
         self.error = None
         self.coords = None
         self.units = None
         self.long_name = None
+        self.fillvalue = None
+
+        if isinstance(dset, h5py.Dataset):
+            self.__from_h5_dset(dset, data_sel, datapoint)
+        else:
+            self.__from_ndarray(dset, data_sel)
+
+    def __from_h5_dset(self, h5_dset, data_sel, datapoint):
+        """
+        initialize S5Pmsm object from h5py dataset
+        """
+        self.name = os.path.basename(h5_dset.name)
 
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -140,6 +153,36 @@ class S5Pmsm(object):
         # copy its long_name
         if 'long_name' in h5_dset.attrs:
             self.long_name = h5_dset.attrs['long_name']
+
+    def __from_ndarray(self, data, data_sel):
+        """
+        initialize S5Pmsm object from h5py dataset
+        """
+        # copy dataset values (and error) to object
+        if data_sel is None:
+            self.value = np.squeeze(data)
+        else:
+            self.value = np.squeeze(data[data_sel])
+
+        # define coordinates
+        if data.ndim == 1:
+            keys = ['column']
+            dims = [np.arange(self.value.shape[0])]
+        elif data.ndim == 2:
+            keys = ['row', 'column']
+            dims = [np.arange(self.value.shape[0]),
+                    np.arange(self.value.shape[1])]
+        elif data.ndim == 3:
+            keys = ['time', 'row', 'column']
+            dims = [np.arange(self.value.shape[0]),
+                    np.arange(self.value.shape[1]),
+                    np.arange(self.value.shape[2])]
+        else:
+            raise ValueError('not implemented for ndim > 3')
+
+        # add dimensions as a namedtuple
+        coords_namedtuple = namedtuple('Coords', keys)
+        self.coords = coords_namedtuple._make(dims)
 
     def set_units(self, name, force=False):
         """
