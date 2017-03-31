@@ -62,7 +62,7 @@ def test_rd_icm():
             #print(icm.get_housekeeping_data())
             print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('analog_offset_swir_value')
-            print('analog_offset_swir_value: ', res.value.shape)
+            print('analog_offset_swir_value: ', res.shape)
             print(icm.get_msm_attr('analog_offset_swir_value', 'units'))
 
         if len(icm.select('BACKGROUND_MODE_1063',
@@ -73,11 +73,11 @@ def test_rd_icm():
             #print(icm.get_housekeeping_data())
             print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('signal_avg')
-            print('signal_avg: ', res.value.shape)
+            print('signal_avg: ', res.shape)
             print(icm.get_msm_attr('signal_avg', 'units'))
             print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('biweight_value')
-            print('biweight_value: ', res.value.shape)
+            print('biweight_value: ', res.shape)
             print(icm.get_msm_attr('biweight_value', 'units'))
 
         if len(icm.select('SOLAR_IRRADIANCE_MODE_0202')) > 0:
@@ -87,7 +87,7 @@ def test_rd_icm():
             #print(icm.get_housekeeping_data())
             print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('irradiance_avg')
-            print('irradiance_avg: ', res.value.shape)
+            print('irradiance_avg: ', res.shape)
             print(icm.get_msm_attr('irradiance_avg', 'units'))
 
         if len(icm.select('EARTH_RADIANCE_MODE_0004')) > 0:
@@ -97,7 +97,7 @@ def test_rd_icm():
             #print(icm.get_housekeeping_data())
             print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('radiance_avg_row')
-            print('radiance_avg_row: ', res.value.shape)
+            print('radiance_avg_row: ', res.shape)
             print(icm.get_msm_attr('radiance_avg_row', 'units'))
 
     ## check patching of ICM product
@@ -114,13 +114,13 @@ def test_rd_icm():
         bands = icm.select('BACKGROUND_MODE_1063')
         print('bands: ', bands)
         res = icm.get_msm_data('signal_avg', band=bands[0])
-        print('signal_avg[7]: ', res.value.shape)
-        res.value[:,:] = 2
-        icm.set_msm_data('signal_avg', res.value, band='7')
+        print('signal_avg[7]: ', res.shape)
+        res[:,:] = 2
+        icm.set_msm_data('signal_avg', res, band='7')
         res = icm.get_msm_data('signal_avg', '8')
-        print('signal_avg[8]: ', res.value.shape)
-        res.value[:,:] = 3
-        icm.set_msm_data('signal_avg', res.value, band='8')
+        print('signal_avg[8]: ', res.shape)
+        res[:,:] = 3
+        icm.set_msm_data('signal_avg', res, band='8')
 
 if __name__ == '__main__':
     test_rd_icm()

@@ -22,10 +22,10 @@ from __future__ import print_function
 
 import os.path
 
+from glob import glob
+
 import numpy as np
 
-from glob import glob
-#from unittest import TestCase
 
 #-------------------------
 def test_frame():
@@ -35,6 +35,7 @@ def test_frame():
     """
     from ..get_data_dir import get_data_dir
     from ..ocm_io import OCMio
+    from ..s5p_msm import S5Pmsm
     from ..s5p_plot import S5Pplot
 
     # obtain path to directory pys5p-data
@@ -79,11 +80,11 @@ def test_frame():
     msm_err = None
     for key in dict_b7:
         if msm is None:
-            msm = dict_b7[key]
-            msm_err = dict_b7_std[key]
+            msm = S5Pmsm(dict_b7[key])
+            msm_err = S5Pmsm(dict_b7_std[key])
         else:
-            msm.concatenate(dict_b7[key], axis=0)
-            msm_err.concatenate(dict_b7_std[key], axis=0)
+            msm.concatenate(S5Pmsm(dict_b7[key]), axis=0)
+            msm_err.concatenate(S5Pmsm(dict_b7_std[key]), axis=0)
         print(key, msm.value.shape, msm.coords._fields)
     msm.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
     msm_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
@@ -93,11 +94,11 @@ def test_frame():
     msm_b8_err = None
     for key in dict_b8:
         if msm_b8 is None:
-            msm_b8 = dict_b8[key]
-            msm_b8_err = dict_b8_std[key]
+            msm_b8 = S5Pmsm(dict_b8[key])
+            msm_b8_err = S5Pmsm(dict_b8_std[key])
         else:
-            msm_b8.concatenate(dict_b8[key], axis=0)
-            msm_b8_err.concatenate(dict_b8_std[key], axis=0)
+            msm_b8.concatenate(S5Pmsm(dict_b8[key]), axis=0)
+            msm_b8_err.concatenate(S5Pmsm(dict_b8_std[key]), axis=0)
         print(key, msm_b8.value.shape, msm_b8.coords._fields)
     msm_b8.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
     msm_b8_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)

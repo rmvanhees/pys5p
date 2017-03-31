@@ -11,7 +11,7 @@ Note
 ----
 Please use the code as tutorial
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -92,19 +92,21 @@ def test_rd_icm(msm_dset=None):
                     else:
                         geo = icm.get_geo_data(band=icm.bands[0])
                         print('\t geodata: ', geo.shape)
-                        dset_name = 'signal_avg'
+                        dset_name = 'signal_avg_row'
                 else:
                     dset_name = msm_dset
 
+                # read both bands seperated
                 for ib in icm.bands:
-                    msm = icm.get_msm_data( dset_name, band=ib )
-                    print('\t {}[{}]: {}'.format(msm.name, ib,
-                                                 msm.value.shape))
+                    data = icm.get_msm_data(dset_name, band=ib)
+                    print('\t {}[{}]: {}'.format(dset_name, ib,
+                                                 data.shape))
 
+                # read whole channels
                 for ib in re.findall('..', icm.bands):
-                    msm = icm.get_msm_data( msm.name, band=ib )
-                    print('\t {}[{}]: {}'.format(msm.name, ib,
-                                                 msm.value.shape))
+                    data = icm.get_msm_data(dset_name, band=ib)
+                    print('\t {}[{}]: {}'.format(dset_name, ib,
+                                                 data.shape))
 
         del icm
 
