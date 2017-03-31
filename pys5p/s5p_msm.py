@@ -206,6 +206,8 @@ class S5Pmsm(object):
         """
         if self.fillvalue == float.fromhex('0x1.ep+122'):
             self.value[(self.value == self.fillvalue)] = np.nan
+            if self.error is not None:
+                self.error[(self.error == self.fillvalue)] = np.nan
 
     def concatenate(self, msm, axis=0):
         """

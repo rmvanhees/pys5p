@@ -169,7 +169,7 @@ class S5Pplot(object):
                     info_str += "{} : {}".format(key, dict_info[key])
                 info_str += '\n'
         info_str += 'created : ' \
-                   + datetime.utcnow().isoformat(' ', timespec='minutes')
+                   + datetime.utcnow().isoformat(timespec='seconds')
 
         if aspect == 4:
             fig.text(0.9, 0.975, info_str,
@@ -289,12 +289,10 @@ class S5Pplot(object):
             return
 
         # set label and range of X/Y axis
-        print(msm.value.shape)
         (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
-        print(msm.coords._fields, extent)
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -310,7 +308,6 @@ class S5Pplot(object):
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
-        print(msm.units)
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
         # inititalize figure
@@ -594,12 +591,11 @@ class S5Pplot(object):
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
-        if vperc is None:
-            vperc = (1., 99.)
-        else:
-            assert len(vperc) == 2
-
         if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
             (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
                                          vperc)
         else:
@@ -622,10 +618,10 @@ class S5Pplot(object):
         # create residual image
         mask = np.isfinite(msm.value)
         signal = msm.value.copy()
-        signal[mask] *= dscale
+        signal[mask] /= dscale
         mask = np.isfinite(model_in)
         model = model_in.copy()
-        model[mask] *= dscale
+        model[mask] /= dscale
         mask = np.isfinite(msm.value) & np.isfinite(model_in)
         residual = signal.copy()
         residual[~mask] = np.nan
@@ -645,8 +641,9 @@ class S5Pplot(object):
             xtl.set_visible(False)
         if sub_title is not None:
             ax1.set_title(sub_title)
-        img = ax1.imshow(signal, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower', extent=extent)
+        img = ax1.imshow(signal, vmin=vmin / dscale, vmax=vmax / dscale,
+                         aspect='equal', interpolation='none', origin='lower',
+                         extent=extent)
         ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax1.transAxes)
@@ -670,14 +667,15 @@ class S5Pplot(object):
                  fontsize='xx-small', transform=ax2.transAxes)
         cbar = plt.colorbar(img)
         if runit is None:
-            cbar.set_label('residuals')
+            cbar.set_label('residual')
         else:
-            cbar.set_label('residuals [{}]'.format(runit))
+            cbar.set_label('residual [{}]'.format(runit))
 
         # create lower-pannel with reference (model, CKD, previous measurement)
         ax3 = plt.subplot(gspec[2, :], sharex=ax1)
-        img = ax3.imshow(model, vmin=vmin, vmax=vmax, aspect='equal',
-                         interpolation='none', origin='lower', extent=extent)
+        img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
+                         aspect='equal', interpolation='none',
+                         origin='lower', extent=extent)
         ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax3.transAxes)
@@ -689,23 +687,23 @@ class S5Pplot(object):
 
         # ignore NaN's and flatten the images for the histograms
         mask = np.isfinite(msm.value) & np.isfinite(model_in)
-        signal = dscale * msm.value[mask]
-        residual = dscale * (msm.value[mask] - model_in[mask])
+        value = msm.value[mask] / dscale
+        residual = (msm.value[mask] - model_in[mask]) / rscale
 
         ax4 = plt.subplot(gspec[3, 0])
-        ax4.hist(signal, range=[vmin, vmax], bins=15, normed=True,
-                 color=line_colors[0])
+        ax4.hist(value, range=[vmin / dscale, vmax / dscale], bins=15,
+                 normed=True, color=line_colors[0])
         ax4.set_xlabel(zlabel)
         ax4.set_ylabel('fraction')
         ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
-        ax5.hist(residual, range=[rmin, rmax], bins=15, normed=True,
-                 color=line_colors[0])
-        if zunit is None:
+        ax5.hist(residual, range=[rmin / rscale, rmax / rscale], bins=15,
+                 normed=True, color=line_colors[0])
+        if runit is None:
             ax5.set_xlabel('residual')
         else:
-            ax5.set_xlabel('residual [{}]'.format(zunit))
+            ax5.set_xlabel('residual [{}]'.format(runit))
         ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         # save and close figure
@@ -715,7 +713,7 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist(self, msm, msm_err,
+    def draw_hist(self, msm, msm_err, sigma=3,
                   title=None, fig_info=None):
         """
         Display signal & its errors as histograms
@@ -750,30 +748,27 @@ class S5Pplot(object):
             msm_err = S5Pmsm(None, data=msm_err)
         assert isinstance(msm_err, S5Pmsm)
 
-        # define information for legend
-        if fig_info is None:
-            fig_info = OrderedDict({'num_sigma' : 3})
-        else:
-            fig_info.update({'num_sigma' : 3})
+        values = msm.value[np.isfinite(msm.value)].reshape(-1)
+        if 'val_median' not in fig_info \
+            or 'val_spread' not in fig_info:
+            (median, spread) = biweight(values, spread=True)
+            if fig_info is None:
+                fig_info = OrderedDict({'val_median' : median})
+            else:
+                fig_info.update({'val_median' : median})
+            fig_info.update({'val_spread' : spread})
+        values -= fig_info['val_median']
 
-        signal = msm.value[np.isfinite(msm.value)].reshape(-1)
-        if 'sign_median' not in fig_info \
-            or 'sign_spread' not in fig_info:
-            (median, spread) = biweight(signal, spread=True)
-            fig_info.update({'sign_median' : median})
-            fig_info.update({'sign_spread' : spread})
-        signal -= fig_info['sign_median']
-
-        sign_err = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
-        if 'error_median' not in fig_info \
-            or 'error_spread' not in fig_info:
-            (median, spread) = biweight(sign_err, spread=True)
-            fig_info.update({'error_median' : median})
-            fig_info.update({'error_spread' : spread})
-        sign_err -= fig_info['error_median']
+        uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
+        if 'unc_median' not in fig_info \
+            or 'unc_spread' not in fig_info:
+            (median, spread) = biweight(uncertainties, spread=True)
+            fig_info.update({'unc_median' : median})
+            fig_info.update({'unc_spread' : spread})
+        uncertainties -= fig_info['unc_median']
 
         if msm.units is not None:
-            d_label = '{} [{}]'.format(msm.name, msm.units)
+            d_label = r'{} [{}]'.format(msm.name, msm.units)
         else:
             d_label = msm.name
 
@@ -790,12 +785,11 @@ class S5Pplot(object):
         gspec = gridspec.GridSpec(11,1)
 
         axx = plt.subplot(gspec[2:6,0])
-        axx.hist(signal,
-                 range=[-fig_info['num_sigma'] * fig_info['sign_spread'],
-                        fig_info['num_sigma'] * fig_info['sign_spread']],
+        axx.hist(values,
+                 range=[-sigma * fig_info['val_spread'],
+                        sigma * fig_info['val_spread']],
                  bins=15, color=line_colors[0])
-        axx.set_title(r'Histogram is centered at the median with range of ' \
-                      r'$\pm 3 \sigma$')
+        axx.set_title(r'histogram centered at median (range $\pm {} \sigma$)'.format(sigma))
         axx.set_xlabel(d_label)
         axx.set_ylabel('count')
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
@@ -803,9 +797,9 @@ class S5Pplot(object):
                  fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[7:,0])
-        axx.hist(sign_err,
-                 range=[-fig_info['num_sigma'] * fig_info['error_spread'],
-                        fig_info['num_sigma'] * fig_info['error_spread']],
+        axx.hist(uncertainties,
+                 range=[-sigma * fig_info['unc_spread'],
+                        sigma * fig_info['unc_spread']],
                  bins=15, color=line_colors[0])
         axx.set_xlabel(e_label)
         axx.set_ylabel('count')
