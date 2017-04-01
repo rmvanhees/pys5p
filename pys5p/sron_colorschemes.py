@@ -13,6 +13,12 @@ colours that are:
  - distinct on screen and paper;
  - still match well together.
 
+Defined color maps:
+ - rainbow
+ - rainbowbands
+ - extendedrainbow
+ - wrapextenedrainbow
+
 Reference
 ---------
    https://personal.sron.nl/~pault/
@@ -23,6 +29,24 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
+def get_line_colors():
+    """
+    Alternative color scheme for qualitative data
+
+    Defines 8 colors: Blue, Cyan, Green, Yellow, Red, Pink, Grey and Black
+    Usage:
+      - For 5 or more colors: use colors as defined in list
+      - For 4 or less: use Blue (0), Red(4), Green(2) and Yellow(3)
+    """
+    return [ '#4477AA',   # blue
+             '#66CCEE',   # cyan
+             '#228833',   # green
+             '#CCBB44',   # yellow
+             '#EE6677',   # red
+             '#AA3377',   # pink
+             '#BBBBBB',   # grey
+             '#000000' ]  # black
+
 def add_outlier_colors(cdict):
     """
     Add outlier colors to existing color map.
@@ -399,22 +423,3 @@ def register_cmap_warpedextendedrainbow(with_outliers=False):
                       data=add_outlier_colors(cdict))
     else:
         register_cmap(name='WarpedExtendedRainbow', data=cdict)
-
-
-def get_line_colors():
-    """
-    Alternative color scheme for qualitative data
-
-    Defines 8 colors: Blue, Cyan, Green, Yellow, Red, Pink, Grey and Black
-    Usage:
-      - For 5 or more colors: use colors as defined in list
-      - For 4 or less: use Blue (0), Red(4), Green(2) and Yellow(3)
-    """
-    return [ '#4477AA',   # blue
-             '#66CCEE',   # cyan
-             '#228833',   # green
-             '#CCBB44',   # yellow
-             '#EE6677',   # red
-             '#AA3377',   # pink
-             '#BBBBBB',   # grey
-             '#000000' ]  # black

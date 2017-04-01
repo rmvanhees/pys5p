@@ -109,7 +109,7 @@ class S5Pplot(object):
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
-    def __init__(self, figname, cmap="Rainbow", mode='frame'):
+    def __init__(self, figname, mode='frame'):
         """
         Initialize multipage PDF document for an SRON SWIR ICM report
 
@@ -125,7 +125,6 @@ class S5Pplot(object):
         from matplotlib.backends.backend_pdf import PdfPages
 
         self.__pdf  = PdfPages(figname)
-        self.__cmap = cmap
         self.__mode = mode
 
     def __repr__(self):
@@ -249,11 +248,10 @@ class S5Pplot(object):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         from .biweight import biweight
-        from . import sron_colorschemes
+        from .sron_colormaps import sron_cmap, get_line_colors
 
         # define colors
-        sron_colorschemes.register_cmap_rainbow()
-        line_colors = sron_colorschemes.get_line_colors()
+        line_colors = get_line_colors()
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
@@ -317,10 +315,10 @@ class S5Pplot(object):
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
-        img = ax_img.imshow(msm.value / dscale, cmap=self.__cmap,
-                            extent=extent, origin='lower',
+        img = ax_img.imshow(msm.value / dscale, interpolation='none',
                             vmin=vmin / dscale, vmax=vmax / dscale,
-                            aspect='equal', interpolation='none')
+                            aspect='equal', origin='lower',
+                            extent=extent,  cmap=sron_cmap('rainbos_PiRd'))
         #xbins = len(ax_img.get_xticklabels())
         ybins = len(ax_img.get_yticklabels())
         for xtl in ax_img.get_xticklabels():
@@ -485,9 +483,10 @@ class S5Pplot(object):
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
-        img = ax_img.imshow(qmask, cmap=cmap, norm=norm, extent=extent,
+        img = ax_img.imshow(qmask, cmap=cmap, norm=norm,
                             vmin=-1, vmax=10, aspect='equal',
-                            interpolation='none', origin='lower')
+                            interpolation='none', origin='lower',
+                            extent=extent, cmap=cmap)
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
@@ -578,11 +577,10 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from matplotlib.gridspec import GridSpec
 
-        from . import sron_colorschemes
+        from .sron_colormaps import sron_cmap, get_line_colors
 
         # refine colors
-        sron_colorschemes.register_cmap_rainbow()
-        line_colors = sron_colorschemes.get_line_colors()
+        line_colors = get_line_colors()
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
@@ -643,7 +641,7 @@ class S5Pplot(object):
             ax1.set_title(sub_title)
         img = ax1.imshow(signal, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
-                         extent=extent)
+                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax1.transAxes)
@@ -659,9 +657,9 @@ class S5Pplot(object):
         ax2 = plt.subplot(gspec[1, :], sharex=ax1)
         for xtl in ax2.get_xticklabels():
             xtl.set_visible(False)
-        img = ax2.imshow(residual / rscale, aspect='equal', extent=extent,
-                         vmin=rmin / rscale, vmax=rmax / rscale,
-                         interpolation='none', origin='lower')
+        img = ax2.imshow(residual, vmin=rmin / rscale, vmax=rmax / rscale,
+                         aspect='equal', interpolation='none', origin='lower',
+                         extent=extent, cmap=sron_cmap('diverging_BuRd'))
         ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax2.transAxes)
@@ -674,8 +672,8 @@ class S5Pplot(object):
         # create lower-pannel with reference (model, CKD, previous measurement)
         ax3 = plt.subplot(gspec[2, :], sharex=ax1)
         img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
-                         aspect='equal', interpolation='none',
-                         origin='lower', extent=extent)
+                         aspect='equal', interpolation='none', origin='lower',
+                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax3.transAxes)
