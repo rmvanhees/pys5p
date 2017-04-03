@@ -318,7 +318,7 @@ class S5Pplot(object):
         img = ax_img.imshow(msm.value / dscale, interpolation='none',
                             vmin=vmin / dscale, vmax=vmax / dscale,
                             aspect='equal', origin='lower',
-                            extent=extent,  cmap=sron_cmap('rainbos_PiRd'))
+                            extent=extent,  cmap=sron_cmap('rainbow_PiRd'))
         #xbins = len(ax_img.get_xticklabels())
         ybins = len(ax_img.get_yticklabels())
         for xtl in ax_img.get_xticklabels():
@@ -357,7 +357,7 @@ class S5Pplot(object):
         ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
         ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         ax_medy.locator_params(axis='y', nbins=ybins)
-        print(ystep, [ydata[0], ydata[-1] + ystep])
+        #print(ystep, [ydata[0], ydata[-1] + ystep])
         ax_medy.grid(True)
         ax_medy.set_ylabel(ylabel)
         #ax_medy.locator_params(axis='x', nbins=5)
@@ -483,10 +483,9 @@ class S5Pplot(object):
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
-        img = ax_img.imshow(qmask, cmap=cmap, norm=norm,
-                            vmin=-1, vmax=10, aspect='equal',
+        img = ax_img.imshow(qmask, vmin=-1, vmax=10, norm=norm,
                             interpolation='none', origin='lower',
-                            extent=extent, cmap=cmap)
+                            aspect='equal', extent=extent, cmap=cmap)
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
@@ -613,20 +612,26 @@ class S5Pplot(object):
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
 
-        # create residual image
+        # create value, model, residual datasets
         mask = np.isfinite(msm.value)
-        signal = msm.value.copy()
-        signal[mask] /= dscale
+        value = msm.value.copy()
+        value[mask] /= dscale
+
         mask = np.isfinite(model_in)
         model = model_in.copy()
         model[mask] /= dscale
+
         mask = np.isfinite(msm.value) & np.isfinite(model_in)
-        residual = signal.copy()
+        residual = msm.value.copy()
         residual[~mask] = np.nan
-        residual[mask] -= model[mask]
+        residual[mask] -= model_in[mask]
+        (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        # convert units from electrons to ke, Me, ...
+        (runit, rscale) = convert_units(msm.units, rmin, rmax)
+        residual[mask] /= rscale
 
         # inititalize figure
-        figsize = (9.2, 8.5)
+        figsize = (10.8, 10)
         fig = plt.figure(figsize=figsize)
         if title is not None:
             fig.suptitle(title, fontsize=14,
@@ -639,9 +644,10 @@ class S5Pplot(object):
             xtl.set_visible(False)
         if sub_title is not None:
             ax1.set_title(sub_title)
-        img = ax1.imshow(signal, vmin=vmin / dscale, vmax=vmax / dscale,
+        img = ax1.imshow(value, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        #ax1.set_ylabel(ylabel)
         ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax1.transAxes)
@@ -650,16 +656,13 @@ class S5Pplot(object):
             cbar.set_label(zlabel)
 
         # create centre-pannel with residuals
-        (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
-        # convert units from electrons to ke, Me, ...
-        (runit, rscale) = convert_units(msm.units, rmin, rmax)
-
         ax2 = plt.subplot(gspec[1, :], sharex=ax1)
         for xtl in ax2.get_xticklabels():
             xtl.set_visible(False)
         img = ax2.imshow(residual, vmin=rmin / rscale, vmax=rmax / rscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('diverging_BuRd'))
+        #ax2.set_ylabel(ylabel)
         ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax2.transAxes)
@@ -674,6 +677,8 @@ class S5Pplot(object):
         img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        #ax3.set_xlabel(xlabel)
+        #ax3.set_ylabel(ylabel)
         ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=ax3.transAxes)
@@ -684,19 +689,18 @@ class S5Pplot(object):
             cbar.set_label('{} [{}]'.format(model_label, zunit))
 
         # ignore NaN's and flatten the images for the histograms
-        mask = np.isfinite(msm.value) & np.isfinite(model_in)
-        value = msm.value[mask] / dscale
-        residual = (msm.value[mask] - model_in[mask]) / rscale
-
         ax4 = plt.subplot(gspec[3, 0])
-        ax4.hist(value, range=[vmin / dscale, vmax / dscale], bins=15,
+        ax4.hist(value[np.isfinite(value)],
+                 range=[vmin / dscale, vmax / dscale], bins=15,
                  normed=True, color=line_colors[0])
         ax4.set_xlabel(zlabel)
         ax4.set_ylabel('fraction')
         ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
-        ax5.hist(residual, range=[rmin / rscale, rmax / rscale], bins=15,
+        
+        ax5.hist(residual[np.isfinite(residual)],
+                 range=[rmin / rscale, rmax / rscale], bins=15,
                  normed=True, color=line_colors[0])
         if runit is None:
             ax5.set_xlabel('residual')
@@ -705,9 +709,10 @@ class S5Pplot(object):
         ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         # save and close figure
-        plt.draw()
+        #plt.draw()
         self.__fig_info(fig, fig_info)
         self.__pdf.savefig()
+        fig.tight_layout()
         plt.close()
 
     # --------------------------------------------------
@@ -735,7 +740,7 @@ class S5Pplot(object):
         from matplotlib import gridspec
 
         from .biweight import biweight
-        from .sron_colorschemes import get_line_colors
+        from .sron_colormaps import get_line_colors
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):

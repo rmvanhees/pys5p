@@ -155,15 +155,6 @@ class OCMio(object):
             self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
-    @staticmethod
-    def pys5p_version():
-        """
-        Return S/W version
-        """
-        from . import version
-
-        return version.__version__
-
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self):
         """

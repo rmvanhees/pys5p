@@ -19,6 +19,8 @@ import os.path
 import numpy as np
 import h5py
 
+from .version import version as __version__
+
 #- global parameters ------------------------------
 
 #- local functions --------------------------------
@@ -84,7 +86,7 @@ class ICMio(object):
 
             sgrp = self.fid.require_group("METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = self.pys5p_version()
+            sgrp.attrs['git_tag'] = __version__
             if 'patched_datasets' not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
                 dset = sgrp.create_dataset('patched_datasets',
@@ -101,16 +103,6 @@ class ICMio(object):
             self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
-    @staticmethod
-    def pys5p_version():
-        """
-        Returns S/W version
-        """
-        from . import version
-
-        return version.__version__
-
-    #-------------------------
     def find(self, msm_class):
         """
         find a measurement as <processing-class name>
