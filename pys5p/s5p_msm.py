@@ -76,9 +76,10 @@ class S5Pmsm(object):
         """
         # initialize object
         self.name = 'value'
-        self.value = np.empty(())
+        self.value = None
         self.error = None
         self.coords = None
+        self.coverage = None
         self.units = None
         self.long_name = None
         self.fillvalue = None
@@ -184,12 +185,29 @@ class S5Pmsm(object):
         coords_namedtuple = namedtuple('Coords', keys)
         self.coords = coords_namedtuple._make(dims)
 
-    def set_units(self, name, force=False):
+    def copy(self):
+        """
+        return a deep copy of the current object
+        """
+        import copy
+
+        return copy.deepcopy(self)
+
+    def set_coverage(self, coverage, force=False):
+        """
+        Set the coverage attribute, as (coverageStart, coverageEnd)
+        Both elements are expected to be datatime objects.
+        Overwrite when force is true
+        """
+        if self.coverage is None or force:
+            self.coverage = coverage
+
+    def set_units(self, units, force=False):
         """
         Set the units attribute, overwrite when force is true
         """
         if self.units is None or force:
-            self.units = name
+            self.units = units
 
     def set_long_name(self, name, force=False):
         """
@@ -397,3 +415,28 @@ class S5Pmsm(object):
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
+
+    def transpose(self):
+        """
+        Transpose data and coordinates of S5Pmsm object
+        """
+        if self.value.ndim <= 1:
+            return
+
+        if self.error is not None:
+            self.error = np.transpose(self.error)
+        self.value = np.transpose(self.value)
+
+        keys = []
+        dims = []
+        for ii in range(self.value.ndim):
+            keys.append(self.coords._fields[ii])
+            dims.append(self.coords[ii][:])
+        tmp = keys[1]
+        keys[1] = keys[0]
+        keys[0] = tmp
+        tmp = dims[1]
+        dims[1] = dims[0]
+        dims[0] = tmp
+        coords_namedtuple = namedtuple('Coords', keys)
+        self.coords = coords_namedtuple._make(dims)
