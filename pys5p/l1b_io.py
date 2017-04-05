@@ -179,8 +179,7 @@ class L1Bio(object):
             return None
 
         grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
-        return datetime(2010,1,1,0,0,0) \
-            + timedelta(seconds=int(grp['time'][0]))
+        return datetime(2010,1,1,0,0,0) + timedelta(seconds=int(grp['time'][0]))
 
     # ---------- class L1Bio::
     def delta_time(self, msm_path):

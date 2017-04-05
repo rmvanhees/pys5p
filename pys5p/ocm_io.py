@@ -197,8 +197,8 @@ class OCMio(object):
         grp = self.fid['BAND{}'.format(self.band)]
         for msm in sorted(self.__msm_path):
             sgrp = grp[os.path.join(msm, 'GEODATA')]
-            res[msm] = datetime(2010,1,1,0,0,0) \
-                       + timedelta(seconds=int(sgrp['time'][0]))
+            res[msm] = datetime(2010,1,1,0,0,0)
+            res[msm] += timedelta(seconds=int(sgrp['time'][0]))
 
         return res
 
