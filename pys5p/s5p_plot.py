@@ -1,4 +1,3 @@
-
 """
 This file is part of pyS5p
 
@@ -9,10 +8,10 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
 -- generate figures --
  Public functions a page in the output PDF
  * draw_signal
- * draw_hist
  * draw_quality
- * draw_geolocation
  * draw_cmp_swir
+ * draw_hist
+ * draw_geolocation
 
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -161,14 +160,14 @@ class S5Pplot(object):
         info_str = ""
         if dict_info is not None:
             for key in dict_info:
-                if isinstance(dict_info[key], float) \
-                   or isinstance(dict_info[key], np.float32):
+                if (isinstance(dict_info[key], float)
+                    or isinstance(dict_info[key], np.float32)):
                     info_str += "{} : {:.5g}".format(key, dict_info[key])
                 else:
                     info_str += "{} : {}".format(key, dict_info[key])
                 info_str += '\n'
-        info_str += 'created : ' \
-                   + datetime.utcnow().isoformat(timespec='seconds')
+        info_str += 'created : {}'.format(
+            datetime.utcnow().isoformat(timespec='seconds'))
 
         if aspect == 4:
             fig.text(0.9, 0.975, info_str,
@@ -178,7 +177,7 @@ class S5Pplot(object):
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         elif aspect == 3:
-            fig.text(0.9, 0.975, info_str,
+            fig.text(0.95, 0.975, info_str,
                      fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
@@ -223,10 +222,10 @@ class S5Pplot(object):
         data_row   :  ndarray
            Numpy array (1D) row averaged values of data
            Default is calculated as biweight(data, axis=0)
-        vrange     :  float in range of [vmin,vmax]
+        vrange     :  list [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
            Note that is you pass a vrange instance then vperc will be ignored
-        vperc      :  float in range of [0,100]
+        vperc      :  list
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
         title      :  string
@@ -257,6 +256,7 @@ class S5Pplot(object):
         if isinstance(msm, np.ndarray):
             msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
+        assert msm.value.ndim == 2
 
         # calculate column/row medians (if required)
         if data_col is None:
@@ -283,8 +283,7 @@ class S5Pplot(object):
             figsize = (16, 6)
         else:
             print(__name__ + '.draw_signal', dims, aspect)
-            print('*** FATAL: aspect ratio not implemented, exit')
-            return
+            raise ValueError('*** FATAL: aspect ratio not implemented, exit')
 
         # set label and range of X/Y axis
         (ylabel, xlabel) = msm.coords._fields
@@ -386,8 +385,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality(self, qmsm, low_thres=0.1, high_thres=0.8,
-                     qlabels=None, title=None, sub_title=None, fig_info=None):
+    def draw_quality(self, qmsm,
+                     title=None, sub_title=None, fig_info=None,
+                     qlabels=None, low_thres=0.1, high_thres=0.8 ):
         """
         Display pixel quality data
 
@@ -407,10 +407,12 @@ class S5Pplot(object):
             - 'bad'    : 0 <= value < low_thres
             - 'poor'   : low_thres <= value < high_thres
             - 'good'   : value >= high_thres
-        title       :  string
-           Title of the figure (use attribute "title" of product)
-        sub_title   :  string
-           Sub-title of the figure (use attribute "comment" of product)
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
@@ -425,6 +427,7 @@ class S5Pplot(object):
         if isinstance(qmsm, np.ndarray):
             qmsm = S5Pmsm(qmsm)
         assert isinstance(qmsm, S5Pmsm)
+        assert qmsm is not None and qmsm.value.ndim == 2
 
         if qlabels is None:
             qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
@@ -441,15 +444,13 @@ class S5Pplot(object):
             figsize = (16, 6)
         else:
             print(__name__, dims)
-            print('*** FATAL: aspect ratio not implemented, exit')
-            return
+            raise ValueError('*** FATAL: aspect ratio not implemented, exit')
 
         # set label and range of X/Y axis
         (ylabel, xlabel) = qmsm.coords._fields
         ydata = qmsm.coords[0]
         xdata = qmsm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
-        print(qmsm.coords._fields, extent)
 
         # scale data to integers between [0, 10]
         thres_min = 10 * low_thres
@@ -543,9 +544,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_cmp_swir(self, msm, model_in, model_label='reference',
-                      vrange=None, vperc=None,
-                      title=None, sub_title=None, fig_info=None):
+    def draw_cmp_swir(self, msm, model_in,
+                      title=None, sub_title=None, fig_info=None,
+                      model_label='reference', vrange=None, vperc=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
         Top panel shows data, middle panel shows residuals (data - model)
@@ -560,18 +561,26 @@ class S5Pplot(object):
            Object holding measurement data and attributes
         model       :  ndarray
            Numpy array (2D) holding the data to be displayed
-        vrange     :  float in range of [vmin,vmax]
+        vrange     :  list [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
-           Note that is you pass a vrange instance then vperc wil be ignored
-        vperc      :  float in range of [0,100]
+           Note that is you pass a vrange instance then vperc will be ignored
+        vperc      :  list
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.]
         model_label :  string
-           Name of dataset.  Default is 'reference'
-        title       :  string
-           Title of the figure (use attribute "title" of product)
-        sub_title   :  string
-           Sub-title of the figure (use attribute "comment" of product)
+           Name of reference dataset.  Default is 'reference'
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        median & spread.
         """
         from matplotlib import pyplot as plt
         from matplotlib.gridspec import GridSpec
@@ -583,7 +592,7 @@ class S5Pplot(object):
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(None, data=msm)
+            msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
 
         # scale data to keep reduce number of significant digits small to
@@ -698,7 +707,7 @@ class S5Pplot(object):
         ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
-        
+
         ax5.hist(residual[np.isfinite(residual)],
                  range=[rmin / rscale, rmax / rscale], bins=15,
                  normed=True, color=line_colors[0])
@@ -709,15 +718,13 @@ class S5Pplot(object):
         ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         # save and close figure
-        #plt.draw()
         self.__fig_info(fig, fig_info)
         self.__pdf.savefig()
         fig.tight_layout()
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist(self, msm, msm_err, sigma=3,
-                  title=None, fig_info=None):
+    def draw_hist(self, msm, msm_err, sigma=3, title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
@@ -727,10 +734,11 @@ class S5Pplot(object):
            Object holding measurement data and attributes
         msm_err     :  pys5p.S5Pmsm
            Object holding measurement data and attributes
-        title       :  string
-           Title of the figure (use attribute "title" of product)
-        fig_info    :  dictionary
-           Dictionary holding meta-data to be displayed in the figure
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date, signal
@@ -744,16 +752,16 @@ class S5Pplot(object):
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(None, data=msm)
+            msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
 
         if isinstance(msm_err, np.ndarray):
-            msm_err = S5Pmsm(None, data=msm_err)
+            msm_err = S5Pmsm(msm_err)
         assert isinstance(msm_err, S5Pmsm)
 
         values = msm.value[np.isfinite(msm.value)].reshape(-1)
-        if 'val_median' not in fig_info \
-            or 'val_spread' not in fig_info:
+        if ('val_median' not in fig_info
+            or 'val_spread' not in fig_info):
             (median, spread) = biweight(values, spread=True)
             if fig_info is None:
                 fig_info = OrderedDict({'val_median' : median})
@@ -763,8 +771,8 @@ class S5Pplot(object):
         values -= fig_info['val_median']
 
         uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
-        if 'unc_median' not in fig_info \
-            or 'unc_spread' not in fig_info:
+        if ('unc_median' not in fig_info
+            or 'unc_spread' not in fig_info):
             (median, spread) = biweight(uncertainties, spread=True)
             fig_info.update({'unc_median' : median})
             fig_info.update({'unc_spread' : spread})
@@ -815,8 +823,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_geolocation(self, lats, lons, sequence=None,
-                         subsatellite=False, title=None, fig_info=None):
+    def draw_geolocation(self, lats, lons,
+                         title=None, fig_info=None,
+                         sequence=None, subsatellite=False):
         """
         Display footprint of sub-satellite coordinates project on the globe
 
@@ -830,10 +839,14 @@ class S5Pplot(object):
            Indices to footprints to be drawn by polygons
         subsatellite :  boolean
            Coordinates are given for sub-satellite point. Default is False
-        title        :  string
-           Title of the figure (use attribute "title" of product)
-        fig_info    :  dictionary
-           Dictionary holding meta-data to be displayed in the figure
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box.
         """
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
@@ -916,7 +929,6 @@ class S5Pplot(object):
         glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
         glx.xformatter = LONGITUDE_FORMATTER
         glx.yformatter = LATITUDE_FORMATTER
-        print('MARKERING A')
         # draw footprint
         if not subsatellite:
             if sequence is None:
@@ -925,7 +937,6 @@ class S5Pplot(object):
                 lon = np.concatenate((lons[0, :], lons[1:-1, -1],
                                       lons[-1, ::-1], lons[1:-1:-1, 0]))
 
-                print('MARKERING B')
                 poly = Polygon(xy=list(zip(lon, lat)), closed=True,
                                alpha=0.6, facecolor=s5p_color,
                                transform=ccrs.PlateCarree())
@@ -943,36 +954,307 @@ class S5Pplot(object):
                                           lons[indx, -1],
                                           lons[indx[-1], ::-1],
                                           lons[indx_rev, 0]))
-                    print(lat, lon)
 
-                    print('MARKERING C {}'.format(ii))
                     poly = Polygon(xy=list(zip(lon, lat)), closed=True,
                                    alpha=0.6, facecolor=s5p_color,
                                    transform=ccrs.PlateCarree())
-                    print('MARKERING D {}'.format(ii))
                     axx.add_patch(poly)
-                    print('MARKERING E {}'.format(ii))
 
-        print('MARKERING F')
         # draw sub-satellite coordinates
         if subsatellite:
-            print('MARKERING G')
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
 
-        print('MARKERING H')
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        print('MARKERING I')
         self.__fig_info(fig, fig_info, aspect=1)
-        print('MARKERING J')
         plt.tight_layout()
-        print('MARKERING K')
         self.__pdf.savefig()
-        print('MARKERING L')
         plt.close()
-        print('MARKERING M')
+
+    # --------------------------------------------------
+    def draw_trend2d(self, msm_in, data_col=None, data_row=None,
+                     title=None, sub_title=None, fig_info=None,
+                     time_axis=None, vperc=None, vrange=None):
+        """
+        Display 2D array data as image and averaged column/row signal plots
+
+        Parameters
+        ----------
+        msm       :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
+        data_col   :  ndarray
+           Numpy array (1D) column averaged values of data
+           Default is calculated as biweight(data, axis=1)
+        data_row   :  ndarray
+           Numpy array (1D) row averaged values of data
+           Default is calculated as biweight(data, axis=0)
+        vrange     :  float in range of [vmin,vmax]
+           Range to normalize luminance data between vmin and vmax.
+           Note that is you pass a vrange instance then vperc will be ignored
+        vperc      :  float in range of [0,100]
+           Range to normalize luminance data between percentiles min and max of
+           array data. Default is [1., 99.]
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        median & spread.
+        """
+        import warnings
+
+        from matplotlib import pyplot as plt
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+        from .biweight import biweight
+        from .sron_colormaps import sron_cmap, get_line_colors
+
+        # define colors
+        line_colors = get_line_colors()
+
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            msm = msm_in.copy()
+        assert isinstance(msm, S5Pmsm)
+        assert msm.value.ndim == 2
+
+        if time_axis is None:
+            (ylabel, xlabel) = msm.coords._fields
+            if ylabel == 'orbit' or ylabel == 'time':
+                msm.transpose()
+        elif time_axis == 0:
+            msm.transpose()
+
+        # calculate column/row medians (if required)
+        if data_col is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
+                data_col = np.nanmedian(msm.value, axis=1)
+
+        if data_row is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
+                data_row = np.nanmedian(msm.value, axis=0)
+
+        # determine aspect-ratio of data and set sizes of figure and sub-plots
+        dims = msm.value.shape
+        aspect = min(4, max(1, int(np.round(dims[0] / dims[1]))))
+        print('aspect[{}] {}'.format(dims, aspect))
+
+        # set label and range of X/Y axis
+        (ylabel, xlabel) = msm.coords._fields
+        ydata = msm.coords[0]
+        xdata = msm.coords[1]
+        extent = [0, len(xdata), 0, len(ydata)]
+
+        # scale data to keep reduce number of significant digits small to
+        # the axis-label and tickmarks readable
+        if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
+            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
+                                         vperc)
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
+
+        # convert units from electrons to ke, Me, ...
+        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+
+        # inititalize figure
+        fig = plt.figure(figsize=(10, 9))
+        ax_img = fig.add_subplot(111)
+        if title is not None:
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
+
+        # the image plot:
+        img = plt.imshow(msm.value / dscale, interpolation='none',
+                         vmin=vmin / dscale, vmax=vmax / dscale,
+                         aspect='auto', origin='lower',
+                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        #xbins = len(ax_img.get_xticklabels())
+        ybins = len(ax_img.get_yticklabels())
+        for xtl in ax_img.get_xticklabels():
+            xtl.set_visible(False)
+        for ytl in ax_img.get_yticklabels():
+            ytl.set_visible(False)
+        if sub_title is not None:
+            ax_img.set_title(sub_title)
+        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                    verticalalignment='bottom', rotation='vertical',
+                    fontsize='xx-small', transform=ax_img.transAxes)
+
+        # 'make_axes_locatable' returns an instance of the AxesLocator class,
+        # derived from the Locator. It provides append_axes method that creates
+        # a new axes on the given side of (“top”, “right”, “bottom” and “left”)
+        # of the original axes.
+        divider = make_axes_locatable(ax_img)
+
+        # color bar
+        cax = divider.append_axes("right", size=0.3, pad=0.05)
+        plt.colorbar(img, cax=cax, label='{} [{}]'.format(msm.name, zunit))
+        #
+        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
+        ax_medx.plot(xdata, data_row / dscale,
+                     lw=0.5, color=line_colors[0])
+        xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
+        ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
+        ax_medx.grid(True)
+        ax_medx.set_xlabel(xlabel)
+        #ax_medx.locator_params(axis='x', nbins=5)
+        #ax_medx.locator_params(axis='y', nbins=4)
+        #
+        ax_medy = divider.append_axes("left", 1.1, pad=0.25)
+        ax_medy.plot(data_col / dscale, ydata,
+                     lw=0.5, color=line_colors[0])
+        ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
+        ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
+        ax_medy.locator_params(axis='y', nbins=ybins)
+        #print(ystep, [ydata[0], ydata[-1] + ystep])
+        ax_medy.grid(True)
+        ax_medy.set_ylabel(ylabel)
+        #ax_medy.locator_params(axis='x', nbins=5)
+        #ydata = np.append(ydata, ydata[-1]+1)
+        #print(ydata[::ydata.size//4])
+        #ax_medy.set_yticks(ydata[::ydata.size//4])
+
+        # add annotation
+        (median, spread) = biweight(msm.value, spread=True)
+        if zunit is not None:
+            median_str = '{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+        else:
+            median_str = '{:.5g}'.format(median)
+            spread_str = '{:.5g}'.format(spread)
+
+        if fig_info is None:
+            fig_info = OrderedDict({'median' : median_str})
+        else:
+            fig_info.update({'median' : median_str})
+        fig_info.update({'spread' : spread_str})
+
+        # save and close figure
+        self.__fig_info(fig, fig_info, 3)
+        self.__pdf.savefig()
+        plt.close()
+
+    # --------------------------------------------------
+    def draw_trend1d(self, msm, hk_data,
+                     title=None, sub_title=None, fig_info=None,
+                     hk_keys=None, time_axis=None):
+        """
+        Display ...
+
+        Parameters
+        ----------
+        msm       :  pys5p.S5Pmsm, optional
+           Object holding measurement data and its HDF5 attributes
+        hk_data   :  pys5p.S5Pmsm
+           Object holding housekeeping data and its HDF5 attributes
+        hk_keys    : list
+           list of housekeeping parameters to be displayed
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        median & spread.
+        """
+        from matplotlib import pyplot as plt
+
+        from .biweight import biweight
+        from .sron_colormaps import get_line_colors
+
+        # define colors
+        line_colors = get_line_colors()
+
+        #
+        if hk_keys is None:
+            hk_keys = {'temp_obm_swir_grating' : 'SWIR OBM temperature',
+                       'temp_det4' : 'SWIR detector temperature'}
+        #
+        nplots = len(hk_keys)
+        if msm is not None:
+            nplots += 1
+
+        #
+        (fig, axarr) = plt.subplots(nplots, sharex=True,
+                                    figsize=(10, 9))
+        if title is not None:
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
+        if sub_title is not None:
+            axarr[0].set_title(sub_title)
+
+        i_ax = 0
+        if msm is not None:
+            (ylabel, xlabel) = msm.coords._fields
+            if time_axis is None:
+                if ylabel == 'orbit' or ylabel == 'time':
+                    data, data_err = biweight(msm.value, axis=1, spread=True)
+                    xlabel = ylabel
+                    xdata = msm.coords[0][:]
+                else:
+                    data, data_err = biweight(msm.value, axis=0, spread=True)
+                    xdata = msm.coords[0][:]
+            elif time_axis == 0:
+                data, data_err = biweight(msm.value, axis=1, spread=True)
+                xlabel = ylabel
+                xdata = msm.coords[0][:]
+            else:
+                data, data_err = biweight(msm.value, axis=0, spread=True)
+                xdata = msm.coords[0][:]
+
+            print(data.mean(), data_err.mean())
+            axarr[i_ax].plot(xdata, data, lw=1.5, color=line_colors[i_ax])
+            axarr[i_ax].fill_between(xdata, data - data_err, data + data_err,
+                                     facecolor='#dddddd')
+            axarr[i_ax].grid(True)
+            axarr[i_ax].set_ylabel('{} [{}]'.format('median value', msm.units))
+            i_ax += 1
+        else:
+            (xlabel,) = hk_data.coords._fields
+            xdata  = hk_data.coords[0][:]
+
+        for key in hk_keys:
+            axarr[i_ax].plot(xdata, hk_data.value[key],
+                             lw=1.5, color=line_colors[i_ax])
+            axarr[i_ax].fill_between(xdata,
+                                     hk_data.value[key] - hk_data.error[key],
+                                     hk_data.value[key] + hk_data.error[key],
+                                     facecolor='#dddddd')
+            axarr[i_ax].locator_params(axis='y', nbins=4)
+            axarr[i_ax].grid(True)
+            axarr[i_ax].set_ylabel('{} [{}]'.format(key, 'K'))
+            i_ax += 1
+        axarr[-1].set_xlabel(xlabel)
+
+        fig.subplots_adjust(hspace=0)
+        plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+
+        # save and close figure
+        self.__fig_info(fig, fig_info, 3)
+        self.__pdf.savefig()
+        plt.close()
