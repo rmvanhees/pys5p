@@ -83,12 +83,14 @@ def convert_units(units, vmin, vmax):
             zunit = units.replace('electron', 'ke')
         else:
             zunit = units.replace('electron', 'e')
+        if zunit.find('.s-1') >= 0:
+            zunit = zunit.replace('.s-1', '.s$^{-1}$')
     elif units >= 'V':
         max_value = max(abs(vmin), abs(vmax))
 
         if max_value <= 1e-4:
             dscale = 1e-6
-            zunit = units.replace('V', r'$\mu \mathrm{V}$')
+            zunit = units.replace('V', '$\mu \mathrm{V}$')
         elif max_value <= 0.1:
             dscale = 1e-3
             zunit = units.replace('V', 'mV')
@@ -280,7 +282,7 @@ class S5Pplot(object):
         elif aspect == 3:
             figsize = (14, 6.5)
         elif aspect == 4:
-            figsize = (16, 6)
+            figsize = (15, 6)
         else:
             print(__name__ + '.draw_signal', dims, aspect)
             raise ValueError('*** FATAL: aspect ratio not implemented, exit')
@@ -338,7 +340,7 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, label='{} [{}]'.format(msm.name, zunit))
+        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
@@ -423,6 +425,8 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+        from . import swir_region
+        
         # assert that we have some data to show
         if isinstance(qmsm, np.ndarray):
             qmsm = S5Pmsm(qmsm)
@@ -440,8 +444,10 @@ class S5Pplot(object):
             figsize = (10, 9)
         elif aspect == 2:
             figsize = (12, 7)
+        elif aspect == 3:
+            figsize = (14, 6.5)
         elif aspect == 4:
-            figsize = (16, 6)
+            figsize = (15, 6)
         else:
             print(__name__, dims)
             raise ValueError('*** FATAL: aspect ratio not implemented, exit')
@@ -459,13 +465,14 @@ class S5Pplot(object):
 
         # set columns and row with at least 75% dead-pixels to -1
         qmask[~np.isfinite(qmsm.value)] = -1
-        qmask[qmask < -1] = -1
-        unused_cols = np.all(qmask <= 0, axis=0)
-        if unused_cols.size > 0:
-            qmask[:, unused_cols] = -1
-        unused_rows = np.all(qmask <= 0, axis=1)
-        if unused_rows.size > 0:
-            qmask[unused_rows, :] = -1
+        #qmask[qmask < -1] = -1
+        #unused_cols = np.all(qmask <= 0, axis=0)
+        #if unused_cols.size > 0:
+        #    qmask[:, unused_cols] = -1
+        #unused_rows = np.all(qmask <= 0, axis=1)
+        #if unused_rows.size > 0:
+        #    qmask[unused_rows, :] = -1
+        qmask[~swir_region.mask()] = -1
 
         # define colormap with only 4 colors
         clist = ['#BBBBBB', '#EE6677','#CCBB44','#FFFFFF']
@@ -530,12 +537,12 @@ class S5Pplot(object):
 
         # add annotation
         if fig_info is None:
-            fig_info = OrderedDict({'thres_01': low_thres})
+            fig_info = OrderedDict({'qmask_01':
+                                    np.sum(((qmask >= 0)
+                                            & (qmask < thres_min)))})
         else:
-            fig_info.update({'thres_01': low_thres})
-        fig_info.update({'qmask_01': np.sum(((qmask >= 0)
-                                             & (qmask < thres_min)))})
-        fig_info.update({'thres_08': high_thres})
+            fig_info.update({'qmask_01': np.sum(((qmask >= 0)
+                                                 & (qmask < thres_min)))})
         fig_info.update({'qmask_08': np.sum(((qmask >= 0)
                                              & (qmask < thres_max)))})
 
@@ -613,7 +620,7 @@ class S5Pplot(object):
         if msm.units is None:
             zlabel = '{}'.format(msm.name)
         else:
-            zlabel = '{} [{}]'.format(msm.name, zunit)
+            zlabel = r'{} [{}]'.format(msm.name, zunit)
 
         # set label and range of X/Y axis
         #(ylabel, xlabel) = msm.coords._fields
@@ -695,7 +702,7 @@ class S5Pplot(object):
         if zunit is None:
             cbar.set_label(model_label)
         else:
-            cbar.set_label('{} [{}]'.format(model_label, zunit))
+            cbar.set_label(r'{} [{}]'.format(model_label, zunit))
 
         # ignore NaN's and flatten the images for the histograms
         ax4 = plt.subplot(gspec[3, 0])
@@ -710,7 +717,7 @@ class S5Pplot(object):
 
         ax5.hist(residual[np.isfinite(residual)],
                  range=[rmin / rscale, rmax / rscale], bins=15,
-                 normed=True, color=line_colors[0])
+                 normed=True, color=line_colors[1])
         if runit is None:
             ax5.set_xlabel('residual')
         else:
@@ -720,7 +727,6 @@ class S5Pplot(object):
         # save and close figure
         self.__fig_info(fig, fig_info)
         self.__pdf.savefig()
-        fig.tight_layout()
         plt.close()
 
     # --------------------------------------------------
@@ -778,29 +784,35 @@ class S5Pplot(object):
             fig_info.update({'unc_spread' : spread})
         uncertainties -= fig_info['unc_median']
 
+        # convert units from electrons to ke, Me, ...
+        zmin = -sigma * fig_info['val_spread']
+        zmax = sigma * fig_info['val_spread']
+        (zunits, zscale) = convert_units(msm.units, zmin, zmax)
         if msm.units is not None:
-            d_label = r'{} [{}]'.format(msm.name, msm.units)
+            d_label = r'{} [{}]'.format(msm.name, zunits)
         else:
             d_label = msm.name
 
+        umin = -sigma * fig_info['unc_spread']
+        umax = sigma * fig_info['unc_spread']
+        (uunits, uscale) = convert_units(msm_err.units, umin, umax)
         if msm_err.units is not None:
-            e_label = '{} [{}]'.format(msm_err.name, msm_err.units)
+            u_label = '{} [{}]'.format(msm_err.name, uunits)
         else:
-            e_label = msm_err.name
+            u_label = msm_err.name
 
         line_colors = get_line_colors()
-        fig = plt.figure(figsize=(12,7))
+        fig = plt.figure(figsize=(10,7))
         if title is not None:
             fig.suptitle(title, fontsize=14,
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(11,1)
 
         axx = plt.subplot(gspec[2:6,0])
-        axx.hist(values,
-                 range=[-sigma * fig_info['val_spread'],
-                        sigma * fig_info['val_spread']],
-                 bins=15, color=line_colors[0])
-        axx.set_title(r'histogram centered at median (range $\pm {} \sigma$)'.format(sigma))
+        axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
+                  bins=15, color=line_colors[0])
+        axx.set_title(r'histogram centered at median'
+                      ' (range $\pm {} \sigma$)'.format(sigma))
         axx.set_xlabel(d_label)
         axx.set_ylabel('count')
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
@@ -808,11 +820,91 @@ class S5Pplot(object):
                  fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[7:,0])
-        axx.hist(uncertainties,
-                 range=[-sigma * fig_info['unc_spread'],
-                        sigma * fig_info['unc_spread']],
-                 bins=15, color=line_colors[0])
-        axx.set_xlabel(e_label)
+        axx.hist(uncertainties / uscale, range=[umin / uscale, umax / uscale],
+                  bins=15, color=line_colors[0])
+        axx.set_xlabel(u_label)
+        axx.set_ylabel('count')
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
+
+        self.__fig_info(fig, fig_info)
+        self.__pdf.savefig()
+        plt.close()
+
+    # --------------------------------------------------
+    def draw_qhist(self, msm, msm_dark, msm_noise, title=None, fig_info=None):
+        """
+        Display pixel quality as histograms
+
+        Parameters
+        ----------
+        msm         :  pys5p.S5Pmsm
+           Object holding pixel-quality data and attributes
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date, signal
+        median & spread adn error meadian & spread.
+        """
+        from matplotlib import pyplot as plt
+        from matplotlib import gridspec
+
+        from . import swir_region
+        from .sron_colormaps import get_line_colors
+
+        # assert that we have some data to show
+        if isinstance(msm, np.ndarray):
+            msm = S5Pmsm(msm)
+        assert isinstance(msm, S5Pmsm)
+
+        if isinstance(msm_dark, np.ndarray):
+            msm_dark = S5Pmsm(msm_dark)
+        assert isinstance(msm_dark, S5Pmsm)
+
+        if isinstance(msm_noise, np.ndarray):
+            msm_noise = S5Pmsm(msm_noise)
+        assert isinstance(msm_noise, S5Pmsm)
+
+        line_colors = get_line_colors()
+        fig = plt.figure(figsize=(10,9))
+        if title is not None:
+            fig.suptitle(title, fontsize=14,
+                         position=(0.5, 0.96), horizontalalignment='center')
+        gspec = gridspec.GridSpec(15,1)
+
+        axx = plt.subplot(gspec[1:5,0])
+        axx.hist(msm.value[swir_region.mask()],
+                 bins=11, color=line_colors[0])
+        axx.set_title(r'histogram of {}'.format(msm.long_name))
+        axx.set_yscale('log', nonposy='clip')
+        #axx.set_xlabel(d_label)
+        axx.set_ylabel('count')
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
+
+        axx = plt.subplot(gspec[6:10,0])
+        axx.hist(msm_dark.value[swir_region.mask()],
+                 bins=11, color=line_colors[0])
+        axx.set_title(r'histogram of {}'.format(msm_dark.long_name))
+        axx.set_yscale('log', nonposy='clip')
+        #axx.set_xlabel(u_label)
+        axx.set_ylabel('count')
+        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
+                 verticalalignment='bottom', rotation='vertical',
+                 fontsize='xx-small', transform=axx.transAxes)
+
+        axx = plt.subplot(gspec[11:,0])
+        axx.hist(msm_noise.value[swir_region.mask()],
+                 bins=11, color=line_colors[0])
+        axx.set_title(r'histogram of {}'.format(msm_noise.long_name))
+        axx.set_yscale('log', nonposy='clip')
+        axx.set_xlabel('value')
         axx.set_ylabel('count')
         axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
                  verticalalignment='bottom', rotation='vertical',
@@ -1108,7 +1200,7 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, label='{} [{}]'.format(msm.name, zunit))
+        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
@@ -1137,8 +1229,8 @@ class S5Pplot(object):
         # add annotation
         (median, spread) = biweight(msm.value, spread=True)
         if zunit is not None:
-            median_str = '{:.5g} {}'.format(median / dscale, zunit)
-            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+            median_str = r'{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
         else:
             median_str = '{:.5g}'.format(median)
             spread_str = '{:.5g}'.format(spread)
@@ -1209,7 +1301,20 @@ class S5Pplot(object):
             axarr[0].set_title(sub_title)
 
         i_ax = 0
-        if msm is not None:
+        if msm is None:
+            (xlabel,) = hk_data.coords._fields
+            xdata  = hk_data.coords[0][:]
+        elif 'dpqf_08' in msm.value.dtype.names:
+            (xlabel,) = msm.coords._fields
+            xdata  = hk_data.coords[0][:]
+            axarr[i_ax].plot(xdata, msm.value['dpqf_08'] - msm.value['dpqf_08'][0],
+                             lw=1.5, color=line_colors[i_ax])
+            axarr[i_ax].plot(xdata, msm.value['dpqf_01'] - msm.value['dpqf_01'][0],
+                             lw=1.5, color=line_colors[i_ax+1])
+            axarr[i_ax].grid(True)
+            axarr[i_ax].set_ylabel('{}'.format('count (relative)'))
+            i_ax += 1
+        else:
             (ylabel, xlabel) = msm.coords._fields
             if time_axis is None:
                 if ylabel == 'orbit' or ylabel == 'time':
@@ -1234,9 +1339,6 @@ class S5Pplot(object):
             axarr[i_ax].grid(True)
             axarr[i_ax].set_ylabel('{} [{}]'.format('median value', msm.units))
             i_ax += 1
-        else:
-            (xlabel,) = hk_data.coords._fields
-            xdata  = hk_data.coords[0][:]
 
         for key in hk_keys:
             axarr[i_ax].plot(xdata, hk_data.value[key],
