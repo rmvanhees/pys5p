@@ -209,8 +209,8 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_signal(self, msm, data_col=None, data_row=None,
-                    title=None, sub_title=None, fig_info=None,
-                    vperc=None, vrange=None):
+                    *, vperc=None, vrange=None,
+                    title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -387,9 +387,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality(self, qmsm,
-                     title=None, sub_title=None, fig_info=None,
-                     qlabels=None, low_thres=0.1, high_thres=0.8 ):
+    def draw_quality(self, qmsm, ckd_ref=None,
+                     *, low_thres=0.1, high_thres=0.8, qlabels=None, 
+                     title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
 
@@ -398,25 +398,27 @@ class S5Pplot(object):
         qmsm        :  S5Pmsm or ndarray
            Numpy array (2D) holding quality data, range [0, 1] or NaN.
            Zero is for dead pixels and one is for excellent pixels.
+        ckd_ref     :  S5Pmsm, optional
+           The difference with the CDK is shown, when present.
         low_thres   :  float
-           threshold for usable pixels (with caution), below this threshold
-           pixels are considered bad
+           Threshold for usable pixels (with caution), below this threshold
+           pixels are considered bad, default=0.1
         high_thres  :  float
-           threshold for good pixels
+           Threshold for good pixels, default=0.8
         qlabels     :  list of strings
-           quality ranking labels, default ['invalid', 'bad', 'poor', 'good']
+           Quality ranking labels, default ['invalid', 'bad', 'poor', 'good']
             - 'invalid': value is negative or NaN
             - 'bad'    : 0 <= value < low_thres
             - 'poor'   : low_thres <= value < high_thres
             - 'good'   : value >= high_thres
-        title      :  string
+        title      :  string, optional
            Title of the figure. Default is None
-           Suggestion: use attribute "title" of data-product
-        sub_title  :  string
-           Sub-title of the figure. Default is None
-           Suggestion: use attribute "comment" of data-product
-        fig_info   :  dictionary
-           OrderedDict holding meta-data to be displayed in the figure
+           Suggestion: use attribute "title" of data-product, default is None.
+        sub_title  :  string, optional
+           Sub-title of the figure. Default is None.
+           Suggestion: use attribute "long_name" of dataset.
+        fig_info   :  dictionary, optional
+           OrderedDict holding meta-data to be displayed in the figure.
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date, 'thres_01',
@@ -459,20 +461,25 @@ class S5Pplot(object):
         extent = [0, len(xdata), 0, len(ydata)]
 
         # scale data to integers between [0, 10]
+        # set pixels outside illuminated area at -1
         thres_min = 10 * low_thres
         thres_max = 10 * high_thres
         qmask = (qmsm.value * 10).astype(np.int8)
-
-        # set columns and row with at least 75% dead-pixels to -1
         qmask[~np.isfinite(qmsm.value)] = -1
-        #qmask[qmask < -1] = -1
-        #unused_cols = np.all(qmask <= 0, axis=0)
-        #if unused_cols.size > 0:
-        #    qmask[:, unused_cols] = -1
-        #unused_rows = np.all(qmask <= 0, axis=1)
-        #if unused_rows.size > 0:
-        #    qmask[unused_rows, :] = -1
         qmask[~swir_region.mask()] = -1
+
+        if ckd_ref is not None:
+            qckd = (ckd_ref.value * 10).astype(np.int8)
+            qckd[~np.isfinite(qmsm.value)] = -1
+            qckd[~swir_region.mask()] = -1
+            mm_10 = (qmask >= 0)
+            mm_01 = ((qmask >= 0) & (qmask < thres_min)
+                     & (qckd >= thres_min))
+            mm_08 = ((qmask >= thres_min) & (qmask < thres_max)
+                     & (qckd >= thres_max))
+            qmask[mm_10] = 10    # this one first!
+            qmask[mm_01] = 0
+            qmask[mm_08] = 7
 
         # define colormap with only 4 colors
         clist = ['#BBBBBB', '#EE6677','#CCBB44','#FFFFFF']
@@ -523,6 +530,7 @@ class S5Pplot(object):
         ax_medx.locator_params(axis='x', nbins=6)
         ax_medx.locator_params(axis='y', nbins=3)
         ax_medx.set_xlabel(xlabel)
+        ax_medx.set_ylabel('count')
         #
         qmask_col_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=1)
         qmask_col_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=1)
@@ -533,6 +541,7 @@ class S5Pplot(object):
         ax_medy.grid(True)
         ax_medy.locator_params(axis='x', nbins=3)
         ax_medy.locator_params(axis='y', nbins=4)
+        ax_medy.set_xlabel('count')
         ax_medy.set_ylabel(ylabel)
 
         # add annotation
@@ -551,9 +560,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_cmp_swir(self, msm, model_in,
-                      title=None, sub_title=None, fig_info=None,
-                      model_label='reference', vrange=None, vperc=None):
+    def draw_cmp_swir(self, msm, model_in, model_label='reference',
+                      *, vrange=None, vperc=None,
+                      title=None, sub_title=None, fig_info=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
         Top panel shows data, middle panel shows residuals (data - model)
@@ -730,7 +739,8 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist(self, msm, msm_err, sigma=3, title=None, fig_info=None):
+    def draw_hist(self, msm, msm_err, sigma=3,
+                  *, title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
@@ -833,7 +843,8 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_qhist(self, msm, msm_dark, msm_noise, title=None, fig_info=None):
+    def draw_qhist(self, msm, msm_dark, msm_noise,
+                   *, title=None, fig_info=None):
         """
         Display pixel quality as histograms
 
@@ -916,8 +927,8 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_geolocation(self, lats, lons,
-                         title=None, fig_info=None,
-                         sequence=None, subsatellite=False):
+                         *, sequence=None, subsatellite=False,
+                         title=None, fig_info=None):
         """
         Display footprint of sub-satellite coordinates project on the globe
 
@@ -1052,8 +1063,8 @@ class S5Pplot(object):
                                    transform=ccrs.PlateCarree())
                     axx.add_patch(poly)
 
-        # draw sub-satellite coordinates
-        if subsatellite:
+        # draw sub-satellite spot(s)
+        else:
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
 
@@ -1070,8 +1081,8 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_trend2d(self, msm_in, data_col=None, data_row=None,
-                     title=None, sub_title=None, fig_info=None,
-                     time_axis=None, vperc=None, vrange=None):
+                     *, time_axis=None, vperc=None, vrange=None,
+                     title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -1144,7 +1155,7 @@ class S5Pplot(object):
         # determine aspect-ratio of data and set sizes of figure and sub-plots
         dims = msm.value.shape
         aspect = min(4, max(1, int(np.round(dims[0] / dims[1]))))
-        print('aspect[{}] {}'.format(dims, aspect))
+        #print('aspect[{}] {}'.format(dims, aspect))
 
         # set label and range of X/Y axis
         (ylabel, xlabel) = msm.coords._fields
@@ -1247,9 +1258,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_trend1d(self, msm, hk_data,
-                     title=None, sub_title=None, fig_info=None,
-                     hk_keys=None, time_axis=None):
+    def draw_trend1d(self, msm, hk_data, hk_keys=None,
+                     *, time_axis=None,
+                     title=None, sub_title=None, fig_info=None):
         """
         Display ...
 
@@ -1323,16 +1334,15 @@ class S5Pplot(object):
                     xdata = msm.coords[0][:]
                 else:
                     data, data_err = biweight(msm.value, axis=0, spread=True)
-                    xdata = msm.coords[0][:]
+                    xdata = msm.coords[1][:]
             elif time_axis == 0:
                 data, data_err = biweight(msm.value, axis=1, spread=True)
                 xlabel = ylabel
                 xdata = msm.coords[0][:]
             else:
                 data, data_err = biweight(msm.value, axis=0, spread=True)
-                xdata = msm.coords[0][:]
+                xdata = msm.coords[1][:]
 
-            print(data.mean(), data_err.mean())
             axarr[i_ax].plot(xdata, data, lw=1.5, color=line_colors[i_ax])
             axarr[i_ax].fill_between(xdata, data - data_err, data + data_err,
                                      facecolor='#dddddd')
