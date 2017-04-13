@@ -4,7 +4,20 @@ This file is part of pyS5p
 https://github.com/rmvanhees/pys5p.git
 
 The class S5Pmsm read HDF5 measurement data including its attributes and
-dimensions.
+dimensions. Initialization:
+
+  S5Pmsm attribute | hdf5 dataset           | Numpy array
+  -------------------------------------------------------------------------
+  name             | h5_dset.name           | 'value'
+  value            | h5_dset.value['value'] | np.squeeze(data)
+                   | or h5_dset.value       |
+  error            | h5_dset.value['value'] | None
+                   | or None                |
+  coords           | h5_dset.dims           | [[['time',] 'row',] 'column']
+  units            | attrs['unit']          | None
+  long_name        | attrs['long_name']     | None
+  fillvalue        | h5_dset.fillvalue      | None
+  coverage         | None                   | None
 
 Limited to 3 dimensional dataset
 
@@ -61,7 +74,7 @@ class S5Pmsm(object):
         Parameters
         ----------
         dset      :  h5py.Dataset or ndarray
-           h5py dataset from which the data is read, data is used to 
+           h5py dataset from which the data is read, data is used to
            initalize S5Pmsm object
         data_sel  :  numpy slice
            a numpy slice generated for example numpy.s_
@@ -352,6 +365,71 @@ class S5Pmsm(object):
             dims = []
             for ii in range(self.value.ndim+1):
                 if ii != axis:
+                    keys.append(self.coords._fields[ii])
+                    dims.append(self.coords[ii][:])
+            coords_namedtuple = namedtuple('Coords', keys)
+            self.coords = coords_namedtuple._make(dims)
+
+    def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
+        """
+        Returns median of the data in the S5Pmsm
+
+        Parameters
+        ----------
+        vperc       :  list
+           range to normalize luminance data between percentiles min and max of
+           array data.
+        data_sel  :  numpy slice
+           A numpy slice generated for example numpy.s_. Can be used to skip
+           the first and/or last frame
+        axis      : int, optional
+           Axis or axes along which the medians are computed. Default is 0.
+        keepdims  : bool, optional
+           If this is set to True, the axes which are reduced are left in the
+           result as dimensions with size one. With this option, the result
+           will broadcast correctly against the original arr.
+
+        Returns
+        -------
+        S5Pmsm object where value is replaced by its median and error by the
+        minimum and maximum percentiles. The coordinates are adjusted
+        """
+        if isinstance(axis, int):
+            axis = (axis,)
+
+        if isinstance(vperc, int):
+            vperc = (vperc,)
+        elif len(vperc) == 2:
+            vperc += (50,)
+        assert len(vperc) == 1 or len(vperc) == 3
+
+        if data_sel is None:
+            perc = np.nanpercentile(self.value, vperc,
+                                    axis=axis, keepdims=keepdims)
+        else:
+            perc = np.nanpercentile(self.value[data_sel], vperc,
+                                    axis=axis, keepdims=keepdims)
+        if len(vperc) == 3:
+            vperc = tuple(sorted(vperc))
+            self.value = perc[1, ...]
+            self.error = [perc[0, ...],
+                          perc[2, ...]]
+        else:
+            self.value = perc[0, ...]
+
+        # adjust the coordinates
+        if keepdims:
+            key = self.coords._fields[axis]
+            if self.coords[axis][0] == 0:
+                dims = [0]
+            else:
+                dims = np.median(self.coords[axis], keepdims=keepdims)
+            self.coords = self.coords._replace(**{key : dims})
+        else:
+            keys = []
+            dims = []
+            for ii in range(self.value.ndim+len(axis)):
+                if ii not in axis:
                     keys.append(self.coords._fields[ii])
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)

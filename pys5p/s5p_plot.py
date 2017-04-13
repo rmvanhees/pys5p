@@ -7,22 +7,26 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
 
 -- generate figures --
  Public functions a page in the output PDF
+ * draw_frame
  * draw_signal
  * draw_quality
  * draw_cmp_swir
  * draw_hist
+ * draw_qhist
  * draw_geolocation
+ * draw_trend2d
+ * draw_trend1d
 
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
-
 """
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os.path
 from collections import OrderedDict
 
 import numpy as np
@@ -65,6 +69,11 @@ import matplotlib as mpl
 #
 
 #- local functions --------------------------------
+def add_copyright(axx):
+    axx.text(1, 0, r' $\copyright$ SRON', horizontalalignment='right',
+             verticalalignment='bottom', rotation='vertical',
+             fontsize='xx-small', transform=axx.transAxes)
+    
 def convert_units(units, vmin, vmax):
     dscale = 1.0
     if units is None:
@@ -84,13 +93,13 @@ def convert_units(units, vmin, vmax):
         else:
             zunit = units.replace('electron', 'e')
         if zunit.find('.s-1') >= 0:
-            zunit = zunit.replace('.s-1', '.s$^{-1}$')
+            zunit = zunit.replace('.s-1', ' s$^{-1}$')
     elif units >= 'V':
         max_value = max(abs(vmin), abs(vmax))
 
         if max_value <= 1e-4:
             dscale = 1e-6
-            zunit = units.replace('V', '$\mu \mathrm{V}$')
+            zunit = units.replace('V', u'\xb5V')
         elif max_value <= 0.1:
             dscale = 1e-3
             zunit = units.replace('V', 'mV')
@@ -117,16 +126,22 @@ class S5Pplot(object):
         Parameters
         ----------
         figname   :  string
-             name of PDF file
+             name of PDF or PNG file (extension required)
         cmap      :  string
              matplotlib color map
         mode      :  string
              data mode - 'frame' or 'dpqm'
         """
-        from matplotlib.backends.backend_pdf import PdfPages
-
-        self.__pdf  = PdfPages(figname)
         self.__mode = mode
+        self.filename = figname
+
+        (root, ext) = os.path.splitext(figname)
+        if ext.lower() == '.pdf':
+            from matplotlib.backends.backend_pdf import PdfPages
+
+            self.__pdf  = PdfPages(figname)
+        else:
+            self.__pdf = None
 
     def __repr__(self):
         pass
@@ -206,6 +221,138 @@ class S5Pplot(object):
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
+
+    # --------------------------------------------------
+    def draw_frame(self, msm, *, vperc=None, vrange=None,
+                   title=None, sub_title=None, fig_info=None):
+        """
+        Display 2D array data as image
+
+        Parameters
+        ----------
+        msm       :  pys5p.S5Pmsm
+           Object holding measurement data and attributes
+        vrange     :  list [vmin,vmax]
+           Range to normalize luminance data between vmin and vmax.
+           Note that is you pass a vrange instance then vperc will be ignored
+        vperc      :  list
+           Range to normalize luminance data between percentiles min and max of
+           array data. Default is [1., 99.]
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        median & spread.
+        """
+        from matplotlib import pyplot as plt
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+        from .biweight import biweight
+        from .sron_colormaps import sron_cmap, get_line_colors
+
+        # define colors
+        line_colors = get_line_colors()
+
+        # assert that we have some data to show
+        if isinstance(msm, np.ndarray):
+            msm = S5Pmsm(msm)
+        assert isinstance(msm, S5Pmsm)
+        assert msm.value.ndim == 2
+
+        # determine aspect-ratio of data and set sizes of figure and sub-plots
+        dims = msm.value.shape
+        aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
+
+        if aspect == 1:
+            figsize = (10, 7.5)
+        elif aspect == 2:
+            figsize = (12, 6)
+        elif aspect == 3:
+            figsize = (14, 5.5)
+        elif aspect == 4:
+            figsize = (15, 4.5)
+        else:
+            print(__name__ + '.draw_signal', dims, aspect)
+            raise ValueError('*** FATAL: aspect ratio not implemented, exit')
+
+        # set label and range of X/Y axis
+        (ylabel, xlabel) = msm.coords._fields
+        ydata = msm.coords[0]
+        xdata = msm.coords[1]
+        extent = [0, len(xdata), 0, len(ydata)]
+
+        # scale data to keep reduce number of significant digits small to
+        # the axis-label and tickmarks readable
+        if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
+            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
+                                         vperc)
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
+
+        # convert units from electrons to ke, Me, ...
+        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+
+        # inititalize figure
+        fig, ax_img = plt.subplots(figsize=figsize)
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.96), horizontalalignment='center')
+
+        # the image plot:
+        if sub_title is not None:
+            ax_img.set_title(sub_title, fontsize='large')
+        img = ax_img.imshow(msm.value / dscale, interpolation='none',
+                            vmin=vmin / dscale, vmax=vmax / dscale,
+                            aspect='equal', origin='lower',
+                            extent=extent,  cmap=sron_cmap('rainbow_PiRd'))
+        add_copyright(ax_img)
+        ax_img.set_xlabel(xlabel)
+        ax_img.set_ylabel(ylabel)
+        
+        # 'make_axes_locatable' returns an instance of the AxesLocator class,
+        # derived from the Locator. It provides append_axes method that creates
+        # a new axes on the given side of (“top”, “right”, “bottom” and “left”)
+        # of the original axes.
+        divider = make_axes_locatable(ax_img)
+
+        # color bar
+        cax = divider.append_axes("right", size=0.3, pad=0.05)
+        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
+
+        # add annotation
+        (median, spread) = biweight(msm.value, spread=True)
+        if zunit is not None:
+            median_str = '{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+        else:
+            median_str = '{:.5g}'.format(median)
+            spread_str = '{:.5g}'.format(spread)
+
+        if fig_info is None:
+            fig_info = OrderedDict({'median' : median_str})
+        else:
+            fig_info.update({'median' : median_str})
+        fig_info.update({'spread' : spread_str})
+
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info, aspect)
+            self.__pdf.savefig()
+        plt.close()
 
     # --------------------------------------------------
     def draw_signal(self, msm, data_col=None, data_row=None,
@@ -312,10 +459,12 @@ class S5Pplot(object):
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
+        if sub_title is not None:
+            ax_img.set_title(sub_title, fontsize='large')
         img = ax_img.imshow(msm.value / dscale, interpolation='none',
                             vmin=vmin / dscale, vmax=vmax / dscale,
                             aspect='equal', origin='lower',
@@ -326,11 +475,7 @@ class S5Pplot(object):
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
             ytl.set_visible(False)
-        if sub_title is not None:
-            ax_img.set_title(sub_title)
-        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                    verticalalignment='bottom', rotation='vertical',
-                    fontsize='xx-small', transform=ax_img.transAxes)
+        add_copyright(ax_img)
 
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
@@ -382,8 +527,11 @@ class S5Pplot(object):
         fig_info.update({'spread' : spread_str})
 
         # save and close figure
-        self.__fig_info(fig, fig_info, aspect)
-        self.__pdf.savefig()
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info, aspect)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -402,14 +550,14 @@ class S5Pplot(object):
            The difference with the CDK is shown, when present.
         low_thres   :  float
            Threshold for usable pixels (with caution), below this threshold
-           pixels are considered bad, default=0.1
+           pixels are considered worst, default=0.1
         high_thres  :  float
            Threshold for good pixels, default=0.8
         qlabels     :  list of strings
-           Quality ranking labels, default ['invalid', 'bad', 'poor', 'good']
+           Quality ranking labels, default ['invalid', 'worst', 'bad', 'good']
             - 'invalid': value is negative or NaN
-            - 'bad'    : 0 <= value < low_thres
-            - 'poor'   : low_thres <= value < high_thres
+            - 'worst'  : 0 <= value < low_thres
+            - 'bad'    : low_thres <= value < high_thres
             - 'good'   : value >= high_thres
         title      :  string, optional
            Title of the figure. Default is None
@@ -436,7 +584,7 @@ class S5Pplot(object):
         assert qmsm is not None and qmsm.value.ndim == 2
 
         if qlabels is None:
-            qlabels = ["invalid", "bad", "poor", "good"]  ## "fair" or "poor"?
+            qlabels = ["invalid", "worst", "bad", "good"]
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
         dims = qmsm.value.shape
@@ -494,22 +642,20 @@ class S5Pplot(object):
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
+        if sub_title is not None:
+            ax_img.set_title(sub_title, fontsize='large')
         img = ax_img.imshow(qmask, vmin=-1, vmax=10, norm=norm,
                             interpolation='none', origin='lower',
                             aspect='equal', extent=extent, cmap=cmap)
+        add_copyright(ax_img)
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
             ytl.set_visible(False)
-        if sub_title is not None:
-            ax_img.set_title(sub_title)
-        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                    verticalalignment='bottom', rotation='vertical',
-                    fontsize='xx-small', transform=ax_img.transAxes)
 
         # create new axes on the right and on the top of the current axes
         # The first argument of the new_vertical(new_horizontal) method is
@@ -546,17 +692,21 @@ class S5Pplot(object):
 
         # add annotation
         if fig_info is None:
-            fig_info = OrderedDict({'qmask_01':
+            fig_info = OrderedDict({'bad  ':
                                     np.sum(((qmask >= 0)
-                                            & (qmask < thres_min)))})
+                                            & (qmask < thres_max)))})
         else:
-            fig_info.update({'qmask_01': np.sum(((qmask >= 0)
-                                                 & (qmask < thres_min)))})
-        fig_info.update({'qmask_08': np.sum(((qmask >= 0)
-                                             & (qmask < thres_max)))})
+            fig_info.update({'bad  ' :  np.sum(((qmask >= 0)
+                                              & (qmask < thres_max)))})
+        fig_info.update({'worst' :  np.sum(((qmask >= 0)
+                                            & (qmask < thres_min)))})
 
-        self.__fig_info(fig, fig_info, aspect)
-        self.__pdf.savefig()
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info, aspect)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -656,10 +806,9 @@ class S5Pplot(object):
         residual[mask] /= rscale
 
         # inititalize figure
-        figsize = (10.8, 10)
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=(10.8, 10))
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = GridSpec(4, 2)
 
@@ -668,14 +817,15 @@ class S5Pplot(object):
         for xtl in ax1.get_xticklabels():
             xtl.set_visible(False)
         if sub_title is not None:
-            ax1.set_title(sub_title)
+            ax1.set_title(sub_title, fontsize='large')
         img = ax1.imshow(value, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        add_copyright(ax1)
+        #ax1.locator_params(axis='y', nbins=7)
+        #ax1.yaxis.set_ticks([0,64,128,192,256])
         #ax1.set_ylabel(ylabel)
-        ax1.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax1.transAxes)
+
         cbar = plt.colorbar(img)
         if zlabel is not None:
             cbar.set_label(zlabel)
@@ -687,10 +837,8 @@ class S5Pplot(object):
         img = ax2.imshow(residual, vmin=rmin / rscale, vmax=rmax / rscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('diverging_BuRd'))
-        #ax2.set_ylabel(ylabel)
-        ax2.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax2.transAxes)
+        add_copyright(ax2)
+        #ax2.set_ylabel(ylabel)        
         cbar = plt.colorbar(img)
         if runit is None:
             cbar.set_label('residual')
@@ -702,11 +850,9 @@ class S5Pplot(object):
         img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        add_copyright(ax3)
         #ax3.set_xlabel(xlabel)
         #ax3.set_ylabel(ylabel)
-        ax3.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=ax3.transAxes)
         cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label(model_label)
@@ -734,8 +880,11 @@ class S5Pplot(object):
         ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
 
         # save and close figure
-        self.__fig_info(fig, fig_info)
-        self.__pdf.savefig()
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -812,34 +961,35 @@ class S5Pplot(object):
             u_label = msm_err.name
 
         line_colors = get_line_colors()
-        fig = plt.figure(figsize=(10,7))
+        fig = plt.figure(figsize=(10, 7))
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(11,1)
 
-        axx = plt.subplot(gspec[2:6,0])
+        axx = plt.subplot(gspec[1:5, 0])
         axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
                   bins=15, color=line_colors[0])
-        axx.set_title(r'histogram centered at median'
-                      ' (range $\pm {} \sigma$)'.format(sigma))
+        axx.set_title(r'histogram centred at median'
+                      ' (range $\pm {} \sigma$)'.format(sigma),
+                      fontsize='large')
+        add_copyright(axx)
         axx.set_xlabel(d_label)
         axx.set_ylabel('count')
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
 
-        axx = plt.subplot(gspec[7:,0])
+        axx = plt.subplot(gspec[7:-1, 0])
         axx.hist(uncertainties / uscale, range=[umin / uscale, umax / uscale],
                   bins=15, color=line_colors[0])
+        add_copyright(axx)
         axx.set_xlabel(u_label)
         axx.set_ylabel('count')
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
 
-        self.__fig_info(fig, fig_info)
-        self.__pdf.savefig()
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -882,47 +1032,51 @@ class S5Pplot(object):
         assert isinstance(msm_noise, S5Pmsm)
 
         line_colors = get_line_colors()
-        fig = plt.figure(figsize=(10,9))
+        fig = plt.figure(figsize=(10, 9))
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(15,1)
 
         axx = plt.subplot(gspec[1:5,0])
         axx.hist(msm.value[swir_region.mask()],
-                 bins=11, color=line_colors[0])
-        axx.set_title(r'histogram of {}'.format(msm.long_name))
+                 bins=11, range=[-.1, 1.], color=line_colors[0])
+        add_copyright(axx)
+        axx.set_title(r'histogram of {}'.format(msm.long_name),
+                      fontsize='medium')
+        axx.set_xlim([0, 1])
         axx.set_yscale('log', nonposy='clip')
         #axx.set_xlabel(d_label)
         axx.set_ylabel('count')
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[6:10,0])
+        axx.set_title(r'histogram of {}'.format(msm_dark.long_name),
+                      fontsize='medium')
         axx.hist(msm_dark.value[swir_region.mask()],
-                 bins=11, color=line_colors[0])
-        axx.set_title(r'histogram of {}'.format(msm_dark.long_name))
+                 bins=11, range=[-.1, 1.], color=line_colors[0])
+        add_copyright(axx)
+        axx.set_xlim([0, 1])
         axx.set_yscale('log', nonposy='clip')
         #axx.set_xlabel(u_label)
         axx.set_ylabel('count')
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
 
         axx = plt.subplot(gspec[11:,0])
+        axx.set_title(r'histogram of {}'.format(msm_noise.long_name),
+                      fontsize='medium')
         axx.hist(msm_noise.value[swir_region.mask()],
-                 bins=11, color=line_colors[0])
-        axx.set_title(r'histogram of {}'.format(msm_noise.long_name))
+                 bins=11, range=[-.1, 1.], color=line_colors[0])
+        add_copyright(axx)
+        axx.set_xlim([0, 1])
         axx.set_yscale('log', nonposy='clip')
         axx.set_xlabel('value')
         axx.set_ylabel('count')
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
 
-        self.__fig_info(fig, fig_info)
-        self.__pdf.savefig()
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -981,7 +1135,8 @@ class S5Pplot(object):
                                 ('k_0', scale_factor),
                                 ('x_0', false_easting), ('y_0', false_northing),
                                 ('units', 'm')]
-                super(BetterTransverseMercator, self).__init__(proj4_params, globe=globe)
+                super(BetterTransverseMercator, self).__init__(proj4_params,
+                                                               globe=globe)
 
             @property
             def threshold(self):
@@ -1016,7 +1171,7 @@ class S5Pplot(object):
         # inititalize figure
         fig = plt.figure(figsize=(15, 10))
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
@@ -1067,16 +1222,16 @@ class S5Pplot(object):
         else:
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
-
-        axx.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                 verticalalignment='bottom', rotation='vertical',
-                 fontsize='xx-small', transform=axx.transAxes)
+        add_copyright(axx)
         if fig_info is None:
             fig_info = OrderedDict({'lon0': lon_0})
 
-        self.__fig_info(fig, fig_info, aspect=1)
-        plt.tight_layout()
-        self.__pdf.savefig()
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info, aspect=1)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
@@ -1161,7 +1316,7 @@ class S5Pplot(object):
         (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
-        extent = [0, len(xdata), 0, len(ydata)]
+        extent = [xdata.min(), xdata.max(), 0, len(ydata)]
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -1183,25 +1338,23 @@ class S5Pplot(object):
         fig = plt.figure(figsize=(10, 9))
         ax_img = fig.add_subplot(111)
         if title is not None:
-            fig.suptitle(title, fontsize=14,
+            fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
 
         # the image plot:
+        if sub_title is not None:
+            ax_img.set_title(sub_title, fontsize='large')
         img = plt.imshow(msm.value / dscale, interpolation='none',
                          vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='auto', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+        add_copyright(ax_img)
         #xbins = len(ax_img.get_xticklabels())
         ybins = len(ax_img.get_yticklabels())
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
             ytl.set_visible(False)
-        if sub_title is not None:
-            ax_img.set_title(sub_title)
-        ax_img.text(1, 0, r'$\copyright$ SRON', horizontalalignment='right',
-                    verticalalignment='bottom', rotation='vertical',
-                    fontsize='xx-small', transform=ax_img.transAxes)
 
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
@@ -1211,7 +1364,13 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
+        if msm.name == 'row_medians':
+            zname = 'row value'
+        elif msm.name == 'col_medians':
+            zname = 'column value'
+        else:
+            zname = msm.name
+        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
@@ -1253,13 +1412,15 @@ class S5Pplot(object):
         fig_info.update({'spread' : spread_str})
 
         # save and close figure
-        self.__fig_info(fig, fig_info, 3)
-        self.__pdf.savefig()
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__fig_info(fig, fig_info, aspect=3)
+            self.__pdf.savefig()
         plt.close()
 
     # --------------------------------------------------
-    def draw_trend1d(self, msm, hk_data, hk_keys=None,
-                     *, time_axis=None,
+    def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
                      title=None, sub_title=None, fig_info=None):
         """
         Display ...
@@ -1268,9 +1429,9 @@ class S5Pplot(object):
         ----------
         msm       :  pys5p.S5Pmsm, optional
            Object holding measurement data and its HDF5 attributes
-        hk_data   :  pys5p.S5Pmsm
+        hk_data   :  pys5p.S5Pmsm, optional
            Object holding housekeeping data and its HDF5 attributes
-        hk_keys    : list
+        hk_keys    : list or tuple
            list of housekeeping parameters to be displayed
         title      :  string
            Title of the figure. Default is None
@@ -1287,79 +1448,121 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
 
-        from .biweight import biweight
         from .sron_colormaps import get_line_colors
+
+        assert msm is not None or hk_data is not None
+
+        if self.__pdf is None:
+            plt.rc('font', size=15)
 
         # define colors
         line_colors = get_line_colors()
 
-        #
-        if hk_keys is None:
-            hk_keys = {'temp_obm_swir_grating' : 'SWIR OBM temperature',
-                       'temp_det4' : 'SWIR detector temperature'}
-        #
-        nplots = len(hk_keys)
+        # how many histograms?
+        nplots = 0
         if msm is not None:
             nplots += 1
 
-        #
-        (fig, axarr) = plt.subplots(nplots, sharex=True,
-                                    figsize=(10, 9))
-        if title is not None:
-            fig.suptitle(title, fontsize=14,
-                         position=(0.5, 0.96), horizontalalignment='center')
-        if sub_title is not None:
-            axarr[0].set_title(sub_title)
+        if hk_data is not None:
+            if hk_keys is None:
+                hk_keys = ('temp_det4', 'temp_obm_swir_grating')
+            nplots += len(hk_keys)
+        else:
+            hk_keys = ()
+
+        figsize = (10, 3.5 + nplots * 2)
+        (fig, axarr) = plt.subplots(nplots, sharex=True, figsize=figsize)
+        if nplots == 1:
+            axarr = [axarr]
+            caption = ''
+            if title is not None:
+                caption += title
+
+            if sub_title is not None:
+                if len(caption) > 0:
+                    caption += '\n'
+                caption += sub_title
+
+            if len(caption) > 0:
+                axarr[0].set_title(caption, fontsize='large')
+        else:
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             horizontalalignment='center')
+
+            if sub_title is not None:
+                axarr[0].set_title(title + '\n' + sub_title, fontsize='large')
 
         i_ax = 0
         if msm is None:
             (xlabel,) = hk_data.coords._fields
             xdata  = hk_data.coords[0][:]
-        elif 'dpqf_08' in msm.value.dtype.names:
+        elif (msm.value.dtype.names is not None
+              and 'dpqf_08' in msm.value.dtype.names):
             (xlabel,) = msm.coords._fields
-            xdata  = hk_data.coords[0][:]
-            axarr[i_ax].plot(xdata, msm.value['dpqf_08'] - msm.value['dpqf_08'][0],
-                             lw=1.5, color=line_colors[i_ax])
-            axarr[i_ax].plot(xdata, msm.value['dpqf_01'] - msm.value['dpqf_01'][0],
-                             lw=1.5, color=line_colors[i_ax+1])
+            xdata  = msm.coords[0][:]
+            axarr[i_ax].plot(xdata,
+                             msm.value['dpqf_08'] - msm.value['dpqf_08'][0],
+                             lw=1.5, color=line_colors[3],  # yellow
+                             label='bad (quality < 0.8)')
+            axarr[i_ax].plot(xdata,
+                             msm.value['dpqf_01'] - msm.value['dpqf_01'][0],
+                             lw=1.5, color=line_colors[4],  # red
+                             label='worst (quality < 0.1)')
             axarr[i_ax].grid(True)
             axarr[i_ax].set_ylabel('{}'.format('count (relative)'))
+            axarr[i_ax].legend(loc='upper left', fontsize='smaller')
             i_ax += 1
         else:
-            (ylabel, xlabel) = msm.coords._fields
-            if time_axis is None:
-                if ylabel == 'orbit' or ylabel == 'time':
-                    data, data_err = biweight(msm.value, axis=1, spread=True)
-                    xlabel = ylabel
-                    xdata = msm.coords[0][:]
-                else:
-                    data, data_err = biweight(msm.value, axis=0, spread=True)
-                    xdata = msm.coords[1][:]
-            elif time_axis == 0:
-                data, data_err = biweight(msm.value, axis=1, spread=True)
-                xlabel = ylabel
-                xdata = msm.coords[0][:]
-            else:
-                data, data_err = biweight(msm.value, axis=0, spread=True)
-                xdata = msm.coords[1][:]
+            (xlabel,) = msm.coords._fields
+            xdata  = msm.coords[0][:]
 
-            axarr[i_ax].plot(xdata, data, lw=1.5, color=line_colors[i_ax])
-            axarr[i_ax].fill_between(xdata, data - data_err, data + data_err,
-                                     facecolor='#dddddd')
+            # convert units from electrons to ke, Me, ...
+            if msm.error is None:
+                vmin = msm.value.min()
+                vmax = msm.value.max()
+            else:
+                vmin = msm.error[0].min()
+                vmax = msm.error[1].max()
+            (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+
+            axarr[i_ax].plot(xdata, msm.value / dscale,
+                             lw=1.5, color=line_colors[i_ax])
+            if msm.error is not None:
+                axarr[i_ax].fill_between(xdata, msm.error[0] / dscale,
+                                         msm.error[1] / dscale,
+                                         facecolor='#dddddd')
             axarr[i_ax].grid(True)
-            axarr[i_ax].set_ylabel('{} [{}]'.format('median value', msm.units))
+            axarr[i_ax].set_ylabel('{} [{}]'.format('median value', zunit))
             i_ax += 1
 
         for key in hk_keys:
-            axarr[i_ax].plot(xdata, hk_data.value[key],
-                             lw=1.5, color=line_colors[i_ax])
-            axarr[i_ax].fill_between(xdata,
-                                     hk_data.value[key] - hk_data.error[key],
-                                     hk_data.value[key] + hk_data.error[key],
-                                     facecolor='#dddddd')
-            axarr[i_ax].locator_params(axis='y', nbins=4)
-            axarr[i_ax].grid(True)
-            axarr[i_ax].set_ylabel('{} [{}]'.format(key, 'K'))
+            if key in hk_data.value.dtype.names:
+                indx = hk_data.value.dtype.names.index(key)
+                if np.mean(hk_data.value[key]) < 150:
+                    lcolor = line_colors[0]
+                elif np.mean(hk_data.value[key]) < 190:
+                    lcolor = line_colors[1]
+                elif np.mean(hk_data.value[key]) < 220:
+                    lcolor = line_colors[2]
+                elif np.mean(hk_data.value[key]) < 250:
+                    lcolor = line_colors[3]
+                elif np.mean(hk_data.value[key]) < 270:
+                    lcolor = line_colors[4]
+                else:
+                    lcolor = line_colors[5]
+                axarr[i_ax].plot(xdata, hk_data.value[key],
+                                 lw=1.5, color=lcolor,
+                                 label=hk_data.long_name[indx].decode('ascii'))
+                axarr[i_ax].fill_between(xdata,
+                                         hk_data.error[key][:, 0],
+                                         hk_data.error[key][:, 1],
+                                         facecolor='#dddddd')
+                axarr[i_ax].locator_params(axis='y', nbins=4)
+                axarr[i_ax].grid(True)
+                axarr[i_ax].set_ylabel('temp [{}]'.format('K'))
+                lg = axarr[i_ax].legend(loc='upper left')
+                lg.draw_frame(False)
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
 
@@ -1367,6 +1570,10 @@ class S5Pplot(object):
         plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
         # save and close figure
-        self.__fig_info(fig, fig_info, 3)
-        self.__pdf.savefig()
+        if self.__pdf is None:
+            plt.tight_layout()
+            plt.savefig(self.filename, bbox_inches='tight', dpi=150)
+        else:
+            self.__fig_info(fig, fig_info, aspect=3)
+            self.__pdf.savefig()
         plt.close()

@@ -112,7 +112,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_long_name('SWIR {} CKD'.format(ds_name))
+        ckd.set_long_name('SWIR quality CKD')
         return ckd
 
     def get_swir_offset(self):

@@ -365,7 +365,7 @@ class ICMio(object):
                     res = sgrp['instrument_settings'][:]
                 else:
                     res = np.append(res, sgrp['instrument_settings'][:])
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+        elif msm_type == 'DPQF_MAP':
             grp_path = os.path.join(os.path.dirname(msm_path),
                                     'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
@@ -380,6 +380,16 @@ class ICMio(object):
                     res = sgrp['instrument_settings'][:]
                 else:
                     res = np.append(res, sgrp['instrument_settings'][:])
+        elif msm_type == 'NOISE':
+            grp = self.fid[msm_path]
+            dset = grp[msm_type.lower() + '_msmt_keys']
+            icid = dset['icid'][dset.size // 2]
+            grp_path = os.path.join(
+                'BAND{}_CALIBRATION'.format(band),
+                'BACKGROUND_RADIANCE_MODE_{:04d}'.format(icid))
+            grp = self.fid[grp_path]
+            sgrp = grp['INSTRUMENT']
+            res = sgrp['instrument_settings'][:]
         else:
             grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
             res = grp['instrument_settings'][:]
