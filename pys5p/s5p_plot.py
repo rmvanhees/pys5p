@@ -73,7 +73,8 @@ def add_copyright(axx):
     axx.text(1, 0, r' $\copyright$ SRON', horizontalalignment='right',
              verticalalignment='bottom', rotation='vertical',
              fontsize='xx-small', transform=axx.transAxes)
-    
+
+#-------------------------
 def convert_units(units, vmin, vmax):
     dscale = 1.0
     if units is None:
@@ -329,13 +330,16 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
+        if zunit is None:
+            plt.colorbar(img, cax=cax, label='{}'.format(msm.name))
+        else:
+            plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
 
         # add annotation
         (median, spread) = biweight(msm.value, spread=True)
         if zunit is not None:
-            median_str = '{:.5g} {}'.format(median / dscale, zunit)
-            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+            median_str = r'{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
         else:
             median_str = '{:.5g}'.format(median)
             spread_str = '{:.5g}'.format(spread)
@@ -407,6 +411,10 @@ class S5Pplot(object):
         assert isinstance(msm, S5Pmsm)
         assert msm.value.ndim == 2
 
+        # any valid values?
+        if np.isnan(np.min(msm.value)):
+            return
+        
         # calculate column/row medians (if required)
         if data_col is None:
             with warnings.catch_warnings():
@@ -485,7 +493,10 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
+        if zunit is None:
+            plt.colorbar(img, cax=cax, label='{}'.format(msm.name))
+        else:
+            plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
@@ -514,8 +525,8 @@ class S5Pplot(object):
         # add annotation
         (median, spread) = biweight(msm.value, spread=True)
         if zunit is not None:
-            median_str = '{:.5g} {}'.format(median / dscale, zunit)
-            spread_str = '{:.5g} {}'.format(spread / dscale, zunit)
+            median_str = r'{:.5g} {}'.format(median / dscale, zunit)
+            spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
         else:
             median_str = '{:.5g}'.format(median)
             spread_str = '{:.5g}'.format(spread)
@@ -776,7 +787,7 @@ class S5Pplot(object):
 
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
-        if msm.units is None:
+        if zunit is None:
             zlabel = '{}'.format(msm.name)
         else:
             zlabel = r'{} [{}]'.format(msm.name, zunit)
@@ -946,11 +957,11 @@ class S5Pplot(object):
         # convert units from electrons to ke, Me, ...
         zmin = -sigma * fig_info['val_spread']
         zmax = sigma * fig_info['val_spread']
-        (zunits, zscale) = convert_units(msm.units, zmin, zmax)
-        if msm.units is not None:
-            d_label = r'{} [{}]'.format(msm.name, zunits)
-        else:
+        (zunit, zscale) = convert_units(msm.units, zmin, zmax)
+        if zunit is None:
             d_label = msm.name
+        else:
+            d_label = r'{} [{}]'.format(msm.name, zunit)
 
         umin = -sigma * fig_info['unc_spread']
         umax = sigma * fig_info['unc_spread']
@@ -1370,7 +1381,10 @@ class S5Pplot(object):
             zname = 'column value'
         else:
             zname = msm.name
-        plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
+        if zunit is None:
+            plt.colorbar(img, cax=cax, label='{}'.format(zname))
+        else:
+            plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
@@ -1421,7 +1435,8 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
-                     title=None, sub_title=None, fig_info=None):
+                     title=None, sub_title=None, fig_info=None,
+                     placeholder=False):
         """
         Display ...
 
@@ -1491,7 +1506,7 @@ class S5Pplot(object):
                              horizontalalignment='center')
 
             if sub_title is not None:
-                axarr[0].set_title(title + '\n' + sub_title, fontsize='large')
+                axarr[0].set_title(sub_title, fontsize='large')
 
         i_ax = 0
         if msm is None:
@@ -1533,8 +1548,20 @@ class S5Pplot(object):
                                          msm.error[1] / dscale,
                                          facecolor='#dddddd')
             axarr[i_ax].grid(True)
-            axarr[i_ax].set_ylabel('{} [{}]'.format('median value', zunit))
+            if zunit is None:
+                axarr[i_ax].set_ylabel('median value')
+            else:
+                axarr[i_ax].set_ylabel(r'median value [{}]'.format(zunit))
             i_ax += 1
+
+        if i_ax == 1:
+            add_copyright(axarr[0])
+            if placeholder:
+                print('show placeholder')
+                axarr[0].text(0.5, 0.5, 'PLACEHOLDER',
+                              transform=axarr[0].transAxes, alpha=0.5,
+                              fontsize=50, color='gray', rotation=45.,
+                              ha='center', va='center')
 
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
@@ -1560,7 +1587,7 @@ class S5Pplot(object):
                                          facecolor='#dddddd')
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].grid(True)
-                axarr[i_ax].set_ylabel('temp [{}]'.format('K'))
+                axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
                 lg = axarr[i_ax].legend(loc='upper left')
                 lg.draw_frame(False)
             i_ax += 1
