@@ -30,10 +30,9 @@ import os.path
 from collections import OrderedDict
 
 import numpy as np
+import matplotlib as mpl
 
 from .s5p_msm import S5Pmsm
-
-import matplotlib as mpl
 
 #
 # Suggestion for the name of the report/pdf-file
@@ -136,7 +135,7 @@ class S5Pplot(object):
         self.__mode = mode
         self.filename = figname
 
-        (root, ext) = os.path.splitext(figname)
+        (_, ext) = os.path.splitext(figname)
         if ext.lower() == '.pdf':
             from matplotlib.backends.backend_pdf import PdfPages
 
@@ -178,8 +177,7 @@ class S5Pplot(object):
         info_str = ""
         if dict_info is not None:
             for key in dict_info:
-                if (isinstance(dict_info[key], float)
-                    or isinstance(dict_info[key], np.float32)):
+                if isinstance(dict_info[key], (float, np.float32)):
                     info_str += "{} : {:.5g}".format(key, dict_info[key])
                 else:
                     info_str += "{} : {}".format(key, dict_info[key])
@@ -256,10 +254,7 @@ class S5Pplot(object):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         from .biweight import biweight
-        from .sron_colormaps import sron_cmap, get_line_colors
-
-        # define colors
-        line_colors = get_line_colors()
+        from .sron_colormaps import sron_cmap
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
@@ -321,7 +316,7 @@ class S5Pplot(object):
         add_copyright(ax_img)
         ax_img.set_xlabel(xlabel)
         ax_img.set_ylabel(ylabel)
-        
+
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
         # a new axes on the given side of (“top”, “right”, “bottom” and “left”)
@@ -414,7 +409,7 @@ class S5Pplot(object):
         # any valid values?
         if np.isnan(np.min(msm.value)):
             return
-        
+
         # calculate column/row medians (if required)
         if data_col is None:
             with warnings.catch_warnings():
@@ -547,7 +542,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_quality(self, qmsm, ckd_ref=None,
-                     *, low_thres=0.1, high_thres=0.8, qlabels=None, 
+                     *, low_thres=0.1, high_thres=0.8, qlabels=None,
                      title=None, sub_title=None, fig_info=None):
         """
         Display pixel quality data
@@ -587,7 +582,7 @@ class S5Pplot(object):
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         from . import swir_region
-        
+
         # assert that we have some data to show
         if isinstance(qmsm, np.ndarray):
             qmsm = S5Pmsm(qmsm)
@@ -708,7 +703,7 @@ class S5Pplot(object):
                                             & (qmask < thres_max)))})
         else:
             fig_info.update({'bad  ' :  np.sum(((qmask >= 0)
-                                              & (qmask < thres_max)))})
+                                                & (qmask < thres_max)))})
         fig_info.update({'worst' :  np.sum(((qmask >= 0)
                                             & (qmask < thres_min)))})
 
@@ -849,7 +844,7 @@ class S5Pplot(object):
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('diverging_BuRd'))
         add_copyright(ax2)
-        #ax2.set_ylabel(ylabel)        
+        #ax2.set_ylabel(ylabel)
         cbar = plt.colorbar(img)
         if runit is None:
             cbar.set_label('residual')
@@ -936,8 +931,7 @@ class S5Pplot(object):
         assert isinstance(msm_err, S5Pmsm)
 
         values = msm.value[np.isfinite(msm.value)].reshape(-1)
-        if ('val_median' not in fig_info
-            or 'val_spread' not in fig_info):
+        if 'val_median' not in fig_info or 'val_spread' not in fig_info:
             (median, spread) = biweight(values, spread=True)
             if fig_info is None:
                 fig_info = OrderedDict({'val_median' : median})
@@ -947,8 +941,7 @@ class S5Pplot(object):
         values -= fig_info['val_median']
 
         uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
-        if ('unc_median' not in fig_info
-            or 'unc_spread' not in fig_info):
+        if 'unc_median' not in fig_info or 'unc_spread' not in fig_info:
             (median, spread) = biweight(uncertainties, spread=True)
             fig_info.update({'unc_median' : median})
             fig_info.update({'unc_spread' : spread})
@@ -980,9 +973,9 @@ class S5Pplot(object):
 
         axx = plt.subplot(gspec[1:5, 0])
         axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
-                  bins=15, color=line_colors[0])
+                 bins=15, color=line_colors[0])
         axx.set_title(r'histogram centred at median'
-                      ' (range $\pm {} \sigma$)'.format(sigma),
+                      r' (range $\pm {} \sigma$)'.format(sigma),
                       fontsize='large')
         add_copyright(axx)
         axx.set_xlabel(d_label)
@@ -990,7 +983,7 @@ class S5Pplot(object):
 
         axx = plt.subplot(gspec[7:-1, 0])
         axx.hist(uncertainties / uscale, range=[umin / uscale, umax / uscale],
-                  bins=15, color=line_colors[0])
+                 bins=15, color=line_colors[0])
         add_copyright(axx)
         axx.set_xlabel(u_label)
         axx.set_ylabel('count')
@@ -1319,8 +1312,8 @@ class S5Pplot(object):
                 data_row = np.nanmedian(msm.value, axis=0)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = msm.value.shape
-        aspect = min(4, max(1, int(np.round(dims[0] / dims[1]))))
+        #dims = msm.value.shape
+        #aspect = min(4, max(1, int(np.round(dims[0] / dims[1]))))
         #print('aspect[{}] {}'.format(dims, aspect))
 
         # set label and range of X/Y axis
@@ -1494,11 +1487,11 @@ class S5Pplot(object):
                 caption += title
 
             if sub_title is not None:
-                if len(caption) > 0:
+                if caption:
                     caption += '\n'
                 caption += sub_title
 
-            if len(caption) > 0:
+            if caption:
                 axarr[0].set_title(caption, fontsize='large')
         else:
             if title is not None:
