@@ -337,10 +337,11 @@ class S5Pmsm(object):
         """
         if data_sel is None:
             if self.error is not None:
-                self.error = np.nanmedian(self.error, ddof=1,
+                self.error = np.nanmedian(self.error,
                                           axis=axis, keepdims=keepdims)
             else:
-                self.error = np.nanstd(self.value, axis=axis, keepdims=keepdims)
+                self.error = np.nanstd(self.value, ddof=1,
+                                       axis=axis, keepdims=keepdims)
             self.value = np.nanmedian(self.value, axis=axis, keepdims=keepdims)
         else:
             if self.error is not None:
