@@ -314,13 +314,13 @@ class S5Pmsm(object):
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
         self.coords = self.coords._replace(**{key : dims})
 
-    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
+    def nanmedian(self, data_sel=None, *, axis=0, keepdims=False):
         """
         Returns median of the data in the S5Pmsm
 
         Parameters
         ----------
-        data_sel  :  numpy slice
+        data_sel  :  numpy slice, optional
            A numpy slice generated for example numpy.s_. Can be used to skip
            the first and/or last frame
         axis      : int, optional
@@ -337,7 +337,7 @@ class S5Pmsm(object):
         """
         if data_sel is None:
             if self.error is not None:
-                self.error = np.nanmedian(self.error,
+                self.error = np.nanmedian(self.error, ddof=1,
                                           axis=axis, keepdims=keepdims)
             else:
                 self.error = np.nanstd(self.value, axis=axis, keepdims=keepdims)
@@ -347,7 +347,7 @@ class S5Pmsm(object):
                 self.error = np.nanmedian(self.error[data_sel],
                                           axis=axis, keepdims=keepdims)
             else:
-                self.error = np.nanstd(self.value[data_sel],
+                self.error = np.nanstd(self.value[data_sel], ddof=1,
                                        axis=axis, keepdims=keepdims)
             self.value = np.nanmedian(self.value[data_sel],
                                       axis=axis, keepdims=keepdims)
@@ -392,7 +392,18 @@ class S5Pmsm(object):
         Returns
         -------
         S5Pmsm object where value is replaced by its median and error by the
-        minimum and maximum percentiles. The coordinates are adjusted
+        minimum and maximum percentiles. The coordinates are adjusted.
+
+        You should atleast supply one percentile and atmost three.
+         vperc is instance 'int' or len(vperc) == 1: 
+             'value' is replaced by its (nan-)percentile vperc
+             'error' is changed
+         len(vperc) == 2:
+             'value' is replaced by its (nan-)median
+             'error' is replaced by percentile('value', (min(vperc), max(vperc))
+         len(vperc) == 3:
+             'value' is replaced by percentile('value', vperc[1])
+             'error' is replaced by percentile('value', (vperc[0], vperc[2]))
         """
         if isinstance(axis, int):
             axis = (axis,)
