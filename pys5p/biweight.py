@@ -16,6 +16,10 @@ from __future__ import division
 import numpy as np
 
 def __corr_std(nval):
+    """
+    Corrects the biweight spread to an unbaised estimator for the standard 
+    deviation, unther the assumption of an uncontaminated normal distribution.
+    """
     return 0.9909 + (0.5645 + 2.805 / nval) / nval
 
 def biweight(data, axis=None, spread=False, std=False):
@@ -38,29 +42,39 @@ def biweight(data, axis=None, spread=False, std=False):
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
+    sbi = 0.
     if std:
         spread = True
 
+    # define lambda function to return only median or (median, spread)
+    out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi 
+
     if axis is None:
         xx = data[np.isfinite(data)]
+        if xx.size == 0:
+            return out_parms(np.nan, 0., spread)
         med_xx = np.median(xx)
         deltas = xx - med_xx
         med_dd = np.median(np.abs(deltas))
         if med_dd == 0:
-            xbi = med_xx
-            if spread:
-                sbi = 0.
-        else:
-            wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
-            xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
-            if spread:
-                umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
-                sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
-                sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
-                sbi = np.sqrt(len(xx) * sbi)
-                if std:
-                    sbi *= __corr_std(len(xx))
+            return out_parms(med_xx, 0., spread)
+
+        wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
+        xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
+        if spread:
+            umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
+            sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
+            sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
+            sbi = np.sqrt(len(xx) * sbi)
+            if std:
+                sbi *= __corr_std(len(xx))
     else:
+        if np.all(np.isnan(data)):
+            shape = np.isfinite(data, axis=axis).shape
+            return out_parms(np.full(shape, np.nan),
+                             np.zerosl(shape, np.nan),
+                             spread)
+
         med_xx = np.nanmedian(data, axis=axis)
         xbi = med_xx
         sbi = np.zeros_like(med_xx)
@@ -86,7 +100,4 @@ def biweight(data, axis=None, spread=False, std=False):
                     buff = np.sqrt(len_xx * buff)
                 sbi[~indices] = buff[~indices]
 
-    if spread:
-        return (xbi, sbi)
-    else:
-        return xbi
+    return out_parms(xbi, sbi, spread)
