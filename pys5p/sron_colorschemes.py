@@ -47,6 +47,33 @@ def get_line_colors():
              '#BBBBBB',   # grey
              '#000000' ]  # black
 
+def get_qfive_colors():
+    """
+    Alternative color scheme for qualitative data
+
+    Defines 5 colors: Grey, Red, Yellow, Green and White
+    With labels: ["invalid", "worst", "bad", "recovered", "good"]
+
+    """
+    return [ '#BBBBBB',   # grey
+             '#EE6677',   # red
+             '#CCBB44',   # yellow
+             '#228833',   # green
+             '#FFFFFF' ]  # black
+
+def get_qfour_colors():
+    """
+    Alternative color scheme for qualitative data
+
+    Defines 4 colors: Grey, Red, Yellow and White
+    With labels: ["invalid", "worst", "bad", "good"]
+
+    """
+    return [ '#BBBBBB',   # grey
+             '#EE6677',   # red
+             '#CCBB44',   # yellow
+             '#FFFFFF' ]  # black
+
 def add_outlier_colors(cdict):
     """
     Add outlier colors to existing color map.
