@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The class L1Bpatch provides methods to patch Tropomi SWIR measurement data in
 offline level 1b products (incl. calibration, irradiance and radiance).
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -14,43 +14,52 @@ License:  Standard 3-clause BSD
 """
 from __future__ import print_function
 
-import numpy as np
-#import h5py
+#import numpy as np
 
 #--------------------------------------------------
-def fill_constant(array, value):
+def offset():
     """
-    Basic test-operation: replace values in ndarray with a constant value.
-
-    Parameters
-    ----------
-    array  :  array-like
-       The data to be patched
-    value  :  scalar
-       Fill value
-
-    Returns
-    -------
-    out    :  ndarray
-       Return an array with each element set to value
-    """
-    return np.full_like(array, value)
-
-def nonlinearity():
-    """
-    Patch non-linearity correction.
-
-    Low priority, small effect, hard to implement and validate
+    Patch SWIR offset correction.
 
     Requires (naive approach):
      * reverse applied radiance calibration
      * reverse applied stray-light correction
      * reverse applied PRNU correction
-     * reverse applied dark-current correction
-     * apply alternative non-linearity correction
+     * reverse applied dark-flux correction
+     * reverse applied offset correction
+     * apply (alternative) offset correction
+     * apply (alternative) dark-flux correction
      * apply (alternative) PRNU correction
      * apply (alternative) stray-light correction
      * apply (alternative) radiance calibration
+
+    Alternative: ...
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    Nothing
+    """
+    pass
+
+def darkflux():
+    """
+    Patch SWIR dark-flux correction.
+
+    Requires (naive approach):
+     * reverse applied radiance calibration
+     * reverse applied stray-light correction
+     * reverse applied PRNU correction
+     * reverse applied dark-flux correction
+     * apply (alternative) dark-flux correction
+     * apply (alternative) PRNU correction
+     * apply (alternative) stray-light correction
+     * apply (alternative) radiance calibration
+
+    Alternative: ...
 
     Parameters
     ----------
@@ -66,20 +75,16 @@ def prnu(array, prnu_orig, prnu_patch):
     """
     Patch pixel response non-uniformity correction.
 
-    High priority, introduces potentially spectral-features (swath dependent)
-
     Requires (naive approach):
      * reverse applied radiance calibration
      * reverse applied stray-light correction
      * reverse applied PRNU correction
-     * reverse applied dark-current correction
-     * apply (alternative) dark-current correction
      * apply (alternative) PRNU correction
      * apply (alternative) stray-light correction
      * apply (alternative) radiance calibration
 
     Alternative: neglect impact stray-light, but apply patch to correct for
-       spectral features
+       spectral features.
 
     Parameters
     ----------
@@ -103,75 +108,9 @@ def prnu(array, prnu_orig, prnu_patch):
     """
     return prnu_patch * array / prnu_orig
 
-def straylight():
-    """
-    Patch in-of-band stray-light correction.
-
-    High priority, correction implemented for the most important measured
-    features, however, at low resolution. Met requirement within factor 3-6.
-    Spatial stray-light seems to be the biggest problem. Unclear how hard it
-    is to correct
-
-    Requires (naive approach):
-     * reverse applied radiance calibration
-     * reverse applied stray-light correction
-     * apply alternative stray-light correction
-     * apply (alternative) radiance calibration
-
-    Alternative: add correction of spatial stray-light
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    Nothing
-    """
-    pass
-
-def stray_oob():
-    """
-    Patch out-of-band stray-light correction.
-
-    Low priority, but relatively easy to implement and verify
-
-    Requires:
-     * reverse applied radiance calibration
-     * apply alternative OOB stray-light correction
-     * apply (alternative) radiance calibration
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    Nothing
-    """
-    pass
-
-def nir_oob():
-    """
-    Patch NIR out-of-band stray-light correction.
-
-    Low priority, task for KNMI
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    Nothing
-    """
-    pass
-
 def radiance():
     """
     Patch radiance calibration.
-
-    Low priority: not discussed
 
     Requires:
      * reverse applied radiance calibration
@@ -190,8 +129,6 @@ def radiance():
 def irradiance():
     """
     Patch irradiance calibration.
-
-    Low priority: not discussed
 
     Requires:
      * reverse applied irradiance calibration
@@ -213,17 +150,26 @@ def _main():
     Let the user test the software!!!
     """
     import argparse
+    import shutil
     from pathlib import Path
 
     from pys5p.l1b_io import L1BioRAD
 
     # parse command-line parameters
     parser = argparse.ArgumentParser(
-        description='run test-routines to check class L1BioXXX')
+        description=('Patch Tropomi level 1b product.\n'
+                     'This is program is considered alpha, no patches are '
+                     'yet available. Foreseen patches for SWIR data are: '
+                     'offset, dark flux and combined (ir)radiance factors.'))
     parser.add_argument('l1b_product', default=None,
                         help='name of L1B product (full path)')
+    parser.add_argument('--ckd_dir', default=None,
+                        help='path to SWIR CKD data used by the L01b processor')
+    parser.add_argument('--patched_ckd_dir', default=None,
+                        help='path to alternative SWIR CKD data')
     parser.add_argument('--msm_type', default=None,
-                        help='define measurement type as <processing class>_<ic_id>')
+                        help=('define measurement type as: '
+                              '<processing class>_<ic_id>'))
     parser.add_argument('--msm_dset', default=None,
                         help='define measurement dataset to be read/patched')
     parser.add_argument('-o', '--output', default='/tmp',
@@ -243,7 +189,7 @@ def _main():
     l1b_patch = str(Path(args.output,
                          Path(args.l1b_product.replace('_01_', '_02_')).name))
     print(args.l1b_product, l1b_patch)
-    #shutil.copy(args.l1b_product, l1b_patch)
+    shutil.copy(args.l1b_product, l1b_patch)
 
     prod_type = Path(l1b_patch).name[0:15]
     if prod_type == 'S5P_OFFL_L1B_RA':
@@ -260,14 +206,17 @@ def _main():
         l1b.select(msm_type)
         data = l1b.get_msm_data(msm_dset)
 
-        # patch dataset
-        data = fill_constant(data, 7)
+        # patch dataset (increase all values by 10%)
+        patch = 1.10 * data
 
         # write patched data to L1B product
-        l1b.set_msm_data(msm_dset, data)
+        l1b.set_msm_data(msm_dset, patch)
 
         # update meta-data of product and flush all changes to disk
         del l1b
+    else:
+        print( 'Warning: only implemented for Tropomi offline L1b radiance')
 
+#--------------------------------------------------
 if __name__ == '__main__':
     _main()
