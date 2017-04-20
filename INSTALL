@@ -7,9 +7,11 @@ Building from source
 The latest release of pyS5p is available from:
 https://github.com/rmvanhees/pys5p
 
-Once you have satisfied the requirements detailed below, simply run::
+Once you have satisfied the requirements detailed below, simply run:
 
-python setup.py install
+> python3 setup.py install
+or
+> python3 setup.py install --user
 
 Requirements
 ~~~~~~~~~~~~
