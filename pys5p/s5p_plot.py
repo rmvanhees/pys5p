@@ -407,7 +407,7 @@ class S5Pplot(object):
         assert msm.value.ndim == 2
 
         # any valid values?
-        if np.isnan(np.min(msm.value)):
+        if np.all(np.isnan(msm.value)):
             return
 
         # calculate column/row medians (if required)
@@ -495,7 +495,7 @@ class S5Pplot(object):
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.plot(xdata, data_row / dscale,
-                     lw=0.5, color=line_colors[0])
+                     lw=0.75, color=line_colors[0])
         xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
         ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
         ax_medx.grid(True)
@@ -505,7 +505,7 @@ class S5Pplot(object):
         #
         ax_medy = divider.append_axes("left", 1.1, pad=0.25)
         ax_medy.plot(data_col / dscale, ydata,
-                     lw=0.5, color=line_colors[0])
+                     lw=0.75, color=line_colors[0])
         ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
         ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         ax_medy.locator_params(axis='y', nbins=ybins)
@@ -675,8 +675,8 @@ class S5Pplot(object):
         qmask_row_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=0)
         qmask_row_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=0)
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
-        ax_medx.step(xdata, qmask_row_08, lw=0.5, color=clist[2])
-        ax_medx.step(xdata, qmask_row_01, lw=0.6, color=clist[1])
+        ax_medx.step(xdata, qmask_row_08, lw=0.75, color=clist[2])
+        ax_medx.step(xdata, qmask_row_01, lw=0.75, color=clist[1])
         ax_medx.set_xlim([0, dims[1]])
         ax_medx.grid(True)
         ax_medx.locator_params(axis='x', nbins=6)
@@ -687,8 +687,8 @@ class S5Pplot(object):
         qmask_col_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=1)
         qmask_col_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=1)
         ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
-        ax_medy.step(qmask_col_08, ydata, lw=0.5, color=clist[2])
-        ax_medy.step(qmask_col_01, ydata, lw=0.6, color=clist[1])
+        ax_medy.step(qmask_col_08, ydata, lw=0.75, color=clist[2])
+        ax_medy.step(qmask_col_01, ydata, lw=0.75, color=clist[1])
         ax_medy.set_ylim([0, dims[0]])
         ax_medy.grid(True)
         ax_medy.locator_params(axis='x', nbins=3)
@@ -872,7 +872,7 @@ class S5Pplot(object):
                  normed=True, color=line_colors[0])
         ax4.set_xlabel(zlabel)
         ax4.set_ylabel('fraction')
-        ax4.grid(which='major', color='0.5', lw=0.5, ls='-')
+        ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
 
@@ -883,7 +883,7 @@ class S5Pplot(object):
             ax5.set_xlabel('residual')
         else:
             ax5.set_xlabel('residual [{}]'.format(runit))
-        ax5.grid(which='major', color='0.5', lw=0.5, ls='-')
+        ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
 
         # save and close figure
         if self.__pdf is None:
@@ -930,40 +930,6 @@ class S5Pplot(object):
             msm_err = S5Pmsm(msm_err)
         assert isinstance(msm_err, S5Pmsm)
 
-        values = msm.value[np.isfinite(msm.value)].reshape(-1)
-        if 'val_median' not in fig_info or 'val_spread' not in fig_info:
-            (median, spread) = biweight(values, spread=True)
-            if fig_info is None:
-                fig_info = OrderedDict({'val_median' : median})
-            else:
-                fig_info.update({'val_median' : median})
-            fig_info.update({'val_spread' : spread})
-        values -= fig_info['val_median']
-
-        uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
-        if 'unc_median' not in fig_info or 'unc_spread' not in fig_info:
-            (median, spread) = biweight(uncertainties, spread=True)
-            fig_info.update({'unc_median' : median})
-            fig_info.update({'unc_spread' : spread})
-        uncertainties -= fig_info['unc_median']
-
-        # convert units from electrons to ke, Me, ...
-        zmin = -sigma * fig_info['val_spread']
-        zmax = sigma * fig_info['val_spread']
-        (zunit, zscale) = convert_units(msm.units, zmin, zmax)
-        if zunit is None:
-            d_label = msm.name
-        else:
-            d_label = r'{} [{}]'.format(msm.name, zunit)
-
-        umin = -sigma * fig_info['unc_spread']
-        umax = sigma * fig_info['unc_spread']
-        (uunits, uscale) = convert_units(msm_err.units, umin, umax)
-        if msm_err.units is not None:
-            u_label = '{} [{}]'.format(msm_err.name, uunits)
-        else:
-            u_label = msm_err.name
-
         line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 7))
         if title is not None:
@@ -971,22 +937,62 @@ class S5Pplot(object):
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(11,1)
 
-        axx = plt.subplot(gspec[1:5, 0])
-        axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
-                 bins=15, color=line_colors[0])
-        axx.set_title(r'histogram centred at median'
-                      r' (range $\pm {} \sigma$)'.format(sigma),
-                      fontsize='large')
-        add_copyright(axx)
-        axx.set_xlabel(d_label)
-        axx.set_ylabel('count')
+        #---------- create first histogram ----------
+        values = msm.value[np.isfinite(msm.value)].reshape(-1)
+        if values.size > 0:
+            if 'val_median' not in fig_info or 'val_spread' not in fig_info:
+                (median, spread) = biweight(values, spread=True)
+                if fig_info is None:
+                    fig_info = OrderedDict({'val_median' : median})
+                else:
+                    fig_info.update({'val_median' : median})
+                fig_info.update({'val_spread' : spread})
+            values -= fig_info['val_median']
 
-        axx = plt.subplot(gspec[7:-1, 0])
-        axx.hist(uncertainties / uscale, range=[umin / uscale, umax / uscale],
-                 bins=15, color=line_colors[0])
-        add_copyright(axx)
-        axx.set_xlabel(u_label)
-        axx.set_ylabel('count')
+            # convert units from electrons to ke, Me, ...
+            zmin = -sigma * fig_info['val_spread']
+            zmax = sigma * fig_info['val_spread']
+            (zunit, zscale) = convert_units(msm.units, zmin, zmax)
+            if zunit is None:
+                d_label = msm.name
+            else:
+                d_label = r'{} [{}]'.format(msm.name, zunit)
+
+            axx = plt.subplot(gspec[1:5, 0])
+            axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
+                     bins=15, color=line_colors[0])
+            axx.set_title(r'histogram centred at median'
+                          r' (range $\pm {} \sigma$)'.format(sigma),
+                          fontsize='large')
+            add_copyright(axx)
+            axx.set_xlabel(d_label)
+            axx.set_ylabel('count')
+
+        #---------- create second histogram ----------
+        uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
+        if uncertainties.size > 0:
+            if 'unc_median' not in fig_info or 'unc_spread' not in fig_info:
+                (median, spread) = biweight(uncertainties, spread=True)
+                fig_info.update({'unc_median' : median})
+                fig_info.update({'unc_spread' : spread})
+            uncertainties -= fig_info['unc_median']
+
+            # convert units from electrons to ke, Me, ...
+            umin = -sigma * fig_info['unc_spread']
+            umax = sigma * fig_info['unc_spread']
+            (uunits, uscale) = convert_units(msm_err.units, umin, umax)
+            if msm_err.units is not None:
+                u_label = '{} [{}]'.format(msm_err.name, uunits)
+            else:
+                u_label = msm_err.name
+
+            axx = plt.subplot(gspec[7:-1, 0])
+            axx.hist(uncertainties / uscale,
+                     range=[umin / uscale, umax / uscale],
+                     bins=15, color=line_colors[0])
+            add_copyright(axx)
+            axx.set_xlabel(u_label)
+            axx.set_ylabel('count')
 
         # save and close figure
         if self.__pdf is None:
@@ -1320,7 +1326,8 @@ class S5Pplot(object):
         (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
-        extent = [xdata.min(), xdata.max(), 0, len(ydata)]
+        xstep = np.diff(xdata).min()
+        extent = [xdata[0]-xstep, xdata[-1], 0, len(ydata)]
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -1380,10 +1387,10 @@ class S5Pplot(object):
             plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
         #
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
-        ax_medx.plot(xdata, data_row / dscale,
-                     lw=0.5, color=line_colors[0])
-        xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
-        ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
+        ax_medx.step(np.insert(xdata, 0, xdata[0] - xstep),
+                     np.append(data_row / dscale, data_row[-1] / dscale),
+                     where='post', lw=0.75, color=line_colors[0])
+        ax_medx.set_xlim([xdata[0]-xstep, xdata[-1]])
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
         #ax_medx.locator_params(axis='x', nbins=5)
@@ -1391,7 +1398,7 @@ class S5Pplot(object):
         #
         ax_medy = divider.append_axes("left", 1.1, pad=0.25)
         ax_medy.plot(data_col / dscale, ydata,
-                     lw=0.5, color=line_colors[0])
+                     lw=0.75, color=line_colors[0])
         ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
         ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         ax_medy.locator_params(axis='y', nbins=ybins)
@@ -1504,11 +1511,13 @@ class S5Pplot(object):
         i_ax = 0
         if msm is None:
             (xlabel,) = hk_data.coords._fields
-            xdata  = hk_data.coords[0][:]
+            xdata = hk_data.coords[0][:]
+            xstep = np.diff(xdata).min()
         elif (msm.value.dtype.names is not None
               and 'dpqf_08' in msm.value.dtype.names):
             (xlabel,) = msm.coords._fields
             xdata  = msm.coords[0][:]
+            xstep = np.diff(xdata).min()
             axarr[i_ax].plot(xdata,
                              msm.value['dpqf_08'] - msm.value['dpqf_08'][0],
                              lw=1.5, color=line_colors[3],  # yellow
@@ -1524,6 +1533,7 @@ class S5Pplot(object):
         else:
             (xlabel,) = msm.coords._fields
             xdata  = msm.coords[0][:]
+            xstep = np.diff(xdata).min()
 
             # convert units from electrons to ke, Me, ...
             if msm.error is None:
@@ -1534,12 +1544,18 @@ class S5Pplot(object):
                 vmax = msm.error[1].max()
             (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
-            axarr[i_ax].plot(xdata, msm.value / dscale,
-                             lw=1.5, color=line_colors[i_ax])
+            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
+                             np.append(msm.value / dscale,
+                                       msm.value[-1] / dscale),
+                             where='post', lw=1.5, color=line_colors[i_ax])
             if msm.error is not None:
-                axarr[i_ax].fill_between(xdata, msm.error[0] / dscale,
-                                         msm.error[1] / dscale,
-                                         facecolor='#dddddd')
+                axarr[i_ax].fill_between(np.insert(xdata, 0, xdata[0]-xstep),
+                                         np.append(msm.error[0] / dscale,
+                                                   msm.error[0][-1] / dscale),
+                                         np.append(msm.error[1] / dscale,
+                                                   msm.error[1][-1] / dscale),
+                                         step='post', facecolor='#dddddd')
+            axarr[i_ax].set_xlim([xdata[0]-xstep, xdata[-1]])
             axarr[i_ax].grid(True)
             if zunit is None:
                 axarr[i_ax].set_ylabel('median value')
@@ -1571,13 +1587,17 @@ class S5Pplot(object):
                     lcolor = line_colors[4]
                 else:
                     lcolor = line_colors[5]
-                axarr[i_ax].plot(xdata, hk_data.value[key],
-                                 lw=1.5, color=lcolor,
+                axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
+                                 np.append(hk_data.value[key],
+                                           hk_data.value[key][-1]),
+                                 where='post', lw=1.5, color=lcolor,
                                  label=hk_data.long_name[indx].decode('ascii'))
-                axarr[i_ax].fill_between(xdata,
-                                         hk_data.error[key][:, 0],
-                                         hk_data.error[key][:, 1],
-                                         facecolor='#dddddd')
+                axarr[i_ax].fill_between(np.insert(xdata, 0, xdata[0]-xstep),
+                                         np.append(hk_data.error[key][:, 0],
+                                                   hk_data.error[key][-1, 0]),
+                                         np.append(hk_data.error[key][:, 1],
+                                                   hk_data.error[key][-1, 1]),
+                                         step='post', facecolor='#dddddd')
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].grid(True)
                 axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
