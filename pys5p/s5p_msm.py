@@ -14,7 +14,7 @@ dimensions. Initialization:
   error            | h5_dset.value['value'] | None
                    | or None                |
   coords           | h5_dset.dims           | [[['time',] 'row',] 'column']
-  units            | attrs['unit']          | None
+  units            | attrs['units']         | None
   long_name        | attrs['long_name']     | None
   fillvalue        | h5_dset.fillvalue      | None
   coverage         | None                   | None
@@ -396,7 +396,7 @@ class S5Pmsm(object):
         minimum and maximum percentiles. The coordinates are adjusted.
 
         You should atleast supply one percentile and atmost three.
-         vperc is instance 'int' or len(vperc) == 1: 
+         vperc is instance 'int' or len(vperc) == 1:
              'value' is replaced by its (nan-)percentile vperc
              'error' is changed
          len(vperc) == 2:
