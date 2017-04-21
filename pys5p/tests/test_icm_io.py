@@ -25,7 +25,13 @@ import os.path
 import shutil
 
 from glob import glob
+import numpy as np
 #from unittest import TestCase
+
+from ..get_data_dir import get_data_dir
+from ..icm_io import ICMio
+##from pys5p.get_data_dir import get_data_dir
+##from pys5p.icm_io import ICMio
 
 #--------------------------------------------------
 def test_rd_icm():
@@ -33,11 +39,6 @@ def test_rd_icm():
     Perform some simple checks on the ICMio class
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..icm_io import ICMio
-    ##from pys5p.get_data_dir import get_data_dir
-    ##from pys5p.icm_io import ICMio
-
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()
@@ -79,6 +80,8 @@ def test_rd_icm():
             res = icm.get_msm_data('biweight_value')
             print('biweight_value: ', res.shape)
             print(icm.get_msm_attr('biweight_value', 'units'))
+            res = icm.get_msm_data('measurement_quality')
+            print('measurement_quality: ', res.shape, np.sum(res == 0))
 
         if len(icm.select('SOLAR_IRRADIANCE_MODE_0202')) > 0:
             #print(icm.get_ref_time())
@@ -89,6 +92,8 @@ def test_rd_icm():
             res = icm.get_msm_data('irradiance_avg')
             print('irradiance_avg: ', res.shape)
             print(icm.get_msm_attr('irradiance_avg', 'units'))
+            res = icm.get_msm_data('measurement_quality')
+            print('measurement_quality: ', res.shape, np.sum(res == 0))
 
         if len(icm.select('EARTH_RADIANCE_MODE_0004')) > 0:
             #print(icm.get_ref_time())
@@ -99,6 +104,8 @@ def test_rd_icm():
             res = icm.get_msm_data('radiance_avg_row')
             print('radiance_avg_row: ', res.shape)
             print(icm.get_msm_attr('radiance_avg_row', 'units'))
+            res = icm.get_msm_data('measurement_quality')
+            print('measurement_quality: ', res.shape, np.sum(res == 0))
 
     ## check patching of ICM product
     for flname in filelist:
