@@ -647,13 +647,14 @@ class ICMio(object):
         # Note the current implementation will not work for channels where
         # the output of its bands can have different spatial dimensions (rows)
         # or different integration times (frames/scanlines)
-        if len(data) == 1:         # return selected band
+        if len(data) == 0:         # no data found
+            return None
+        elif len(data) == 1:       # return selected band
             return data[0]
         elif column_dim is None:   # return bands stacked
             return np.stack(data)
         else:                      # return band in detector lauyout
             return np.concatenate(data, axis=column_dim)
-        return res
 
     #-------------------------
     def set_housekeeping_data(self, data, band=None):
