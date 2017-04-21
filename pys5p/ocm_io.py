@@ -347,7 +347,7 @@ class OCMio(object):
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
-        if self.__msm_path:
+        if not self.__msm_path:
             return {}
 
         # show HDF5 dataset names and return

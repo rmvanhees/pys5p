@@ -53,14 +53,15 @@ def test_frame():
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
     ocm_product = os.path.join(sdirlist[0], product_b7)
+    print(ocm_product)
 
     # open OCAL Lx poduct
     ocm7 = OCMio(ocm_product)
 
     # select data of measurement(s) with given ICID
-    if ocm7.select(icid) > 0:
-        dict_b7 = ocm7.get_msm_data('signal')
-        dict_b7_std = ocm7.get_msm_data('signal_error_vals')
+    assert ocm7.select(icid) > 0
+    dict_b7 = ocm7.get_msm_data('signal')
+    dict_b7_std = ocm7.get_msm_data('signal_noise_vals')
 
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
@@ -70,14 +71,15 @@ def test_frame():
     ocm8 = OCMio(ocm_product)
 
     # select data of measurement(s) with given ICID
-    if ocm8.select(icid) > 0:
-        dict_b8 = ocm8.get_msm_data('signal')
-        dict_b8_std = ocm8.get_msm_data('signal_error_vals')
+    assert  ocm8.select(icid) > 0
+    dict_b8 = ocm8.get_msm_data('signal')
+    dict_b8_std = ocm8.get_msm_data('signal_noise_vals')
 
     # Combine band 7 & 8 data
     msm = None
     msm_err = None
     for key in dict_b7:
+        print(key)
         if msm is None:
             msm = S5Pmsm(dict_b7[key])
             msm_err = S5Pmsm(dict_b7_std[key])
@@ -103,6 +105,7 @@ def test_frame():
     msm_b8_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
     print('msm_b8: ', msm_b8.name, msm_b8.value.shape, msm_b8.coords._fields)
 
+    # combine both bands
     msm.concatenate(msm_b8, axis=1)
     msm_err.concatenate(msm_b8_err, axis=1)
     print('msm: ', msm.name, msm.value.shape)

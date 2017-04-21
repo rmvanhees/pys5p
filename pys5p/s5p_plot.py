@@ -940,7 +940,8 @@ class S5Pplot(object):
         #---------- create first histogram ----------
         values = msm.value[np.isfinite(msm.value)].reshape(-1)
         if values.size > 0:
-            if 'val_median' not in fig_info or 'val_spread' not in fig_info:
+            if fig_info is None or \
+               not ('val_median' in fig_info and 'val_spread' in fig_info):
                 (median, spread) = biweight(values, spread=True)
                 if fig_info is None:
                     fig_info = OrderedDict({'val_median' : median})
@@ -971,7 +972,8 @@ class S5Pplot(object):
         #---------- create second histogram ----------
         uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
         if uncertainties.size > 0:
-            if 'unc_median' not in fig_info or 'unc_spread' not in fig_info:
+            if fig_info is None or \
+               not ('unc_median' in fig_info and 'unc_spread' in fig_info):
                 (median, spread) = biweight(uncertainties, spread=True)
                 fig_info.update({'unc_median' : median})
                 fig_info.update({'unc_spread' : spread})
