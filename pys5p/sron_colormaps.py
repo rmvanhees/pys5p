@@ -17,7 +17,7 @@ Reference
 ---------
    https://personal.sron.nl/~pault/
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -215,11 +215,11 @@ def sron_cmap(colormap):
     """
     obj = SRONcmaps()
     if colormap not in obj.namelist:
-        colorname = obj.namelist[5]
+        colormap = obj.namelist[5]
         print('*** Warning: requested color map not defined',
               ' known color maps are: {}.'.format(obj.namelist),
               'Using as default {}'.format(colormap))
-    
+
     return obj.get(colormap)
 
 def get_line_colors():
@@ -239,3 +239,30 @@ def get_line_colors():
              '#AA3377',   # pink
              '#BBBBBB',   # grey
              '#000000' ]  # black
+
+def get_qfive_colors():
+    """
+    Alternative color scheme for qualitative data
+
+    Defines 5 colors: Grey, Red, Yellow, Green and White
+    With labels: ["invalid", "worst", "bad", "recovered", "good"]
+
+    """
+    return [ '#BBBBBB',   # grey
+             '#EE6677',   # red
+             '#CCBB44',   # yellow
+             '#228833',   # green
+             '#FFFFFF' ]  # black
+
+def get_qfour_colors():
+    """
+    Alternative color scheme for qualitative data
+
+    Defines 4 colors: Grey, Red, Yellow and White
+    With labels: ["invalid", "worst", "bad", "good"]
+
+    """
+    return [ '#BBBBBB',   # grey
+             '#EE6677',   # red
+             '#CCBB44',   # yellow
+             '#FFFFFF' ]  # black

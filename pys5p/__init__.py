@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 __all__ = ['biweight', 'ckd_io', 'icm_io', 'l1b_io', 'ocm_io', 's5p_msm',
-           's5p_plot', 'get_data_dir.py', 'swir_region'
+           's5p_plot', 'get_data_dir', 'swir_region',
            'sron_colormaps', 'sron_colorschemes', 'version']
 
 from . import biweight

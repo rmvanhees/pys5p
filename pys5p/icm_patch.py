@@ -201,8 +201,7 @@ class ICMpatch(object):
                     break
             assert sls_id == ld_id
 
-            u = np.unique(data['last_cmd_curr'])
-            pcurr_min = u[1]
+            pcurr_min = np.unique(data['last_cmd_curr'])[1]
             i_mn = np.min(np.where((data['icid'] == light_icid)
                                    & (data['last_cmd_curr'] > pcurr_min)))
             i_mx = np.max(np.where((data['icid'] == light_icid)
@@ -268,20 +267,20 @@ def test():
 
     from pys5p.icm_io import ICMio
     from pyS5pMon.db import icm_prod_db as ICMdb
-    from pyS5pMon.algorithms.swir_isrf import ISRFio_h5
+    from pyS5pMon.algorithms.swir_isrf import ISRFio
 
     # read OCAL ISRF measurements
     data_dir = '/nfs/Tropomi/ocal/proc_raw/2015_02_27T14_56_27_LaserDiodes_LD3_100/proc_raw'
-    isrf_io = ISRFio_h5(data_dir)
+    isrf_io = ISRFio(data_dir)
     obj_dict = isrf_io.__dict__
     for key in obj_dict:
         print(key, obj_dict[key])
     frames = isrf_io.read_ocal_msm()
-    print(frames.shape) 
+    print(frames.shape)
 
     # lookup an ICM product with ISRF measurements
     res = ICMdb.get_product_by_icid([605, 606], dbname=DB_NAME)
-    assert len(res) > 0
+    assert res
     print(res)
 
     # create temproary file to patch
@@ -297,30 +296,28 @@ def test():
     shutil.copy(os.path.join(data_dir, icm_file),
                 os.path.join(temp_dir, patch_file))
 
-    
-    fp = ICMio(os.path.join(temp_dir, patch_file),
-                verbose=True, readwrite=True)
-
-    fp.select('SLS_MODE_0610')
+    icm = ICMio(os.path.join(temp_dir, patch_file), readwrite=True)
+    icm.select('SLS_MODE_0610')
     for ii in range(5):
         sls_id = ii+1
-        nr_valid = np.sum(fp.housekeeping_data['sls{}_status'.format(ii+1)])
+        hk_data = icm.get_housekeeping_data()
+        nr_valid = np.sum(hk_data['sls{}_status'.format(ii+1)])
         if nr_valid > 0:
             break
 
-    patch = ICMpath()
+    patch = ICMpatch()
     res_sls = patch.sls(sls_id)
     print('SLS values:     ', res_sls[0].shape)
     print('SLS background: ', res_sls[1].shape)
     print('SLS errors:     ', res_sls[2].shape)
-    res = {'det_lit_area_signal' : res_sls[0][:fp.delta_time.shape[0],:,:]}
-    fp.set_data(res)
+    delta_time = icm.get_delta_time()
+    icm.set_msm_data('det_lit_area_signal',
+                     res_sls[0][:delta_time.shape[0],:,:])
 
-    fp.select('BACKGROUND_MODE_0609')
-    res = {'signal_avg'     : np.split(res_sls[1], 2, axis=1),
-           'signal_avg_std' : np.split(res_sls[2], 2, axis=1)}
-    fp.set_data(res)
-    del fp
+    icm.select('BACKGROUND_MODE_0609')
+    icm.set_msm_data('signal_avg', np.split(res_sls[1], 2, axis=1))
+    icm.set_msm_data('signal_avg_std', np.split(res_sls[2], 2, axis=1))
+    del icm
     del patch
 
 if __name__ == '__main__':

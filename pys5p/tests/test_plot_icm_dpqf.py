@@ -42,17 +42,17 @@ def test_icm_dpqf():
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     # open ICM product
     for flname in filelist:
         icm = ICMio(flname)
         print(icm, file=sys.stderr)
-        if len(icm.select('DPQF_MAP')) > 0:
+        if icm.select('DPQF_MAP'):
             break
 
-    assert len(icm.select('DPQF_MAP')) > 0
+    assert icm.select('DPQF_MAP')
     dpqm = icm.get_msm_data('dpqf_map', band='78')
     dpqm_dark = icm.get_msm_data('dpqm_dark_flux', band='78')
     dpqm_noise = icm.get_msm_data('dpqm_noise', band='78')

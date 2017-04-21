@@ -81,7 +81,7 @@ class ICMio(object):
          - list of patched datasets
          - auxiliary datasets used by patch-routines
         """
-        if len(self.__patched_msm) > 0:
+        if self.__patched_msm:
             from datetime import datetime
 
             sgrp = self.fid.require_group("METADATA/SRON_METADATA")
@@ -174,7 +174,7 @@ class ICMio(object):
                         self.bands += ii
 
         # return in case no data was found
-        if len(self.bands) > 0:
+        if self.bands:
             self.__msm_path = os.path.join(msm_path, msm_type)
 
         return self.bands
@@ -472,7 +472,7 @@ class ICMio(object):
         out   :   scalar or numpy array
            value of attribute "attr_name"
         """
-        if len(self.__msm_path) == 0:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -490,8 +490,8 @@ class ICMio(object):
                 attr = self.fid[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
                     return attr.decode('ascii')
-                else:
-                    return attr
+
+                return attr
 
         return None
 
@@ -590,10 +590,10 @@ class ICMio(object):
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
-        assert len(band) > 0 and len(band) <= 2
+        assert band and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
         assert self.bands.find(band) >= 0
@@ -647,14 +647,17 @@ class ICMio(object):
         # Note the current implementation will not work for channels where
         # the output of its bands can have different spatial dimensions (rows)
         # or different integration times (frames/scanlines)
-        if len(data) == 0:         # no data found
+        # no data found
+        if not data:
             return None
-        elif len(data) == 1:       # return selected band
+        # return selected band
+        if len(data) == 1:
             return data[0]
-        elif column_dim is None:   # return bands stacked
+        # return bands stacked
+        if column_dim is None:
             return np.stack(data)
-        else:                      # return band in detector lauyout
-            return np.concatenate(data, axis=column_dim)
+        # return band in detector lauyout
+        return np.concatenate(data, axis=column_dim)
 
     #-------------------------
     def set_housekeeping_data(self, data, band=None):
@@ -706,10 +709,10 @@ class ICMio(object):
 
         """
         assert self.__rw
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
-        assert len(band) > 0 and len(band) <= 2
+        assert band and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
         assert self.bands.find(band) >= 0
@@ -734,8 +737,7 @@ class ICMio(object):
                 if ds_path not in self.fid:
                     continue
                 dset = self.fid[ds_path]
-            
-                skipped = 0
+
                 data_sel = ()
                 for xx in range(dset.ndim):
                     if len(dset.dims[xx][0][:]) == 1:
@@ -750,7 +752,7 @@ class ICMio(object):
                     elif os.path.basename(dset.dims[xx][0].name) in column_list:
                         if len(band) == 2:
                             jj = data.ndim-1
-                            data = np.stack(np.split(cc, 2, axis=jj))
+                            data = np.stack(np.split(data, 2, axis=jj))
                         data_sel += (np.s_[:],)
                     else:
                         raise ValueError

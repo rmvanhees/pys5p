@@ -26,7 +26,6 @@ from glob import glob
 
 import numpy as np
 
-
 #-------------------------
 def test_frame():
     """

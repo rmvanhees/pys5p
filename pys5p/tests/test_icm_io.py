@@ -20,7 +20,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import sys
+#import sys
 import os.path
 import shutil
 
@@ -56,7 +56,7 @@ def test_rd_icm():
         print(icm.get_creation_time())
         print(icm.get_coverage_time())
 
-        if len(icm.select('ANALOG_OFFSET_SWIR')) > 0:
+        if icm.select('ANALOG_OFFSET_SWIR'):
             #print(icm.get_ref_time())
             #print(icm.get_delta_time())
             #print(icm.get_instrument_settings())
@@ -66,8 +66,8 @@ def test_rd_icm():
             print('analog_offset_swir_value: ', res.shape)
             print(icm.get_msm_attr('analog_offset_swir_value', 'units'))
 
-        if len(icm.select('BACKGROUND_MODE_1063',
-                          msm_path='BAND%_CALIBRATION')) > 0:
+        if icm.select('BACKGROUND_MODE_1063',
+                      msm_path='BAND%_CALIBRATION'):
             #print(icm.get_ref_time())
             #print(icm.get_delta_time())
             #print(icm.get_instrument_settings())
@@ -83,7 +83,7 @@ def test_rd_icm():
             res = icm.get_msm_data('measurement_quality')
             print('measurement_quality: ', res.shape, np.sum(res == 0))
 
-        if len(icm.select('SOLAR_IRRADIANCE_MODE_0202')) > 0:
+        if icm.select('SOLAR_IRRADIANCE_MODE_0202'):
             #print(icm.get_ref_time())
             #print(icm.get_delta_time())
             #print(icm.get_instrument_settings())
@@ -95,7 +95,7 @@ def test_rd_icm():
             res = icm.get_msm_data('measurement_quality')
             print('measurement_quality: ', res.shape, np.sum(res == 0))
 
-        if len(icm.select('EARTH_RADIANCE_MODE_0004')) > 0:
+        if icm.select('EARTH_RADIANCE_MODE_0004'):
             #print(icm.get_ref_time())
             #print(icm.get_delta_time())
             #print(icm.get_instrument_settings())
@@ -110,7 +110,7 @@ def test_rd_icm():
     ## check patching of ICM product
     for flname in filelist:
         icm = ICMio(flname)
-        if len(icm.select('BACKGROUND_MODE_1063')) == 0:
+        if not icm.select('BACKGROUND_MODE_1063'):
             continue
 
         fl_patch = os.path.basename(flname)

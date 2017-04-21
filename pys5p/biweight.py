@@ -17,7 +17,7 @@ import numpy as np
 
 def __corr_std(nval):
     """
-    Corrects the biweight spread to an unbaised estimator for the standard 
+    Corrects the biweight spread to an unbaised estimator for the standard
     deviation, unther the assumption of an uncontaminated normal distribution.
     """
     return 0.9909 + (0.5645 + 2.805 / nval) / nval
@@ -47,7 +47,7 @@ def biweight(data, axis=None, spread=False, std=False):
         spread = True
 
     # define lambda function to return only median or (median, spread)
-    out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi 
+    out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi
 
     if axis is None:
         xx = data[np.isfinite(data)]
@@ -72,7 +72,7 @@ def biweight(data, axis=None, spread=False, std=False):
         if np.all(np.isnan(data)):
             shape = np.isfinite(data, axis=axis).shape
             return out_parms(np.full(shape, np.nan),
-                             np.zerosl(shape, np.nan),
+                             np.zeros(shape, np.nan),
                              spread)
 
         med_xx = np.nanmedian(data, axis=axis)

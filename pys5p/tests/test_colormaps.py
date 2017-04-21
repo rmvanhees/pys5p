@@ -24,11 +24,6 @@ import numpy as np
 
 import matplotlib as mpl
 mpl.use('TkAgg')
-import matplotlib.pyplot as plt
-
-from matplotlib.mlab import bivariate_normal
-
-from ..sron_colormaps import SRONcmaps, sron_cmap
 
 #--------------------
 def test_cmaps():
@@ -36,6 +31,12 @@ def test_cmaps():
     Show the SRON Matplotlib color-maps
 
     """
+    import matplotlib.pyplot as plt
+
+    from matplotlib.mlab import bivariate_normal
+
+    from pys5p.sron_colormaps import SRONcmaps, sron_cmap
+
     xx = yy = np.arange(-3.0, 3.0, 0.1)
     xxm, yym = np.meshgrid(xx, yy)
     zz1 = bivariate_normal(xxm, yym, 1.0, 1.0, 0.0, 0.0)
@@ -46,7 +47,7 @@ def test_cmaps():
 
     obj = SRONcmaps()
 
-    fig, axarr = plt.subplots(2, 4)
+    _, axarr = plt.subplots(2, 4)
     ii = 0
     for name in obj.namelist:
         axarr[ii % 2, ii // 2].set_title(obj.namelist[ii])

@@ -100,7 +100,7 @@ class L1Bio(object):
              - list of patched datasets
              - auxiliary datasets used by patch-routines
         """
-        if len(self.__patched_msm) > 0:
+        if self.__patched_msm:
             from datetime import datetime
 
             sgrp = self.fid.create_group("/METADATA/SRON_METADATA")
@@ -337,8 +337,9 @@ class L1Bio(object):
             attr = self.fid[ds_path].attrs[attr_name]
             if isinstance(attr, bytes):
                 return attr.decode('ascii')
-            else:
-                return attr
+
+            return attr
+
         return None
 
     # ---------- class L1Bio::
@@ -479,11 +480,11 @@ class L1BioCAL(L1Bio):
                         print('*** INFO: found: ', grp_path)
                     self.bands += ii
 
-            if len(self.bands) > 0:
+            if self.bands:
                 grp_path = os.path.join('BAND%_{}'.format(name), msm_type)
                 break
 
-        if len(self.bands) > 0:
+        if self.bands:
             self.__msm_path = grp_path
             super().msm_info(grp_path.replace('%', self.bands[0]))
 
@@ -641,7 +642,7 @@ class L1BioCAL(L1Bio):
         out   :    array-like
            Data of measurement dataset "msm_dset"
         """
-        assert len(band) > 0 and len(band) <= 2
+        assert band and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
             if msm_to_row is None:
@@ -654,11 +655,11 @@ class L1BioCAL(L1Bio):
                                            msm_dset),)
         if len(data) == 1:
             return data[0]
-        else:
-            if msm_to_row == 'padding':
-                data = pad_rows(data[0], data[1])
 
-            return np.concatenate(data, axis=data[0].ndim-1)
+        if msm_to_row == 'padding':
+            data = pad_rows(data[0], data[1])
+
+        return np.concatenate(data, axis=data[0].ndim-1)
 
     # ---------- class L1BioCAL::
     def set_msm_data(self, msm_dset, data, band='78'):
@@ -726,7 +727,7 @@ class L1BioIRR(L1Bio):
                     print('*** INFO: found: ', grp_path)
                 self.bands += ii
 
-        if len(self.bands) > 0:
+        if self.bands:
             self.__msm_path = os.path.join('BAND%_IRRADIANCE', msm_type)
             super().msm_info(self.__msm_path.replace('%', self.bands[0]))
 
@@ -822,7 +823,7 @@ class L1BioIRR(L1Bio):
         out   :    array-like
             Data of measurement dataset "msm_dset"
         """
-        assert len(band) > 0 and len(band) <= 2
+        assert band and len(band) <= 2
         if len(band) == 2:
             assert band == '12' or band == '34' or band == '56' or band == '78'
             if msm_to_row is None:
@@ -910,7 +911,7 @@ class L1BioRAD(L1Bio):
                 self.bands = ii
                 break              # only one band per product
 
-        if len(self.bands) > 0:
+        if self.bands:
             self.__msm_path = grp_path
             super().msm_info(self.__msm_path)
 
@@ -954,9 +955,9 @@ class L1BioRAD(L1Bio):
         """
         if icid is None:
             return super().housekeeping_data(self.__msm_path)
-        else:
-            res = super().housekeeping_data(self.__msm_path)
-            return res[self.imsm['icid'] == icid]
+
+        res = super().housekeeping_data(self.__msm_path)
+        return res[self.imsm['icid'] == icid]
 
     # ---------- class L1BioRAD::
     def get_geo_data(self, geo_dset='latitude,longitude', icid=None):
@@ -1051,8 +1052,7 @@ class L1BioRAD(L1Bio):
         if msm_to_row is None:
             return super()._get_msm_data(self.__msm_path, msm_dset,
                                          icid=icid)
-        else:
-            return None
+        return None
 
     # ---------- class L1BioRAD::
     def set_msm_data(self, msm_dset, data, icid=None):

@@ -15,7 +15,7 @@ import numpy as np
 
 def mask(region='illuminated'):
     """
-    Return mask with the illuminated region has boolean value True  
+    Return mask with the illuminated region has boolean value True
 
     Parameters
     ----------
@@ -24,15 +24,15 @@ def mask(region='illuminated'):
       defined as the area where the signal is at least 50% of the maoin signal
       'level2' - a smaller area for which the (ir)radiance CKD are valid
     """
-    mm = np.zeros((256, 1000), dtype=np.bool)
+    res = np.zeros((256, 1000), dtype=np.bool)
     if region == 'level2':
-        mm[12:227, 20:980] = True
+        res[12:227, 20:980] = True
     else:
-        mm[11:228, 16:991] = True
+        res[11:228, 16:991] = True
 
-    return mm
+    return res
 
-def slice(region='illuminated'):
+def coords(region='illuminated'):
     """
     Return slice defining the illuminated region
 
@@ -45,5 +45,5 @@ def slice(region='illuminated'):
     """
     if region == 'level2':
         return np.s_[12:227, 20:980]
-    else:
-        return np.s_[11:228, 16:991]
+
+    return np.s_[11:228, 16:991]

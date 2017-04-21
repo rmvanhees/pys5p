@@ -41,7 +41,7 @@ def test_rd_icm(msm_dset=None):
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_*.h5'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     for name in filelist:

@@ -22,11 +22,6 @@ from __future__ import print_function
 
 import os.path
 
-from unittest import TestCase
-
-import numpy as np
-import h5py
-
 #-------------------------
 def test_ckd_dpqf():
     """

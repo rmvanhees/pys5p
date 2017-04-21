@@ -41,7 +41,7 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     l1b = L1BioCAL(filelist[-1])
@@ -81,7 +81,7 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_IR_*.nc'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     l1b = L1BioIRR(filelist[-1])
@@ -116,7 +116,7 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     l1b = L1BioRAD(filelist[-1])

@@ -65,7 +65,7 @@ class CKDio(object):
             ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True,
                          data_sel=np.s_[:-1, :])
             ckd_b8 = S5Pmsm(fid['/BAND8/long_term_swir'], datapoint=True,
-                         data_sel=np.s_[:-1, :])
+                            data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR dark-flux CKD')

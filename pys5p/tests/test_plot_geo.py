@@ -24,7 +24,6 @@ import sys
 import os.path
 
 from glob import glob
-#from unittest import TestCase
 
 #-------------------------
 def test_geo():
@@ -42,7 +41,7 @@ def test_geo():
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     # test footprint mode

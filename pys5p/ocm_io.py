@@ -108,8 +108,8 @@ def band2channel(dict_a, dict_b,
 
     if data_b is None:
         return data_a
-    else:
-        return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
+
+    return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
 
 #- class definition -------------------------------
 class OCMio(object):
@@ -190,11 +190,11 @@ class OCMio(object):
         """
         from datetime import datetime, timedelta
 
-        res = {}
-        if len(self.__msm_path) == 0:
-            return res
+        if not self.__msm_path:
+            return {}
 
         grp = self.fid['BAND{}'.format(self.band)]
+        res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[os.path.join(msm, 'GEODATA')]
             res[msm] = datetime(2010,1,1,0,0,0)
@@ -206,11 +206,11 @@ class OCMio(object):
         """
         Returns offset from the reference start time of measurement
         """
-        res = {}
-        if len(self.__msm_path) == 0:
-            return res
+        if not self.__msm_path:
+            return {}
 
         grp = self.fid['BAND{}'.format(self.band)]
+        res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[os.path.join(msm, 'GEODATA')]
             res[msm] = sgrp['delta_time'][:].astype(int)
@@ -221,11 +221,11 @@ class OCMio(object):
         """
         Returns instrument settings of measurement
         """
-        res = {}
-        if len(self.__msm_path) == 0:
-            return res
+        if not self.__msm_path:
+            return {}
 
         grp = self.fid['BAND{}'.format(self.band)]
+        res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
             res[msm] = np.squeeze(sgrp['instrument_settings'])
@@ -236,11 +236,11 @@ class OCMio(object):
         """
         Returns housekeeping data of measurements
         """
-        res = {}
-        if len(self.__msm_path) == 0:
-            return res
+        if not self.__msm_path:
+            return {}
 
         grp = self.fid['BAND{}'.format(self.band)]
+        res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
             res[msm] = np.squeeze(sgrp['housekeeping_data'])
@@ -273,7 +273,7 @@ class OCMio(object):
                 self.band = ii
                 break
 
-        if len(self.band) > 0:
+        if self.band:
             gid = self.fid['BAND{}'.format(self.band)]
             if ic_id is None:
                 grp_name = 'ICID_'
@@ -304,7 +304,7 @@ class OCMio(object):
            value of attribute "attr_name"
 
         """
-        if len(self.__msm_path) == 0:
+        if not self.__msm_path:
             return ''
 
         grp = self.fid['BAND{}'.format(self.band)]
@@ -315,8 +315,9 @@ class OCMio(object):
                 attr = grp[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
                     return attr.decode('ascii')
-                else:
-                    return attr
+
+                return attr
+
         return None
 
     def get_msm_data(self, msm_dset, fill_as_nan=True,
@@ -346,7 +347,7 @@ class OCMio(object):
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
-        if len(self.__msm_path) == 0:
+        if self.__msm_path:
             return {}
 
         # show HDF5 dataset names and return

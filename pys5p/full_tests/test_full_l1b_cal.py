@@ -41,7 +41,7 @@ def test_rd_calib(msm_dset=None):
     except FileNotFoundError:
         return
     filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
-    if len(filelist) == 0:
+    if not filelist:
         return
 
     for name in filelist:
