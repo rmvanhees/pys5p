@@ -49,10 +49,17 @@ def biweight(data, axis=None, spread=False, std=False):
     # define lambda function to return only median or (median, spread)
     out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi
 
+    if np.all(np.isnan(data)):
+        if axis is None:
+            return out_parms(np.nan, 0., spread)
+    
+        shape = np.sum(data, axis=axis).shape
+        return out_parms(np.full(shape, np.nan),
+                         np.full(shape, 0.),
+                         spread)
+    
     if axis is None:
         xx = data[np.isfinite(data)]
-        if xx.size == 0:
-            return out_parms(np.nan, 0., spread)
         med_xx = np.median(xx)
         deltas = xx - med_xx
         med_dd = np.median(np.abs(deltas))
@@ -69,12 +76,6 @@ def biweight(data, axis=None, spread=False, std=False):
             if std:
                 sbi *= __corr_std(len(xx))
     else:
-        if np.all(np.isnan(data)):
-            shape = np.isfinite(data, axis=axis).shape
-            return out_parms(np.full(shape, np.nan),
-                             np.zeros(shape, np.nan),
-                             spread)
-
         med_xx = np.nanmedian(data, axis=axis)
         xbi = med_xx
         sbi = np.zeros_like(med_xx)
@@ -82,13 +83,14 @@ def biweight(data, axis=None, spread=False, std=False):
         deltas = data - np.expand_dims(med_xx, axis=axis)
         med_dd = np.nanmedian(np.abs(deltas), axis=axis)
 
-        indices = (med_dd == 0)
+        indices = ((med_dd == 0) | np.isfinite(med_dd))
         if not np.all(indices):
-            med_dd[indices] = 1.  # dummy value
+            med_dd[indices] = 1       # dummy value
             med_dd = np.expand_dims(med_dd, axis=axis)
             wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
-            xbi[~indices] = (med_xx + np.sum(wmx * deltas, axis=axis)
-                             / np.sum(wmx, axis=axis))[~indices]
+            with np.errstate(invalid='ignore'):
+                xbi[~indices] = (med_xx + np.sum(wmx * deltas, axis=axis)
+                                 / np.sum(wmx, axis=axis))[~indices]
             if spread:
                 umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
                 len_xx = np.sum(np.isfinite(data), axis=axis)

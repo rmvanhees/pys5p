@@ -9,7 +9,6 @@ The class ICMplot contains generic plot functions to display S5p Tropomi data
  Public functions a page in the output PDF
  * draw_frame
  * draw_signal
- * draw_quality
  * draw_cmp_swir
  * draw_hist
  * draw_qhist
@@ -68,6 +67,25 @@ from .s5p_msm import S5Pmsm
 #
 
 #- local functions --------------------------------
+# set the colormap and centre the colorbar
+class MidpointNormalize(mpl.colors.Normalize):
+    """
+    Normalise the colorbar so that diverging bars work there way either side
+    from a prescribed midpoint value)
+
+    e.g. im = ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,
+                                                       vmin=-100, vmax=100))
+    """
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        mpl.colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
+
 def add_copyright(axx):
     axx.text(1, 0, r' $\copyright$ SRON', horizontalalignment='right',
              verticalalignment='bottom', rotation='vertical',
@@ -354,8 +372,9 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_signal(self, msm, data_col=None, data_row=None,
+    def draw_signal(self, msm, msm_ref=None, method='data',
                     *, vperc=None, vrange=None,
+                    low_thres=0.1, high_thres=0.8, qlabels=None,
                     title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
@@ -364,62 +383,159 @@ class S5Pplot(object):
         ----------
         msm       :  pys5p.S5Pmsm
            Object holding measurement data and attributes
-        data_col   :  ndarray
-           Numpy array (1D) column averaged values of data
-           Default is calculated as biweight(data, axis=1)
-        data_row   :  ndarray
-           Numpy array (1D) row averaged values of data
-           Default is calculated as biweight(data, axis=0)
-        vrange     :  list [vmin,vmax]
+        method    : string
+           Method of plot to be generated, default is 'data', optional are
+           'quality', 'ratio', 'diff'
+        msm_ref   :  pys5p.S5Pmsm, optional
+           Object holding referece data and attributes. Required for:
+          'ratio' where measurement data is divided by the reference
+          'diff'  where reference is subtracted from the measurement data
+          'quality' where the changes of quality data w.r.t. CKD are shown
+
+        vrange    :  list [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
-           Note that is you pass a vrange instance then vperc will be ignored
-        vperc      :  list
+        vperc     :  list
            Range to normalize luminance data between percentiles min and max of
-           array data. Default is [1., 99.]
-        title      :  string
+           array data. Default is [1., 99.].
+           keyword 'vperc' is ignored when vrange is given
+
+        low_thres :  float
+           Threshold to reject only the worst of the bad pixels, intended
+           for CKD derivation. Default=0.1
+        high_thres  :  float
+           Threshold for bad pixels. Default=0.8
+        qlabels   :  list of strings
+           Quality ranking labels, default ['invalid', 'worst', 'bad', 'good']
+            - 'invalid': value is negative or NaN
+            - 'worst'  : 0 <= value < low_thres
+            - 'bad'    : 0 <= value < high_thres
+            - 'good'   : value >= high_thres
+
+        title     :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
-        sub_title  :  string
+        sub_title :  string
            Sub-title of the figure. Default is None
            Suggestion: use attribute "comment" of data-product
-        fig_info   :  dictionary
+        fig_info  :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date and the data
         median & spread.
-        """
-        import warnings
 
+        """
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+        from . import swir_region
         from .biweight import biweight
-        from .sron_colormaps import sron_cmap, get_line_colors
-
-        # define colors
-        line_colors = get_line_colors()
+        from .sron_colormaps import sron_cmap,\
+            get_line_colors, get_qfour_colors
 
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
             msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
         assert msm.value.ndim == 2
+        assert not np.all(np.isnan(msm.value))
 
-        # any valid values?
-        if np.all(np.isnan(msm.value)):
-            return
+        if msm_ref is not None:
+            if isinstance(msm_ref, np.ndarray):
+                msm_ref = S5Pmsm(msm_ref)
+            assert isinstance(msm_ref, S5Pmsm)
+            assert msm_ref.value.ndim == 2
+            assert not np.all(np.isnan(msm_ref.value))
 
-        # calculate column/row medians (if required)
-        if data_col is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_col = np.nanmedian(msm.value, axis=1)
+        # define colors, labels and data-range
+        if method == 'quality':
+            thres_worst = 10 * low_thres
+            thres_bad   = 10 * high_thres
+            qmask = (msm.value * 10).astype(np.int8)
+            qmask[~np.isfinite(msm.value)] = -1
+            qmask[~swir_region.mask()] = -1
+            if qlabels is None:
+                qlabels = ["invalid", "worst", "bad", "good"]
 
-        if data_row is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_row = np.nanmedian(msm.value, axis=0)
+            line_colors = get_qfour_colors()
+            cmap = mpl.colors.ListedColormap(line_colors)
+            bounds = [-1, 0, thres_worst, thres_bad, 10]
+            mbounds = [(bounds[1] + bounds[0]) / 2,
+                       (bounds[2] + bounds[1]) / 2,
+                       (bounds[3] + bounds[2]) / 2,
+                       (bounds[4] + bounds[3]) / 2]
+            norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+        else:
+            line_colors = get_line_colors()
+
+            mid_val = None
+            data = msm.value.copy()
+            if method == 'diff':
+                assert msm_ref is not None
+
+                model = msm_ref.value.copy()
+                mask = np.isfinite(msm.value) & np.isfinite(msm_ref.value)
+                data[~mask] = np.nan
+                data[mask] -= model[mask]
+                cmap = sron_cmap('diverging_BuRd')
+                mid_val = 0.
+            elif method == 'ratio':
+                assert msm_ref is not None
+
+                model = msm_ref.value.copy()
+                mask = (np.isfinite(msm.value)
+                        & np.isfinite(msm_ref.value)
+                        & (msm_ref.value != 0.))
+                data[~mask] = np.nan
+                data[mask] /= model[mask]
+                cmap = sron_cmap('diverging_BuRd')
+                mid_val = 1.
+            else:
+                mask = np.isfinite(msm.value)
+                cmap = sron_cmap('rainbow_PiRd')
+
+            # scale data to keep reduce number of significant digits small to
+            # the axis-label and tickmarks readable
+            if vrange is None:
+                if vperc is None:
+                    vperc = (1., 99.)
+                else:
+                    assert len(vperc) == 2
+                (vmin, vmax) = np.percentile(data[mask], vperc)
+            else:
+                assert len(vrange) == 2
+                (vmin, vmax) = vrange
+
+            # convert units from electrons to ke, Me, ...
+            (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+            data[mask] /= dscale
+
+            if method == 'diff':
+                if vmin < 0 and vmax > 0:
+                    (tmp1, tmp2) = (vmin, vmax)
+                    vmin = -max(-tmp1, tmp2)
+                    vmax = max(-tmp1, tmp2)
+                if zunit is None:
+                    zlabel = 'difference'
+                else:
+                    zlabel = r'difference [{}]'.format(zunit)
+            elif method == 'ratio':
+                if not (vmin < 1 and vmax > 1):
+                    (tmp1, tmp2) = (vmin, vmax)
+                    vmin = min(tmp1, 1 / tmp2)
+                    vmax = max(1 / tmp1, tmp2)
+                zlabel = 'ratio'
+            else:
+                if zunit is None:
+                    zlabel = 'value'
+                else:
+                    zlabel = r'value [{}]'.format(zunit)
+                
+            vmin /= dscale
+            vmax /= dscale
+            if mid_val is None:
+                mid_val = (vmin + vmax) / 2
+            norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
         dims = msm.value.shape
@@ -443,22 +559,6 @@ class S5Pplot(object):
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
 
-        # scale data to keep reduce number of significant digits small to
-        # the axis-label and tickmarks readable
-        if vrange is None:
-            if vperc is None:
-                vperc = (1., 99.)
-            else:
-                assert len(vperc) == 2
-            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
-                                         vperc)
-        else:
-            assert len(vrange) == 2
-            (vmin, vmax) = vrange
-
-        # convert units from electrons to ke, Me, ...
-        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
-
         # inititalize figure
         fig, ax_img = plt.subplots(figsize=figsize)
         if title is not None:
@@ -468,17 +568,19 @@ class S5Pplot(object):
         # the image plot:
         if sub_title is not None:
             ax_img.set_title(sub_title, fontsize='large')
-        img = ax_img.imshow(msm.value / dscale, interpolation='none',
-                            vmin=vmin / dscale, vmax=vmax / dscale,
-                            aspect='equal', origin='lower',
-                            extent=extent,  cmap=sron_cmap('rainbow_PiRd'))
-        #xbins = len(ax_img.get_xticklabels())
-        ybins = len(ax_img.get_yticklabels())
+        if method == 'quality':
+            img = ax_img.imshow(qmask, vmin=-1, vmax=10, norm=norm,
+                                interpolation='none', origin='lower',
+                                aspect='equal', extent=extent, cmap=cmap)
+        else:
+            img = ax_img.imshow(data, vmin=vmin, vmax=vmax, norm=norm,
+                                interpolation='none', origin='lower',
+                                aspect='equal', extent=extent, cmap=cmap)
+        add_copyright(ax_img)
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
         for ytl in ax_img.get_yticklabels():
             ytl.set_visible(False)
-        add_copyright(ax_img)
 
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
@@ -488,224 +590,70 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        if zunit is None:
-            plt.colorbar(img, cax=cax, label='{}'.format(msm.name))
+        if qlabels is not None:
+            plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
+            cax.set_yticklabels(qlabels)
         else:
-            plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(msm.name, zunit))
+            plt.colorbar(img, cax=cax, label=zlabel)
         #
-        ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
-        ax_medx.plot(xdata, data_row / dscale,
-                     lw=0.75, color=line_colors[0])
-        xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
-        ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
-        ax_medx.grid(True)
-        ax_medx.set_xlabel(xlabel)
-        #ax_medx.locator_params(axis='x', nbins=5)
-        #ax_medx.locator_params(axis='y', nbins=4)
-        #
-        ax_medy = divider.append_axes("left", 1.1, pad=0.25)
-        ax_medy.plot(data_col / dscale, ydata,
-                     lw=0.75, color=line_colors[0])
-        ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
-        ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
-        ax_medy.locator_params(axis='y', nbins=ybins)
-        #print(ystep, [ydata[0], ydata[-1] + ystep])
-        ax_medy.grid(True)
-        ax_medy.set_ylabel(ylabel)
-        #ax_medy.locator_params(axis='x', nbins=5)
-        #ydata = np.append(ydata, ydata[-1]+1)
-        #print(ydata[::ydata.size//4])
-        #ax_medy.set_yticks(ydata[::ydata.size//4])
-
-        # add annotation
-        (median, spread) = biweight(msm.value, spread=True)
-        if zunit is not None:
-            median_str = r'{:.5g} {}'.format(median / dscale, zunit)
-            spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
-        else:
-            median_str = '{:.5g}'.format(median)
-            spread_str = '{:.5g}'.format(spread)
-
-        if fig_info is None:
-            fig_info = OrderedDict({'median' : median_str})
-        else:
-            fig_info.update({'median' : median_str})
-        fig_info.update({'spread' : spread_str})
-
-        # save and close figure
-        if self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-        else:
-            self.__fig_info(fig, fig_info, aspect)
-            self.__pdf.savefig()
-        plt.close()
-
-    # --------------------------------------------------
-    def draw_quality(self, qmsm, ckd_ref=None,
-                     *, low_thres=0.1, high_thres=0.8, qlabels=None,
-                     title=None, sub_title=None, fig_info=None):
-        """
-        Display pixel quality data
-
-        Parameters
-        ----------
-        qmsm        :  S5Pmsm or ndarray
-           Numpy array (2D) holding quality data, range [0, 1] or NaN.
-           Zero is for dead pixels and one is for excellent pixels.
-        ckd_ref     :  S5Pmsm, optional
-           The difference with the CDK is shown, when present.
-        low_thres   :  float
-           Threshold for usable pixels (with caution), below this threshold
-           pixels are considered worst, default=0.1
-        high_thres  :  float
-           Threshold for good pixels, default=0.8
-        qlabels     :  list of strings
-           Quality ranking labels, default ['invalid', 'worst', 'bad', 'good']
-            - 'invalid': value is negative or NaN
-            - 'worst'  : 0 <= value < low_thres
-            - 'bad'    : low_thres <= value < high_thres
-            - 'good'   : value >= high_thres
-        title      :  string, optional
-           Title of the figure. Default is None
-           Suggestion: use attribute "title" of data-product, default is None.
-        sub_title  :  string, optional
-           Sub-title of the figure. Default is None.
-           Suggestion: use attribute "long_name" of dataset.
-        fig_info   :  dictionary, optional
-           OrderedDict holding meta-data to be displayed in the figure.
-
-        The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date, 'thres_01',
-        'qmask_01', 'thres_08' and 'qmask_08'.
-        """
-        from matplotlib import pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-        from . import swir_region
-
-        # assert that we have some data to show
-        if isinstance(qmsm, np.ndarray):
-            qmsm = S5Pmsm(qmsm)
-        assert isinstance(qmsm, S5Pmsm)
-        assert qmsm is not None and qmsm.value.ndim == 2
-
-        if qlabels is None:
-            qlabels = ["invalid", "worst", "bad", "good"]
-
-        # determine aspect-ratio of data and set sizes of figure and sub-plots
-        dims = qmsm.value.shape
-        aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
-
-        if aspect == 1:
-            figsize = (10, 9)
-        elif aspect == 2:
-            figsize = (12, 7)
-        elif aspect == 3:
-            figsize = (14, 6.5)
-        elif aspect == 4:
-            figsize = (15, 6)
-        else:
-            print(__name__, dims)
-            raise ValueError('*** FATAL: aspect ratio not implemented, exit')
-
-        # set label and range of X/Y axis
-        (ylabel, xlabel) = qmsm.coords._fields
-        ydata = qmsm.coords[0]
-        xdata = qmsm.coords[1]
-        extent = [0, len(xdata), 0, len(ydata)]
-
-        # scale data to integers between [0, 10]
-        # set pixels outside illuminated area at -1
-        thres_min = 10 * low_thres
-        thres_max = 10 * high_thres
-        qmask = (qmsm.value * 10).astype(np.int8)
-        qmask[~np.isfinite(qmsm.value)] = -1
-        qmask[~swir_region.mask()] = -1
-
-        if ckd_ref is not None:
-            qckd = (ckd_ref.value * 10).astype(np.int8)
-            qckd[~np.isfinite(qmsm.value)] = -1
-            qckd[~swir_region.mask()] = -1
-            mm_10 = (qmask >= 0)
-            mm_01 = ((qmask >= 0) & (qmask < thres_min)
-                     & (qckd >= thres_min))
-            mm_08 = ((qmask >= thres_min) & (qmask < thres_max)
-                     & (qckd >= thres_max))
-            qmask[mm_10] = 10    # this one first!
-            qmask[mm_01] = 0
-            qmask[mm_08] = 7
-
-        # define colormap with only 4 colors
-        clist = ['#BBBBBB', '#EE6677','#CCBB44','#FFFFFF']
-        cmap = mpl.colors.ListedColormap(clist)
-        bounds = [-1, 0, thres_min, thres_max, 10]
-        mbounds = [(bounds[1] + bounds[0]) / 2,
-                   (bounds[2] + bounds[1]) / 2,
-                   (bounds[3] + bounds[2]) / 2,
-                   (bounds[4] + bounds[3]) / 2]
-        norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-
-        # inititalize figure
-        fig, ax_img = plt.subplots(figsize=figsize)
-        if title is not None:
-            fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
-
-        # the image plot:
-        if sub_title is not None:
-            ax_img.set_title(sub_title, fontsize='large')
-        img = ax_img.imshow(qmask, vmin=-1, vmax=10, norm=norm,
-                            interpolation='none', origin='lower',
-                            aspect='equal', extent=extent, cmap=cmap)
-        add_copyright(ax_img)
-        for xtl in ax_img.get_xticklabels():
-            xtl.set_visible(False)
-        for ytl in ax_img.get_yticklabels():
-            ytl.set_visible(False)
-
-        # create new axes on the right and on the top of the current axes
-        # The first argument of the new_vertical(new_horizontal) method is
-        # the height (width) of the axes to be created in inches.
-        divider = make_axes_locatable(ax_img)
-        #
-        cax = divider.append_axes("right", size=0.3, pad=0.05)
-        plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
-        cax.set_yticklabels(qlabels)
-        #
-        qmask_row_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=0)
-        qmask_row_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=0)
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25, sharex=ax_img)
-        ax_medx.step(xdata, qmask_row_08, lw=0.75, color=clist[2])
-        ax_medx.step(xdata, qmask_row_01, lw=0.75, color=clist[1])
+        if method == 'quality':
+            worst_row = np.sum(((qmask >= 0) & (qmask < thres_worst)), axis=0)
+            bad_row   = np.sum(((qmask >= 0) & (qmask < thres_bad)), axis=0)
+            ax_medx.step(xdata, bad_row, lw=0.75, color=line_colors[2])
+            ax_medx.step(xdata, worst_row, lw=0.75, color=line_colors[1])
+        else:
+            data_row = biweight(data, axis=0)
+            ax_medx.step(xdata, data_row,
+                         lw=0.75, color=line_colors[0])
+            #xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
+            #ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
         ax_medx.set_xlim([0, dims[1]])
         ax_medx.grid(True)
-        ax_medx.locator_params(axis='x', nbins=6)
-        ax_medx.locator_params(axis='y', nbins=3)
         ax_medx.set_xlabel(xlabel)
-        ax_medx.set_ylabel('count')
         #
-        qmask_col_01 = np.sum(((qmask >= 0) & (qmask < thres_min)), axis=1)
-        qmask_col_08 = np.sum(((qmask >= 0) & (qmask < thres_max)), axis=1)
         ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
-        ax_medy.step(qmask_col_08, ydata, lw=0.75, color=clist[2])
-        ax_medy.step(qmask_col_01, ydata, lw=0.75, color=clist[1])
+        if method == 'quality':
+            worst_col = np.sum(((qmask >= 0) & (qmask < thres_worst)), axis=1)
+            bad_col   = np.sum(((qmask >= 0) & (qmask < thres_bad)), axis=1)
+            ax_medx.step(bad_col, ydata, lw=0.75, color=line_colors[2])
+            ax_medx.step(worst_col, ydata, lw=0.75, color=line_colors[1])
+        else:
+            data_col = biweight(data, axis=1)
+            ax_medy.step(data_col, ydata,
+                         lw=0.75, color=line_colors[0])
+            #ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
+            #ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
+        #ax_medy.locator_params(axis='y', nbins=ybins)
         ax_medy.set_ylim([0, dims[0]])
         ax_medy.grid(True)
-        ax_medy.locator_params(axis='x', nbins=3)
-        ax_medy.locator_params(axis='y', nbins=4)
-        ax_medy.set_xlabel('count')
         ax_medy.set_ylabel(ylabel)
 
         # add annotation
-        if fig_info is None:
-            fig_info = OrderedDict({'bad  ':
-                                    np.sum(((qmask >= 0)
-                                            & (qmask < thres_max)))})
+        if method == 'quality':
+            if fig_info is None:
+                fig_info = OrderedDict({'bad  ':
+                                        np.sum(((qmask >= 0)
+                                                & (qmask < thres_bad)))})
+            else:
+                fig_info.update({'bad  ' :  np.sum(((qmask >= 0)
+                                                    & (qmask < thres_bad)))})
+            fig_info.update({'worst' :  np.sum(((qmask >= 0)
+                                                & (qmask < thres_worst)))})
         else:
-            fig_info.update({'bad  ' :  np.sum(((qmask >= 0)
-                                                & (qmask < thres_max)))})
-        fig_info.update({'worst' :  np.sum(((qmask >= 0)
-                                            & (qmask < thres_min)))})
+            (median, spread) = biweight(msm.value, spread=True)
+            if zunit is None:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
+            else:
+                median_str = r'{:.5g} {}'.format(median / dscale, zunit)
+                spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
+
+            if fig_info is None:
+                fig_info = OrderedDict({'median' : median_str})
+            else:
+                fig_info.update({'median' : median_str})
+            fig_info.update({'spread' : spread_str})
 
         # save and close figure
         if self.__pdf is None:
