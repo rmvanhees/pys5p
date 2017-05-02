@@ -398,7 +398,7 @@ class S5Pmsm(object):
         You should atleast supply one percentile and atmost three.
          vperc is instance 'int' or len(vperc) == 1:
              'value' is replaced by its (nan-)percentile vperc
-             'error' is changed
+             'error' is unchanged
          len(vperc) == 2:
              'value' is replaced by its (nan-)median
              'error' is replaced by percentile('value', (min(vperc), max(vperc))
@@ -416,9 +416,14 @@ class S5Pmsm(object):
         assert len(vperc) == 1 or len(vperc) == 3
 
         if data_sel is None:
+            if self.value.size <= 1 or self.value.ndim <= max(axis):
+                return
             perc = np.nanpercentile(self.value, vperc,
                                     axis=axis, keepdims=keepdims)
         else:
+            if (self.value[data_sel].size <= 1
+                or self.value[data_sel].ndim <= max(axis)):
+                return
             perc = np.nanpercentile(self.value[data_sel], vperc,
                                     axis=axis, keepdims=keepdims)
         if len(vperc) == 3:
