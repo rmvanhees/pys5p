@@ -195,7 +195,8 @@ class CKDio(object):
 
         Note: the V2C CKD has no error attached to it
         """
-        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'v2c')
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir',
+                               'v2c_external')
         assert os.path.isdir(ckd_dir), \
             '*** Fatal, can not find V2C-CKD directory: {}'.format(ckd_dir)
 
