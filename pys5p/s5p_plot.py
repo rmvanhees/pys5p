@@ -54,8 +54,8 @@ from .s5p_msm import S5Pmsm
 #   error_median : (biweight) median of errors
 #   error_spread : (biweight) spread of errors
 # * Detector quality data:
-#   dpqf_01      : number of good pixels with threshold at 0.1
-#   dpqf_08      : mumber of good pixels with threshold at 0.8
+#   bad          : number of good pixels with threshold at 0.1
+#   worst        : mumber of good pixels with threshold at 0.8
 #
 # To force the sequence of the displayed information it is advised to use
 # collections.OrderedDict:
@@ -478,7 +478,6 @@ class S5Pplot(object):
                 data[~mask] = np.nan
                 data[mask] -= model[mask]
                 cmap = sron_cmap('diverging_BuRd')
-                mid_val = 0.
             elif method == 'ratio':
                 assert msm_ref is not None
 
@@ -489,7 +488,6 @@ class S5Pplot(object):
                 data[~mask] = np.nan
                 data[mask] /= model[mask]
                 cmap = sron_cmap('diverging_BuRd')
-                mid_val = 1.
             else:
                 mask = np.isfinite(msm.value)
                 cmap = sron_cmap('rainbow_PiRd')
@@ -508,6 +506,8 @@ class S5Pplot(object):
 
             # convert units from electrons to ke, Me, ...
             (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+            vmin /= dscale
+            vmax /= dscale
             data[mask] /= dscale
 
             if method == 'diff':
@@ -515,15 +515,19 @@ class S5Pplot(object):
                     (tmp1, tmp2) = (vmin, vmax)
                     vmin = -max(-tmp1, tmp2)
                     vmax = max(-tmp1, tmp2)
+                    mid_val = 0.
                 if zunit is None:
                     zlabel = 'difference'
                 else:
                     zlabel = r'difference [{}]'.format(zunit)
             elif method == 'ratio':
-                if not (vmin < 1 and vmax > 1):
+                print('ratio: ', vmin, vmax, mid_val)
+                if vmin < 1 and vmax > 1:
                     (tmp1, tmp2) = (vmin, vmax)
                     vmin = min(tmp1, 1 / tmp2)
                     vmax = max(1 / tmp1, tmp2)
+                    mid_val = 1.
+                zunit = None
                 zlabel = 'ratio'
             else:
                 if zunit is None:
@@ -531,8 +535,6 @@ class S5Pplot(object):
                 else:
                     zlabel = r'value [{}]'.format(zunit)
                 
-            vmin /= dscale
-            vmax /= dscale
             if mid_val is None:
                 mid_val = (vmin + vmax) / 2
             norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
@@ -604,8 +606,7 @@ class S5Pplot(object):
             ax_medx.step(xdata, worst_row, lw=0.75, color=line_colors[1])
         else:
             data_row = biweight(data, axis=0)
-            ax_medx.step(xdata, data_row,
-                         lw=0.75, color=line_colors[0])
+            ax_medx.step(xdata, data_row, lw=0.75, color=line_colors[0])
             #xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
             #ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
         ax_medx.set_xlim([0, dims[1]])
@@ -616,12 +617,11 @@ class S5Pplot(object):
         if method == 'quality':
             worst_col = np.sum(((qmask >= 0) & (qmask < thres_worst)), axis=1)
             bad_col   = np.sum(((qmask >= 0) & (qmask < thres_bad)), axis=1)
-            ax_medx.step(bad_col, ydata, lw=0.75, color=line_colors[2])
-            ax_medx.step(worst_col, ydata, lw=0.75, color=line_colors[1])
+            ax_medy.step(bad_col, ydata, lw=0.75, color=line_colors[2])
+            ax_medy.step(worst_col, ydata, lw=0.75, color=line_colors[1])
         else:
             data_col = biweight(data, axis=1)
-            ax_medy.step(data_col, ydata,
-                         lw=0.75, color=line_colors[0])
+            ax_medy.step(data_col, ydata, lw=0.75, color=line_colors[0])
             #ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
             #ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         #ax_medy.locator_params(axis='y', nbins=ybins)
@@ -641,7 +641,7 @@ class S5Pplot(object):
             fig_info.update({'worst' :  np.sum(((qmask >= 0)
                                                 & (qmask < thres_worst)))})
         else:
-            (median, spread) = biweight(msm.value, spread=True)
+            (median, spread) = biweight(data, spread=True)
             if zunit is None:
                 median_str = '{:.5g}'.format(median)
                 spread_str = '{:.5g}'.format(spread)
@@ -953,7 +953,7 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_qhist(self, msm, msm_dark, msm_noise,
+    def draw_qhist(self, msm_total, msm_dark, msm_noise,
                    *, title=None, fig_info=None):
         """
         Display pixel quality as histograms
@@ -978,58 +978,34 @@ class S5Pplot(object):
         from . import swir_region
         from .sron_colormaps import get_line_colors
 
-        # assert that we have some data to show
-        if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(msm)
-        assert isinstance(msm, S5Pmsm)
-
-        if isinstance(msm_dark, np.ndarray):
-            msm_dark = S5Pmsm(msm_dark)
-        assert isinstance(msm_dark, S5Pmsm)
-
-        if isinstance(msm_noise, np.ndarray):
-            msm_noise = S5Pmsm(msm_noise)
-        assert isinstance(msm_noise, S5Pmsm)
-
         line_colors = get_line_colors()
+
+        # create figure
         fig = plt.figure(figsize=(10, 9))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         gspec = gridspec.GridSpec(15,1)
 
-        axx = plt.subplot(gspec[1:5,0])
-        axx.hist(msm.value[swir_region.mask()],
-                 bins=11, range=[-.1, 1.], color=line_colors[0])
-        add_copyright(axx)
-        axx.set_title(r'histogram of {}'.format(msm.long_name),
-                      fontsize='medium')
-        axx.set_xlim([0, 1])
-        axx.set_yscale('log', nonposy='clip')
-        #axx.set_xlabel(d_label)
-        axx.set_ylabel('count')
+        # draw histograms
+        ipos = 1
+        for msm in [msm_total, msm_dark, msm_noise]:
+            if isinstance(msm, np.ndarray):
+                msm = S5Pmsm(msm)
+            assert isinstance(msm, S5Pmsm)
 
-        axx = plt.subplot(gspec[6:10,0])
-        axx.set_title(r'histogram of {}'.format(msm_dark.long_name),
-                      fontsize='medium')
-        axx.hist(msm_dark.value[swir_region.mask()],
-                 bins=11, range=[-.1, 1.], color=line_colors[0])
-        add_copyright(axx)
-        axx.set_xlim([0, 1])
-        axx.set_yscale('log', nonposy='clip')
-        #axx.set_xlabel(u_label)
-        axx.set_ylabel('count')
-
-        axx = plt.subplot(gspec[11:,0])
-        axx.set_title(r'histogram of {}'.format(msm_noise.long_name),
-                      fontsize='medium')
-        axx.hist(msm_noise.value[swir_region.mask()],
-                 bins=11, range=[-.1, 1.], color=line_colors[0])
-        add_copyright(axx)
-        axx.set_xlim([0, 1])
-        axx.set_yscale('log', nonposy='clip')
-        axx.set_xlabel('value')
-        axx.set_ylabel('count')
+            axx = plt.subplot(gspec[ipos:ipos+4, 0])
+            print('*** generate figure {}'.format(msm.long_name))
+            axx.set_title(r'histogram of {}'.format(msm.long_name),
+                          fontsize='medium')
+            data = msm.value[swir_region.mask()]
+            data[np.isnan(data)] = 0.
+            axx.hist(data, bins=11, range=[-.1, 1.], color=line_colors[0])
+            add_copyright(axx)
+            axx.set_xlim([0, 1])
+            axx.set_yscale('log', nonposy='clip')
+            axx.set_ylabel('count')
+            ipos += 5
 
         # save and close figure
         if self.__pdf is None:
@@ -1343,22 +1319,14 @@ class S5Pplot(object):
         ax_medx.set_xlim([xdata[0]-xstep, xdata[-1]])
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
-        #ax_medx.locator_params(axis='x', nbins=5)
-        #ax_medx.locator_params(axis='y', nbins=4)
         #
-        ax_medy = divider.append_axes("left", 1.1, pad=0.25)
-        ax_medy.plot(data_col / dscale, ydata,
+        ax_medy.step(data_col / dscale, ydata,
                      lw=0.75, color=line_colors[0])
         ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
         ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         ax_medy.locator_params(axis='y', nbins=ybins)
-        #print(ystep, [ydata[0], ydata[-1] + ystep])
         ax_medy.grid(True)
         ax_medy.set_ylabel(ylabel)
-        #ax_medy.locator_params(axis='x', nbins=5)
-        #ydata = np.append(ydata, ydata[-1]+1)
-        #print(ydata[::ydata.size//4])
-        #ax_medy.set_yticks(ydata[::ydata.size//4])
 
         # add annotation
         (median, spread) = biweight(msm.value, spread=True)
@@ -1464,16 +1432,16 @@ class S5Pplot(object):
             xdata = hk_data.coords[0][:]
             xstep = np.diff(xdata).min()
         elif (msm.value.dtype.names is not None
-              and 'dpqf_08' in msm.value.dtype.names):
+              and 'bad' in msm.value.dtype.names):
             (xlabel,) = msm.coords._fields
             xdata  = msm.coords[0][:]
             xstep = np.diff(xdata).min()
             axarr[i_ax].plot(xdata,
-                             msm.value['dpqf_08'] - msm.value['dpqf_08'][0],
+                             msm.value['bad'] - msm.value['bad'][0],
                              lw=1.5, color=line_colors[3],  # yellow
                              label='bad (quality < 0.8)')
             axarr[i_ax].plot(xdata,
-                             msm.value['dpqf_01'] - msm.value['dpqf_01'][0],
+                             msm.value['worst'] - msm.value['worst'][0],
                              lw=1.5, color=line_colors[4],  # red
                              label='worst (quality < 0.1)')
             axarr[i_ax].grid(True)
@@ -1516,7 +1484,7 @@ class S5Pplot(object):
         if i_ax == 1:
             add_copyright(axarr[0])
             if placeholder:
-                print('show placeholder')
+                print('*** show placeholder')
                 axarr[0].text(0.5, 0.5, 'PLACEHOLDER',
                               transform=axarr[0].transAxes, alpha=0.5,
                               fontsize=50, color='gray', rotation=45.,
