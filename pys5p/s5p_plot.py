@@ -534,7 +534,7 @@ class S5Pplot(object):
                     zlabel = 'value'
                 else:
                     zlabel = r'value [{}]'.format(zunit)
-                
+
             if mid_val is None:
                 mid_val = (vmin + vmax) / 2
             norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
@@ -1320,6 +1320,7 @@ class S5Pplot(object):
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
         #
+        ax_medy = divider.append_axes("left", 1.1, pad=0.25)
         ax_medy.step(data_col / dscale, ydata,
                      lw=0.75, color=line_colors[0])
         ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
