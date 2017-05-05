@@ -245,7 +245,7 @@ class OCMio(object):
         sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
         instr = np.squeeze(sgrp['instrument_settings'])
 
-        if self.band > 6:
+        if int(self.band) > 6:
             return 1.25e-6 * (65540 - instr['int_delay'] + instr['int_hold'])
         else:
             return instr['exposure_time']

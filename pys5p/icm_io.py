@@ -402,7 +402,7 @@ class ICMio(object):
         """
         # obtain instrument settings
         instr_arr = self.get_instrument_settings(band)
-        if if instr_arr is None:
+        if instr_arr is None:
             return None
 
         if band is None:
@@ -413,7 +413,7 @@ class ICMio(object):
         # calculate exact exposure time
         res = []
         for instr in instr_arr:
-            if band > 6:
+            if int(band) > 6:
                 res.append(1.25e-6 * (65540
                                       - instr['int_delay'] + instr['int_hold']))
             else:
