@@ -400,17 +400,25 @@ class ICMio(object):
         """
         Returns the exact pixel exposure time of the measurements
         """
-        if not self.__msm_path:
-            return None
-
         # obtain instrument settings
         instr_arr = self.get_instrument_settings(band)
+        if if instr_arr is None:
+            return None
+
+        if band is None:
+            band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
 
         # calculate exact exposure time
         res = []
         for instr in instr_arr:
-            res.append(1.25e-6 * (65540
-                                  - instr['int_delay'] + instr['int_hold']))
+            if band > 6:
+                res.append(1.25e-6 * (65540
+                                      - instr['int_delay'] + instr['int_hold']))
+            else:
+                res.append(instr['exposure_time'])
+
         return res
 
     def get_housekeeping_data(self, band=None):
