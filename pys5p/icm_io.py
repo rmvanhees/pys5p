@@ -396,6 +396,23 @@ class ICMio(object):
 
         return res
 
+    def get_exposure_time(self, band=None):
+        """
+        Returns the exact pixel exposure time of the measurements
+        """
+        if not self.__msm_path:
+            return None
+
+        # obtain instrument settings
+        instr_arr = self.get_instrument_settings(band)
+
+        # calculate exact exposure time
+        res = []
+        for instr in instr_arr:
+            res.append(1.25e-6 * (65540
+                                  - instr['int_delay'] + instr['int_hold']))
+        return res
+
     def get_housekeeping_data(self, band=None):
         """
         Returns housekeeping data of measurements
@@ -639,7 +656,10 @@ class ICMio(object):
                     else:
                         raise ValueError
 
-                res = np.squeeze(dset[data_sel])
+                if dset.dtype == np.float32:
+                    res = np.squeeze(dset[data_sel]).astype(np.float64)
+                else:
+                    res = np.squeeze(dset[data_sel])
                 if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
                     res[(res == fillvalue)] = np.nan
                 data.append(res)

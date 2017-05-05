@@ -23,8 +23,7 @@ import h5py
 #- global parameters ------------------------------
 
 #- local functions --------------------------------
-def band2channel(dict_a, dict_b,
-                 skip_first=False, skip_last=False, mode=None):
+def band2channel(dict_a, dict_b, mode=None):
     """
     Store data from a dictionary as returned by get_msm_data to a ndarray
 
@@ -32,11 +31,12 @@ def band2channel(dict_a, dict_b,
     ----------
     dict_a      :  dictionary
     dict_b      :  dictionary
-    skip_first  :  boolean
-        default is False
-    skip_last   :  boolean
-        default is False
-    mode        :  list ['combined', 'median']
+    mode        :  list ['combined', 'mean', 'median', 'biweight']
+        'combined' will combine data using np.concatenate((data_a, data_b),
+                                                          axis=data_a.ndim-1)
+        'mean' is calculated using np.nanmean(data, axis=0)
+        'median' is calculated using np.nanmedian(data, axis=0)
+        'biweight' is calculated using pys5p.biweight(data, axis=0)
         default is None
 
     Returns
@@ -49,62 +49,63 @@ def band2channel(dict_a, dict_b,
 
     Examples
     --------
-    >>> data = ocm.band2channel(dict_a, dict_b,
-                                mode=['combined', 'median'])
+    >>> data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
     >>>
     """
+    from pys5p.biweight import biweight
+
     if dict_b is None:
         dict_b = {}
     if mode is None:
         mode = []
 
     data_a = None
-    data_b = None
     for key in sorted(dict_a):
-        if skip_last:
-            if skip_first:
-                buff = dict_a[key].value[1:-1, ...]
-            else:
-                buff = dict_a[key].value[0:-1, ...]
-        else:
-            if skip_first:
-                buff = dict_a[key].value[1:, ...]
-            else:
-                buff = dict_a[key].value[0:, ...]
+        buff = dict_a[key][...]
 
-        if 'combine' not in mode and 'median' in mode:
-            buff = np.nanmedian(buff, axis=0)
+        if 'combine' not in mode:
+            if 'mean' in mode:
+                buff = np.nanmean(buff, axis=0)
+            elif 'median' in mode:
+                buff = np.nanmedian(buff, axis=0)
+            elif 'biweight' in mode:
+                buff = biweight(buff, axis=0)
 
         if data_a is None:
             data_a = buff
         else:
             data_a = np.vstack((data_a, buff))
 
-    if 'combine' in mode and 'median' in mode:
-        data_a = np.nanmedian(data_a, axis=0)
-
+    data_b = None
     for key in sorted(dict_b):
-        if skip_last:
-            if skip_first:
-                buff = dict_b[key].value[1:-1, ...]
-            else:
-                buff = dict_b[key].value[0:-1, ...]
-        else:
-            if skip_first:
-                buff = dict_b[key].value[1:, ...]
-            else:
-                buff = dict_b[key].value[0:, ...]
+        buff = dict_b[key][...]
 
-        if 'combine' not in mode and 'median' in mode:
-            buff = np.nanmedian(buff, axis=0)
+        if 'combine' not in mode:
+            if 'mean' in mode:
+                buff = np.nanmean(buff, axis=0)
+            elif 'median' in mode:
+                buff = np.nanmedian(buff, axis=0)
+            elif 'biweight' in mode:
+                buff = biweight(buff, axis=0)
 
         if data_b is None:
             data_b = buff
         else:
             data_b = np.vstack((data_b, buff))
 
-    if 'combine' in mode and 'median' in mode:
-        data_b = np.nanmedian(data_b, axis=0)
+    if 'combine' in mode:
+        if 'mean' in mode:
+            data_a = np.nanmean(data_a, axis=0)
+            if data_b is not None:
+                data_b = np.nanmean(data_b, axis=0)
+        elif 'median' in mode:
+            data_a = np.nanmedian(data_a, axis=0)
+            if data_b is not None:
+                data_b = np.nanmedian(data_b, axis=0)
+        elif 'biweight' in mode:
+            data_a = biweight(data_a, axis=0)
+            if data_b is not None:
+                data_b = biweight(data_b, axis=0)
 
     if data_b is None:
         return data_a
@@ -232,6 +233,20 @@ class OCMio(object):
 
         return res
 
+    def get_exposure_time(self):
+        """
+        Returns the exact pixel exposure time of the measurements
+        """
+        if not self.__msm_path:
+            return None
+
+        grp = self.fid['BAND{}'.format(self.band)]
+        msm = self.__msm_path[0] ## all measurement sets have the same ICID
+        sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
+        instr = np.squeeze(sgrp['instrument_settings'])
+
+        return 1.25e-6 * (65540 - instr['int_delay'] + instr['int_hold'])
+
     def get_housekeeping_data(self):
         """
         Returns housekeeping data of measurements
@@ -248,15 +263,18 @@ class OCMio(object):
         return res
 
     #-------------------------
-    def select(self, ic_id):
+    def select(self, ic_id=None, *, msm_grp=None):
         """
-        Select a measurement as BAND%_<ic_id>_GROUP_%
+        Select a measurement as BAND%/ICID_<ic_id>_GROUP_%
 
         Parameters
         ----------
         ic_id  :  integer
           used as "BAND%/ICID_{}_GROUP_%".format(ic_id)
-          if ic_id is None then show available ICID's
+        msm_grp : string
+          select measurement group with name msm_grp
+        
+        All measurements groups are shown when ic_id and msm_grp are None
 
         Returns
         -------
@@ -268,14 +286,16 @@ class OCMio(object):
         """
         self.band = ''
         self.__msm_path = []
-        for ii in '12345678':
+        for ii in '87654321':
             if 'BAND{}'.format(ii) in self.fid:
                 self.band = ii
                 break
 
         if self.band:
             gid = self.fid['BAND{}'.format(self.band)]
-            if ic_id is None:
+            if msm_grp is not None and msm_grp in gid:
+                self.__msm_path = [msm_grp]
+            elif ic_id is None:
                 grp_name = 'ICID_'
                 for kk in gid:
                     if kk.startswith(grp_name):
@@ -388,7 +408,10 @@ class OCMio(object):
                     raise ValueError
 
             # read data
-            data = np.squeeze(dset[data_sel])
+            if dset.dtype == np.float32:
+                data = np.squeeze(dset[data_sel]).astype(np.float64)
+            else:
+                data = np.squeeze(dset[data_sel])
             if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
                 data[(data == fillvalue)] = np.nan
 
