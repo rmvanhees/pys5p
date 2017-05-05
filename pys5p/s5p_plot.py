@@ -468,25 +468,22 @@ class S5Pplot(object):
         else:
             line_colors = get_line_colors()
 
-            mid_val = None
             data = msm.value.copy()
             if method == 'diff':
                 assert msm_ref is not None
 
-                model = msm_ref.value.copy()
                 mask = np.isfinite(msm.value) & np.isfinite(msm_ref.value)
                 data[~mask] = np.nan
-                data[mask] -= model[mask]
+                data[mask] -= msm_ref.value[mask]
                 cmap = sron_cmap('diverging_BuRd')
             elif method == 'ratio':
                 assert msm_ref is not None
 
-                model = msm_ref.value.copy()
                 mask = (np.isfinite(msm.value)
                         & np.isfinite(msm_ref.value)
                         & (msm_ref.value != 0.))
                 data[~mask] = np.nan
-                data[mask] /= model[mask]
+                data[mask] /= msm_ref.value[mask]
                 cmap = sron_cmap('diverging_BuRd')
             else:
                 mask = np.isfinite(msm.value)
@@ -510,6 +507,7 @@ class S5Pplot(object):
             vmax /= dscale
             data[mask] /= dscale
 
+            mid_val = None
             if method == 'diff':
                 if vmin < 0 and vmax > 0:
                     (tmp1, tmp2) = (vmin, vmax)
@@ -606,9 +604,10 @@ class S5Pplot(object):
             ax_medx.step(xdata, worst_row, lw=0.75, color=line_colors[1])
         else:
             data_row = biweight(data, axis=0)
-            ax_medx.step(xdata, data_row, lw=0.75, color=line_colors[0])
-            #xstep = (xdata[-1] - xdata[0]) // (xdata.size - 1)
-            #ax_medx.set_xlim([xdata[0], xdata[-1] + xstep])
+            if xdata.size < 250:
+                ax_medx.plot(xdata, data_row, lw=0.75, color=line_colors[0])
+            else:
+                ax_medx.step(xdata, data_row, lw=0.75, color=line_colors[0])
         ax_medx.set_xlim([0, dims[1]])
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
@@ -621,7 +620,10 @@ class S5Pplot(object):
             ax_medy.step(worst_col, ydata, lw=0.75, color=line_colors[1])
         else:
             data_col = biweight(data, axis=1)
-            ax_medy.step(data_col, ydata, lw=0.75, color=line_colors[0])
+            if ydata.size < 500:
+                ax_medy.step(data_col, ydata, lw=0.75, color=line_colors[0])
+            else:
+                ax_medy.plot(data_col, ydata, lw=0.75, color=line_colors[0])
             #ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
             #ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
         #ax_medy.locator_params(axis='y', nbins=ybins)
@@ -646,8 +648,8 @@ class S5Pplot(object):
                 median_str = '{:.5g}'.format(median)
                 spread_str = '{:.5g}'.format(spread)
             else:
-                median_str = r'{:.5g} {}'.format(median / dscale, zunit)
-                spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
+                median_str = r'{:.5g} {}'.format(median, zunit)
+                spread_str = r'{:.5g} {}'.format(spread, zunit)
 
             if fig_info is None:
                 fig_info = OrderedDict({'median' : median_str})
