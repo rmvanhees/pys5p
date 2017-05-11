@@ -529,9 +529,9 @@ class S5Pplot(object):
                 zlabel = 'ratio'
             else:
                 if zunit is None:
-                    zlabel = 'value'
+                    zlabel = msm.name
                 else:
-                    zlabel = r'value [{}]'.format(zunit)
+                    zlabel = r'{} [{}]'.format(msm.name, zunit)
 
             if mid_val is None:
                 mid_val = (vmin + vmax) / 2
