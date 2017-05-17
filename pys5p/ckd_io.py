@@ -49,6 +49,31 @@ class CKDio(object):
         assert os.path.isdir(os.path.join(ckd_dir, 'ckd_release_swir')), \
             '*** Fatal, can not find SWIR CKD subdirectory: {}'.format(ckd_dir)
 
+    def get_swir_absirr(self, qvd=1):
+        """
+        returns absolute irradiance responsivity for SWIR, except row 257
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release', 'abs_irr_uvn')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find ABSIRR-CKD directory: {}'.format(ckd_dir)
+
+        file_b7 = os.path.join(ckd_dir, 'irrad_conv_factors.band7.ckd.nc')
+        file_b8 = os.path.join(ckd_dir, 'irrad_conv_factors.band8.ckd.nc')
+        assert os.path.isfile(file_b7) and os.path.isfile(file_b8), \
+            '*** Fatal, no ABSIRR CKD found on the system'
+
+        dname = '/BAND7/abs_irr_conv_factor_qvd{}'.format(qvd)
+        with h5py.File(file_b7, 'r') as fid:
+            ckd = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
+
+        dname = '/BAND8/abs_irr_conv_factor_qvd{}'.format(qvd)
+        with h5py.File(file_b8, 'r') as fid:
+            ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
+
+        ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_long_name('SWIR ABSIRR CKD')
+        return ckd
+
     def get_swir_darkflux(self):
         """
         returns darkflux CKD for SWIR, except row 257
@@ -113,6 +138,29 @@ class CKDio(object):
 
         ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR quality CKD')
+        return ckd
+
+    def get_swir_noise(self):
+        """
+        returns noise CKD for SWIR, except row 257
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir',
+                               'readnoise_external')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find offset directory: {}'.format(ckd_dir)
+
+        file_ch4 = os.path.join(ckd_dir,'ckd.readnoise.detector4.nc')
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no offset CKD found on the system'
+
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(fid['/BAND7/readout_noise_swir'], datapoint=False,
+                         data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/readout_noise_swir'], datapoint=False,
+                            data_sel=np.s_[:-1, :])
+
+        ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_long_name('SWIR noise CKD')
         return ckd
 
     def get_swir_offset(self):
