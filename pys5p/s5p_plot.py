@@ -507,7 +507,7 @@ class S5Pplot(object):
             vmax /= dscale
             data[mask] /= dscale
 
-            mid_val = None
+            mid_val = (vmin + vmax) / 2
             if method == 'diff':
                 if vmin < 0 and vmax > 0:
                     (tmp1, tmp2) = (vmin, vmax)
@@ -519,7 +519,6 @@ class S5Pplot(object):
                 else:
                     zlabel = r'difference [{}]'.format(zunit)
             elif method == 'ratio':
-                print('ratio: ', vmin, vmax, mid_val)
                 if vmin < 1 and vmax > 1:
                     (tmp1, tmp2) = (vmin, vmax)
                     vmin = min(tmp1, 1 / tmp2)
@@ -529,12 +528,10 @@ class S5Pplot(object):
                 zlabel = 'ratio'
             else:
                 if zunit is None:
-                    zlabel = msm.name
+                    zlabel = 'value'
                 else:
-                    zlabel = r'{} [{}]'.format(msm.name, zunit)
-
-            if mid_val is None:
-                mid_val = (vmin + vmax) / 2
+                    zlabel = r'value [{}]'.format(zunit)
+                
             norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
@@ -634,14 +631,14 @@ class S5Pplot(object):
         # add annotation
         if method == 'quality':
             if fig_info is None:
-                fig_info = OrderedDict({'bad  ':
+                fig_info = OrderedDict({'bad (quality < 0.8)':
                                         np.sum(((qmask >= 0)
                                                 & (qmask < thres_bad)))})
             else:
-                fig_info.update({'bad  ' :  np.sum(((qmask >= 0)
-                                                    & (qmask < thres_bad)))})
-            fig_info.update({'worst' :  np.sum(((qmask >= 0)
-                                                & (qmask < thres_worst)))})
+                fig_info.update({'bad (quality < 0.8)' :
+                                 np.sum(((qmask >= 0) & (qmask < thres_bad)))})
+            fig_info.update({'worst (quality < 0.1)' :
+                             np.sum(((qmask >= 0) & (qmask < thres_worst)))})
         else:
             (median, spread) = biweight(data, spread=True)
             if zunit is None:
@@ -884,7 +881,7 @@ class S5Pplot(object):
         fig = plt.figure(figsize=(10, 7))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
+                         position=(0.45, 0.925), horizontalalignment='center')
         gspec = gridspec.GridSpec(11,1)
 
         #---------- create first histogram ----------
@@ -938,7 +935,7 @@ class S5Pplot(object):
             else:
                 u_label = msm_err.name
 
-            axx = plt.subplot(gspec[7:-1, 0])
+            axx = plt.subplot(gspec[6:-1, 0])
             axx.hist(uncertainties / uscale,
                      range=[umin / uscale, umax / uscale],
                      bins=15, color=line_colors[0])
@@ -1423,7 +1420,7 @@ class S5Pplot(object):
                 axarr[0].set_title(caption, fontsize='large')
         else:
             if title is not None:
-                fig.suptitle(title, fontsize='x-large',
+                fig.suptitle(title, fontsize='x-large', position=(0.5, 0.96),
                              horizontalalignment='center')
 
             if sub_title is not None:
@@ -1439,14 +1436,21 @@ class S5Pplot(object):
             (xlabel,) = msm.coords._fields
             xdata  = msm.coords[0][:]
             xstep = np.diff(xdata).min()
-            axarr[i_ax].plot(xdata,
-                             msm.value['bad'] - msm.value['bad'][0],
-                             lw=1.5, color=line_colors[3],  # yellow
+            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
+                             np.append(
+                                 msm.value['bad'] - msm.value['bad'][0],
+                                 msm.value['bad'][-1] - msm.value['bad'][0]),
+                             where='post', lw=1.5,
+                             color=line_colors[3],  # yellow
                              label='bad (quality < 0.8)')
-            axarr[i_ax].plot(xdata,
-                             msm.value['worst'] - msm.value['worst'][0],
-                             lw=1.5, color=line_colors[4],  # red
+            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
+                             np.append(
+                                 msm.value['worst'] - msm.value['worst'][0],
+                                 msm.value['worst'][-1]-msm.value['worst'][0]),
+                             where='post', lw=1.5,
+                             color=line_colors[4],  # red
                              label='worst (quality < 0.1)')
+            axarr[i_ax].set_xlim([xdata[0]-xstep, xdata[-1]])
             axarr[i_ax].grid(True)
             axarr[i_ax].set_ylabel('{}'.format('count (relative)'))
             axarr[i_ax].legend(loc='upper left', fontsize='smaller')
@@ -1479,9 +1483,9 @@ class S5Pplot(object):
             axarr[i_ax].set_xlim([xdata[0]-xstep, xdata[-1]])
             axarr[i_ax].grid(True)
             if zunit is None:
-                axarr[i_ax].set_ylabel('median value')
+                axarr[i_ax].set_ylabel('detector value')
             else:
-                axarr[i_ax].set_ylabel(r'median value [{}]'.format(zunit))
+                axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
             i_ax += 1
 
         if i_ax == 1:
@@ -1527,7 +1531,7 @@ class S5Pplot(object):
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
 
-        fig.subplots_adjust(hspace=0)
+        fig.subplots_adjust(hspace=0.02)
         plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
         # save and close figure
