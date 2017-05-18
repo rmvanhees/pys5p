@@ -222,6 +222,14 @@ class S5Pmsm(object):
         if self.units is None or force:
             self.units = units
 
+    def set_fillvalue(self):
+        """
+        Set fillvalue to KNMI undefined
+        """
+        if self.value.dtype == np.float64 or self.value.dtype == np.float32:
+            if self.fillvalue is None or self.fillvalue == 0.:
+                self.fillvalue = float.fromhex('0x1.ep+122')
+
     def set_long_name(self, name, force=False):
         """
         Set the long_name attribute, overwrite when force is true

@@ -71,6 +71,7 @@ class CKDio(object):
             ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR absolute irradiance CKD')
         return ckd
 
@@ -96,6 +97,7 @@ class CKDio(object):
             ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR absolute radiance CKD')
         return ckd
 
@@ -118,6 +120,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR dark-flux CKD')
         return ckd
 
@@ -168,13 +171,13 @@ class CKDio(object):
         """
         returns memory CKD for SWIR, except row 257
         """
-        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'memeory')
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'memory')
         assert os.path.isdir(ckd_dir), \
             '*** Fatal, can not find memory directory: {}'.format(ckd_dir)
 
-        file_ch4 = os.path.join(ckd_dir,'ckd.readnoise.detector4.nc')
+        file_ch4 = os.path.join(ckd_dir,'ckd.memory.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no offset CKD found on the system'
+            '*** Fatal, no memory CKD found on the system'
 
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
                      'mem_qua_neg_swir', 'mem_qua_pos_swir']
@@ -187,6 +190,7 @@ class CKDio(object):
                                 datapoint=True, data_sel=np.s_[:-1, :])
 
                 ckd[key].concatenate(ckd_b8, axis=1)
+                ckd[key].set_fillvalue()
                 ckd[key].set_long_name(
                     fid['/BAND7/{}'.format(key)].attrs['comment'])
         return ckd
@@ -211,6 +215,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR noise CKD')
         return ckd
 
@@ -233,6 +238,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR offset CKD')
         return ckd
 
@@ -260,6 +266,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR PRNU CKD')
         return ckd
 
@@ -285,6 +292,7 @@ class CKDio(object):
                             data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
         ckd.set_long_name('SWIR saturation(pre-offset) CKD')
         return ckd
 
