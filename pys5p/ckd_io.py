@@ -55,7 +55,7 @@ class CKDio(object):
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release', 'abs_irr_uvn')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find ABSIRR-CKD directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find absirr directory: {}'.format(ckd_dir)
 
         file_b7 = os.path.join(ckd_dir, 'irrad_conv_factors.band7.ckd.nc')
         file_b8 = os.path.join(ckd_dir, 'irrad_conv_factors.band8.ckd.nc')
@@ -71,7 +71,32 @@ class CKDio(object):
             ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_long_name('SWIR ABSIRR CKD')
+        ckd.set_long_name('SWIR absolute irradiance CKD')
+        return ckd
+
+    def get_swir_absrad(self):
+        """
+        returns absolute radiance responsivity for SWIR, except row 257
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release', 'abs_rad_uvn')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find absrad directory: {}'.format(ckd_dir)
+
+        file_b7 = os.path.join(ckd_dir, 'abs_rad.band7.ckd.nc')
+        file_b8 = os.path.join(ckd_dir, 'abs_rad.band8.ckd.nc')
+        assert os.path.isfile(file_b7) and os.path.isfile(file_b8), \
+            '*** Fatal, no ABSRAD CKD found on the system'
+
+        dname = '/BAND7/abs_rad_conv_factor'
+        with h5py.File(file_b7, 'r') as fid:
+            ckd = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
+
+        dname = '/BAND8/abs_rad_conv_factor'
+        with h5py.File(file_b8, 'r') as fid:
+            ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
+
+        ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_long_name('SWIR absolute radiance CKD')
         return ckd
 
     def get_swir_darkflux(self):
@@ -80,7 +105,7 @@ class CKDio(object):
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'darkflux')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find darkflux directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find dark-flux directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.dark.detector4.nc')
         assert os.path.isfile(file_ch4), \
@@ -102,7 +127,7 @@ class CKDio(object):
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'dpqf')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find DPQF-CKD directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find dpqf directory: {}'.format(ckd_dir)
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
         assert os.path.isfile(ckd_file), \
@@ -125,7 +150,7 @@ class CKDio(object):
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'dpqf')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find DPQF-CKD directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find dpqf directory: {}'.format(ckd_dir)
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
         assert os.path.isfile(ckd_file), \
@@ -133,11 +158,37 @@ class CKDio(object):
 
         with h5py.File(ckd_file, 'r' ) as fid:
             ckd = S5Pmsm(fid['/BAND7/' + ds_name], data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/' + ds_name],
-                            data_sel=np.s_[:-1, :])
+            ckd_b8 = S5Pmsm(fid['/BAND8/' + ds_name], data_sel=np.s_[:-1, :])
 
         ckd.concatenate(ckd_b8, axis=1)
         ckd.set_long_name('SWIR quality CKD')
+        return ckd
+
+    def get_swir_memory(self):
+        """
+        returns memory CKD for SWIR, except row 257
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'memeory')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find memory directory: {}'.format(ckd_dir)
+
+        file_ch4 = os.path.join(ckd_dir,'ckd.readnoise.detector4.nc')
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no offset CKD found on the system'
+
+        ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
+                     'mem_qua_neg_swir', 'mem_qua_pos_swir']
+        ckd = {}
+        with h5py.File(file_ch4, 'r') as fid:
+            for key in ckd_parms:
+                ckd[key] = S5Pmsm(fid['/BAND7/{}'.format(key)],
+                                  datapoint=True, data_sel=np.s_[:-1, :])
+                ckd_b8 = S5Pmsm(fid['/BAND8/{}'.format(key)],
+                                datapoint=True, data_sel=np.s_[:-1, :])
+
+                ckd[key].concatenate(ckd_b8, axis=1)
+                ckd[key].set_long_name(
+                    fid['/BAND7/{}'.format(key)].attrs['comment'])
         return ckd
 
     def get_swir_noise(self):
@@ -147,7 +198,7 @@ class CKDio(object):
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir',
                                'readnoise_external')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find offset directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find noise directory: {}'.format(ckd_dir)
 
         file_ch4 = os.path.join(ckd_dir,'ckd.readnoise.detector4.nc')
         assert os.path.isfile(file_ch4), \
@@ -193,7 +244,7 @@ class CKDio(object):
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release', 'prnu_uvn')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find PRNU-CKD directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find prnu directory: {}'.format(ckd_dir)
 
         file_b7 = os.path.join(ckd_dir, 'stitch.band7.ckd.nc')
         file_b8 = os.path.join(ckd_dir, 'stitch.band8.ckd.nc')
@@ -246,7 +297,7 @@ class CKDio(object):
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir',
                                'v2c_external')
         assert os.path.isdir(ckd_dir), \
-            '*** Fatal, can not find V2C-CKD directory: {}'.format(ckd_dir)
+            '*** Fatal, can not find v2c directory: {}'.format(ckd_dir)
 
         ckd_file = os.path.join(ckd_dir, 'ckd.v2c_factor.detector4.nc')
         assert os.path.isfile(ckd_file), \
