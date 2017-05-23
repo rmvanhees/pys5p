@@ -83,16 +83,23 @@ class MidpointNormalize(mpl.colors.Normalize):
     def __call__(self, value, clip=None):
         # I'm ignoring masked values and all kinds of edge cases to make a
         # simple example...
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
+        xx, yy = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, xx, yy), np.isnan(value))
 
 def add_copyright(axx):
+    """
+    Display SRON copyright in current figure
+    """
     axx.text(1, 0, r' $\copyright$ SRON', horizontalalignment='right',
              verticalalignment='bottom', rotation='vertical',
              fontsize='xx-small', transform=axx.transAxes)
 
 #-------------------------
 def convert_units(units, vmin, vmax):
+    """
+    Convert units electron or Volt to resp. 'e' and 'V'
+    Scale data-range to [-1000, 0] or [0, 1000] based on data-range
+    """
     dscale = 1.0
     if units is None:
         zunit = None
@@ -127,6 +134,14 @@ def convert_units(units, vmin, vmax):
         zunit = units
 
     return (zunit, dscale)
+
+def blank_legen_key():
+    """
+    Show only text in matplotlib legenda, no key
+    """
+    from matplotlib.patches import Rectangle
+
+    return Rectangle((0,0), 0, 0, fill=False, edgecolor='none', visible=False)
 
 #- main function __--------------------------------
 # pylint: disable=too-many-arguments, too-many-locals
@@ -232,7 +247,7 @@ class S5Pplot(object):
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         else:
-            fig.text(0.9, 0.965, info_str,
+            fig.text(0.925, 0.965, info_str,
                      fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
@@ -531,7 +546,7 @@ class S5Pplot(object):
                     zlabel = 'value'
                 else:
                     zlabel = r'value [{}]'.format(zunit)
-                
+
             norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # determine aspect-ratio of data and set sizes of figure and sub-plots
@@ -841,8 +856,8 @@ class S5Pplot(object):
         plt.close()
 
     # --------------------------------------------------
-    def draw_hist(self, msm, msm_err, sigma=3,
-                  *, title=None, fig_info=None):
+    def draw_hist(self, msm, msm_err, *, vperc=None, vrange=None,
+                  clip=True, title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
@@ -852,6 +867,12 @@ class S5Pplot(object):
            Object holding measurement data and attributes
         msm_err     :  pys5p.S5Pmsm
            Object holding measurement data and attributes
+        vrange     :  list [vmin, vmax]
+           Range to normalize luminance data between vmin and vmax.
+           Note that is you pass a vrange instance then vperc will be ignored
+        vperc      :  list
+           Range to normalize luminance data between percentiles min and max of
+           array data. Default is [1., 99.]
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -877,6 +898,25 @@ class S5Pplot(object):
             msm_err = S5Pmsm(msm_err)
         assert isinstance(msm_err, S5Pmsm)
 
+        # scale data to keep reduce number of significant digits small to
+        # the axis-label and tickmarks readable
+        if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
+            (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
+                                         vperc)
+            (umin, umax) = np.percentile(
+                msm_err.value[np.isfinite(msm_err.value)], vperc)
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
+            indx = (np.isfinite(msm.value)
+                    & (msm.value >= vmin) & (msm.value <= vmax))
+            (umin, umax) = (msm_err.value[indx].min(),
+                            msm_err.value[indx].max())
+
         line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 7))
         if title is not None:
@@ -885,63 +925,85 @@ class S5Pplot(object):
         gspec = gridspec.GridSpec(11,1)
 
         #---------- create first histogram ----------
-        values = msm.value[np.isfinite(msm.value)].reshape(-1)
-        if values.size > 0:
-            if fig_info is None or \
-               not ('val_median' in fig_info and 'val_spread' in fig_info):
-                (median, spread) = biweight(values, spread=True)
-                if fig_info is None:
-                    fig_info = OrderedDict({'val_median' : median})
-                else:
-                    fig_info.update({'val_median' : median})
-                fig_info.update({'val_spread' : spread})
-            values -= fig_info['val_median']
+        # convert units from electrons to ke, Me, ...
+        (zunit, zscale) = convert_units(msm.units, vmin, vmax)
 
-            # convert units from electrons to ke, Me, ...
-            zmin = -sigma * fig_info['val_spread']
-            zmax = sigma * fig_info['val_spread']
-            (zunit, zscale) = convert_units(msm.units, zmin, zmax)
+        # clip (limit) the values
+        values = msm.value.reshape(-1)
+        values[np.isnan(values)] = vmax
+        if clip:
+            values = np.clip(values, vmin, vmax)
+
+        if values.size > 0:
             if zunit is None:
                 d_label = msm.name
             else:
                 d_label = r'{} [{}]'.format(msm.name, zunit)
 
+            # create histogram
             axx = plt.subplot(gspec[1:5, 0])
-            axx.hist(values / zscale, range=[zmin / zscale, zmax / zscale],
+            axx.hist(values / zscale,
+                     range=[np.floor(vmin / zscale), np.ceil(vmax / zscale)],
                      bins=15, color=line_colors[0])
-            axx.set_title(r'histogram centred at median'
-                          r' (range $\pm {} \sigma$)'.format(sigma),
+            axx.set_title(r'histogram of {}'.format(msm.long_name),
                           fontsize='large')
             add_copyright(axx)
+            axx.set_xlim([np.floor(vmin / zscale), np.ceil(vmax / zscale)])
             axx.set_xlabel(d_label)
             axx.set_ylabel('count')
 
-        #---------- create second histogram ----------
-        uncertainties = msm_err.value[np.isfinite(msm_err.value)].reshape(-1)
-        if uncertainties.size > 0:
-            if fig_info is None or \
-               not ('unc_median' in fig_info and 'unc_spread' in fig_info):
-                (median, spread) = biweight(uncertainties, spread=True)
-                fig_info.update({'unc_median' : median})
-                fig_info.update({'unc_spread' : spread})
-            uncertainties -= fig_info['unc_median']
-
-            # convert units from electrons to ke, Me, ...
-            umin = -sigma * fig_info['unc_spread']
-            umax = sigma * fig_info['unc_spread']
-            (uunits, uscale) = convert_units(msm_err.units, umin, umax)
-            if msm_err.units is not None:
-                u_label = '{} [{}]'.format(msm_err.name, uunits)
+            # add annotation
+            (median, spread) = biweight(msm.value, spread=True)
+            if zunit is not None:
+                median_str = r'{:.5g} {}'.format(median / zscale, zunit)
+                spread_str = r'{:.5g} {}'.format(spread / zscale, zunit)
             else:
-                u_label = msm_err.name
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
 
+            if fig_info is None:
+                fig_info = OrderedDict({'val_median' : median_str})
+            else:
+                fig_info.update({'val_median' : median_str})
+            fig_info.update({'val_spread' : spread_str})
+
+        #---------- create second histogram ----------
+        # convert units from electrons to ke, Me, ...
+        (uunit, uscale) = convert_units(msm_err.units, umin, umax)
+
+        # clip (limit) the uncertainties
+        uncertainties = msm_err.value.reshape(-1)
+        uncertainties[np.isnan(uncertainties)] = umax
+        if clip:
+            uncertainties = np.clip(uncertainties, umin, umax)
+
+        if uncertainties.size > 0:
+            if uunit is None:
+                d_label = msm_err.name
+            else:
+                d_label = r'{} [{}]'.format(msm_err.name, uunit)
+
+            # create histogram
             axx = plt.subplot(gspec[6:-1, 0])
             axx.hist(uncertainties / uscale,
-                     range=[umin / uscale, umax / uscale],
+                     range=[np.floor(umin / uscale), np.ceil(umax / uscale)],
                      bins=15, color=line_colors[0])
             add_copyright(axx)
-            axx.set_xlabel(u_label)
+            axx.set_xlim([np.floor(umin / uscale), np.ceil(umax / uscale)])
+            axx.set_xlabel(d_label)
             axx.set_ylabel('count')
+
+            # add annotation
+            (median, spread) = biweight(msm_err.value, spread=True)
+            if zunit is not None:
+                median_str = r'{:.5g} {}'.format(median / uscale, uunit)
+                spread_str = r'{:.5g} {}'.format(spread / uscale, uunit)
+            else:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
+
+            fig_info.update({'unc_median' : median_str})
+            fig_info.update({'unc_spread' : spread_str})
 
         # save and close figure
         if self.__pdf is None:
@@ -969,7 +1031,7 @@ class S5Pplot(object):
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date, signal
-        median & spread adn error meadian & spread.
+        median & spread and error meadian & spread.
         """
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
@@ -1315,7 +1377,7 @@ class S5Pplot(object):
         ax_medx.step(np.insert(xdata, 0, xdata[0] - xstep),
                      np.append(data_row / dscale, data_row[-1] / dscale),
                      where='post', lw=0.75, color=line_colors[0])
-        ax_medx.set_xlim([xdata[0]-xstep, xdata[-1]])
+        ax_medx.set_xlim([extent[0], extent[1]])
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
         #
@@ -1337,6 +1399,8 @@ class S5Pplot(object):
             median_str = '{:.5g}'.format(median)
             spread_str = '{:.5g}'.format(spread)
 
+        if 'orbit' in fig_info:
+            fig_info.update({'orbit' : [extent[0], extent[1]]})
         if fig_info is None:
             fig_info = OrderedDict({'median' : median_str})
         else:
@@ -1515,8 +1579,7 @@ class S5Pplot(object):
                 axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
                                  np.append(hk_data.value[key],
                                            hk_data.value[key][-1]),
-                                 where='post', lw=1.5, color=lcolor,
-                                 label=hk_data.long_name[indx].decode('ascii'))
+                                 where='post', lw=1.5, color=lcolor)
                 axarr[i_ax].fill_between(np.insert(xdata, 0, xdata[0]-xstep),
                                          np.append(hk_data.error[key][:, 0],
                                                    hk_data.error[key][-1, 0]),
@@ -1526,7 +1589,10 @@ class S5Pplot(object):
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].grid(True)
                 axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
-                lg = axarr[i_ax].legend(loc='upper left')
+                lg = axarr[i_ax].legend(
+                    [blank_legen_key()],
+                    [hk_data.long_name[indx].decode('ascii')],
+                    loc='upper left')
                 lg.draw_frame(False)
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
