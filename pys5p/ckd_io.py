@@ -111,7 +111,7 @@ class CKDio(object):
 
         file_ch4 = os.path.join(ckd_dir,'ckd.dark.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no darkflux CKD found on the system'
+            '*** Fatal, no dark-flux CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True,
@@ -134,7 +134,7 @@ class CKDio(object):
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
         assert os.path.isfile(ckd_file), \
-            '# *** Fatal, no DPQF-CKD found on the system'
+            '# *** Fatal, no DPQF CKD found on the system'
 
         with h5py.File(ckd_file, 'r' ) as fid:
             if threshold is None:
@@ -157,7 +157,7 @@ class CKDio(object):
 
         ckd_file = os.path.join(ckd_dir, 'ckd.dpqf.detector4.nc')
         assert os.path.isfile(ckd_file), \
-            '# *** Fatal, no DPQF-CKD found on the system'
+            '# *** Fatal, no DPQM CKD found on the system'
 
         with h5py.File(ckd_file, 'r' ) as fid:
             ckd = S5Pmsm(fid['/BAND7/' + ds_name], data_sel=np.s_[:-1, :])
@@ -206,7 +206,7 @@ class CKDio(object):
 
         file_ch4 = os.path.join(ckd_dir,'ckd.readnoise.detector4.nc')
         assert os.path.isfile(file_ch4), \
-            '*** Fatal, no offset CKD found on the system'
+            '*** Fatal, no noise CKD found on the system'
 
         with h5py.File(file_ch4, 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/readout_noise_swir'], datapoint=False,
@@ -309,7 +309,7 @@ class CKDio(object):
 
         ckd_file = os.path.join(ckd_dir, 'ckd.v2c_factor.detector4.nc')
         assert os.path.isfile(ckd_file), \
-            '*** Fatal, no V2C-CKD found on the system'
+            '*** Fatal, no V2C CKD found on the system'
 
         with h5py.File(ckd_file, 'r' ) as fid:
             ckd = S5Pmsm(fid['/BAND7/v2c_factor_swir'], datapoint=True)
