@@ -226,33 +226,32 @@ def get_line_colors():
     """
     Alternative color scheme for qualitative data
 
-    Defines 8 colors: Blue, Cyan, Green, Yellow, Red, Pink, Grey and Black
+    Defines 8 colors: blue, cyan, green, yellow, red, pink, grey and black
     Usage:
       - For 5 or more colors: use colors as defined in list
       - For 4 or less: use Blue (0), Red(4), Green(2) and Yellow(3)
     """
-    return [ '#4477AA',   # blue
-             '#66CCEE',   # cyan
-             '#228833',   # green
-             '#CCBB44',   # yellow
-             '#EE6677',   # red
-             '#AA3377',   # pink
-             '#BBBBBB',   # grey
-             '#000000' ]  # black
+    from collections import namedtuple
+
+    lcolor = namedtuple('Lcolor',
+                        'blue cyan green yellow red pink grey black')
+
+    return lcolor('#4477AA', '#66CCEE', '#228833', '#CCBB44',
+                  '#EE6677', '#AA3377', '#BBBBBB', '#000000')
 
 def get_qfive_colors():
     """
     Alternative color scheme for qualitative data
 
-    Defines 5 colors: Grey, Red, Yellow, Green and White
-    With labels: ["invalid", "worst", "bad", "recovered", "good"]
+    Defines 5 colors: Grey, White, Red, Yellow and Green
+    With labels: ["invalid", "unchanged", "worst", "bad", "good"]
 
     """
-    return [ '#BBBBBB',   # grey
-             '#EE6677',   # red
-             '#CCBB44',   # yellow
-             '#228833',   # green
-             '#FFFFFF' ]  # black
+    from collections import namedtuple
+
+    qfive = namedtuple('Qfive', 'invalid unchanged worst bad good')
+
+    return qfive('#BBBBBB', '#FFFFFF', '#EE6677', '#CCBB44', '#228833')
 
 def get_qfour_colors():
     """
@@ -262,7 +261,8 @@ def get_qfour_colors():
     With labels: ["invalid", "worst", "bad", "good"]
 
     """
-    return [ '#BBBBBB',   # grey
-             '#EE6677',   # red
-             '#CCBB44',   # yellow
-             '#FFFFFF' ]  # black
+    from collections import namedtuple
+
+    qfour = namedtuple('Qfour', 'invalid worst bad good')
+
+    return qfour('#BBBBBB', '#EE6677', '#CCBB44', '#FFFFFF')
