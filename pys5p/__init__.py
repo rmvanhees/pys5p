@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ['biweight', 'ckd_io', 'icm_io', 'l1b_io', 'ocm_io', 's5p_msm',
-           's5p_plot', 'get_data_dir', 'swir_region',
-           'sron_colormaps', 'sron_colorschemes', 'version']
+__all__ = ['biweight', 'ckd_io', 'get_data_dir', 'icm_io', 'l1b_io',
+           'ocm_io', 's5p_msm', 's5p_plot', 'sron_colormaps', 'swir_region',
+           'version']
 
 from . import biweight
 from . import get_data_dir
 from . import sron_colormaps
-from . import sron_colorschemes
 from . import swir_region
 from . import version
 
