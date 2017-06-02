@@ -68,6 +68,12 @@ def test_icm_dpqf():
     plot.draw_quality(dpqm_noise,
                       title=os.path.basename(icm.filename),
                       sub_title='dpqm_noise')
+    plot.draw_quality(dpqm_noise, ref_data=dpqm_dark,
+                      title=os.path.basename(icm.filename),
+                      sub_title='dpqm_noise')
+    plot.draw_quality(dpqm_noise, show_medians=False,
+                      title=os.path.basename(icm.filename),
+                      sub_title='dpqm_noise')
     del plot
     del icm
 

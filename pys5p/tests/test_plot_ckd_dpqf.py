@@ -18,9 +18,6 @@ License:  Standard 3-clause BSD
 
 """
 from __future__ import absolute_import
-from __future__ import print_function
-
-import os.path
 
 #-------------------------
 def test_ckd_dpqf():
@@ -28,17 +25,11 @@ def test_ckd_dpqf():
     Check S5Pplot.draw_quality
 
     """
-    from ..get_data_dir import get_data_dir
     from ..ckd_io   import CKDio
     from ..s5p_plot import S5Pplot
 
-    # obtain path to directory pys5p-data
-    try:
-        data_dir = get_data_dir()
-    except FileNotFoundError:
-        return
-
-    ckd = CKDio(ckd_dir=os.path.join(data_dir, 'CKD'))
+    # read pixel-quality CKD
+    ckd = CKDio()
     dpqm = ckd.get_swir_dpqm()
 
     # generate figure
