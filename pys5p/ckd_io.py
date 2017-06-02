@@ -150,6 +150,11 @@ class CKDio(object):
     def get_swir_dpqm(self, ds_name='dpqf_map'):
         """
         returns Detector Pixel Quality Mask for SWIR, except row 257
+
+        Parameters
+        ----------
+         ds_name  :  string
+           name of the pixel-quality map. Default: dpqf_map
         """
         ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir', 'dpqf')
         assert os.path.isdir(ckd_dir), \
@@ -193,6 +198,8 @@ class CKDio(object):
                 ckd[key].set_fillvalue()
                 ckd[key].set_long_name(
                     fid['/BAND7/{}'.format(key)].attrs['comment'])
+                ckd[key].fill_as_nan()
+
         return ckd
 
     def get_swir_noise(self):
