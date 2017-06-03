@@ -252,13 +252,11 @@ class S5Pplot(object):
             self.data = scale_dpqm[iarr+1]
             if ref_img is not None:
                 new_data = self.data.copy()
-                
+
                 iarr = (ref_img * 10).astype(np.int8)
                 iarr[~np.isfinite(ref_img)] = -1
                 iarr[~swir_region.mask()] = -1
                 ref_data = scale_dpqm[iarr+1]
-                print(np.sum(ref_data == 0), np.sum(ref_data == 1),
-                      np.sum(ref_data == 8), np.sum(ref_data == 10)) 
 
                 # all pixels are initialy unchanged
                 self.data = np.zeros_like(iarr)
@@ -349,7 +347,7 @@ class S5Pplot(object):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        from .sron_colormaps import get_line_colors
+        from .sron_colormaps import sron_cmap, get_line_colors
 
         #++++++++++ assert that we have some data to show
         if isinstance(msm, np.ndarray):
@@ -529,7 +527,7 @@ class S5Pplot(object):
         - 'worst'  : 0 <= value < low_thres
         - 'bad'    : 0 <= value < high_thres
         - 'good'   : value >= high_thres
-        Otherwise the labels for quality ranking indicate which pixels have 
+        Otherwise the labels for quality ranking indicate which pixels have
         changed w.r.t. reference. The labels are:
         - 'invalid'   : from any rank to invalid
         - 'unchanged' : no change in rank
