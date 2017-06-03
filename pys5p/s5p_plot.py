@@ -14,8 +14,8 @@ Suggestion for the name of the report/pdf-file
 
 -- generate figures --
  Public functions a page in the output PDF
- * draw_frame
  * draw_signal
+ * draw_quality
  * draw_cmp_swir
  * draw_hist
  * draw_qhist
@@ -89,7 +89,7 @@ def convert_units(units, vmin, vmax):
     elif units >= 'V':
         max_value = max(abs(vmin), abs(vmax))
 
-        if max_value <= 1e-4:
+        if max_value <= 2e-4:
             dscale = 1e-6
             zunit = units.replace('V', u'\xb5V')
         elif max_value <= 0.1:
@@ -242,7 +242,35 @@ class S5Pplot(object):
     def __data_img(self, msm, ref_img):
         from . import swir_region
 
-        if self.method == 'data':
+        if self.method == 'quality':
+            iarr = (msm.value * 10).astype(np.int8)
+            iarr[~np.isfinite(msm.value)] = -1
+            iarr[~swir_region.mask()] = -1
+
+            scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
+                                  dtype=np.int8)
+            self.data = scale_dpqm[iarr+1]
+            if ref_img is not None:
+                new_data = self.data.copy()
+                
+                iarr = (ref_img * 10).astype(np.int8)
+                iarr[~np.isfinite(ref_img)] = -1
+                iarr[~swir_region.mask()] = -1
+                ref_data = scale_dpqm[iarr+1]
+                print(np.sum(ref_data == 0), np.sum(ref_data == 1),
+                      np.sum(ref_data == 8), np.sum(ref_data == 10)) 
+
+                # all pixels are initialy unchanged
+                self.data = np.zeros_like(iarr)
+                # flag new invalid pixels
+                self.data[(ref_data > 0)   & (new_data == 0)] = -1
+                # flag new good pixels
+                self.data[(ref_data != 10) & (new_data == 10)] = 10
+                # flag new bad pixels
+                self.data[(ref_data == 10) & (new_data == 8)]  = 8
+                # new worst pixels
+                self.data[(ref_data >= 8)  & (new_data == 1)] = 1
+        else:
             self.data = msm.value.copy()
             if self.method == 'diff':
                 assert ref_img is not None
@@ -257,68 +285,6 @@ class S5Pplot(object):
                         & (ref_img != 0.))
                 self.data[~mask] = np.nan
                 self.data[mask] /= ref_img[mask]
-        else:  ## self.method == 'quality'
-            iarr = (msm.value * 10).astype(np.int8)
-            iarr[~np.isfinite(msm.value)] = -1
-            iarr[~swir_region.mask()] = -1
-
-            scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
-                                  dtype=np.int8)
-            self.data = scale_dpqm[iarr+1]
-            if ref_img is not None:
-
-                data = self.data
-                iarr = (ref_img * 10).astype(np.int8)
-                iarr[~np.isfinite(ref_img)] = -1
-                iarr[~swir_region.mask()] = -1
-                ref_data = scale_dpqm[iarr+1]
-
-                # all pixels are initialy unchanged
-                self.data = np.zeros_like(iarr)
-                # flag new invalid pixels
-                self.data[(ref_data > 0)   & (data == 0)] = -1
-                # flag new good pixels
-                self.data[(ref_data != 10) & (data == 10)] = 10
-                # flag new bad pixels
-                self.data[(ref_data == 10) & (data == 8)]  = 8
-                # new worst pixels
-                self.data[(ref_data >= 8)  & (data == 1)] = 1
-
-    #-------------------------
-    def __range_data(self, vrange, vperc):
-        from .sron_colormaps import sron_cmap
-
-        if vrange is None:
-            if vperc is None:
-                vperc = (1., 99.)
-            else:
-                assert len(vperc) == 2
-            (vmin, vmax) = np.nanpercentile(self.data, vperc)
-        else:
-            assert len(vrange) == 2
-            (vmin, vmax) = vrange
-
-        mid_val = (vmin + vmax) / 2
-        if self.method == 'diff':
-            if vmin < 0 and vmax > 0:
-                (tmp1, tmp2) = (vmin, vmax)
-                vmin = -max(-tmp1, tmp2)
-                vmax = max(-tmp1, tmp2)
-                mid_val = 0.
-            cmap = sron_cmap('diverging_BuRd')
-        elif self.method == 'ratio':
-            if vmin < 1 and vmax > 1:
-                (tmp1, tmp2) = (vmin, vmax)
-                vmin = min(tmp1, 1 / tmp2)
-                vmax = max(1 / tmp1, tmp2)
-                mid_val = 1.
-            cmap = sron_cmap('diverging_BuRd')
-        else:
-            cmap = sron_cmap('rainbow_PiRd')
-
-        norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
-
-        return (vmin, vmax, cmap, norm)
 
     #-------------------------
     def __label_data(self, zunit=None):
@@ -393,7 +359,7 @@ class S5Pplot(object):
         assert not np.all(np.isnan(msm.value))
 
         if ref_data is not None:
-            assert msm.value.shaoe == ref_data.shape
+            assert msm.value.shape == ref_data.shape
             assert not np.all(np.isnan(ref_data))
 
         #++++++++++ set object attributes
@@ -403,14 +369,43 @@ class S5Pplot(object):
         self.__data_img(msm, ref_data)
 
         # define data-range
-        lcolor = get_line_colors()
-        (vmin, vmax, cmap, norm) = self.__range_data(vrange, vperc)
+        if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                assert len(vperc) == 2
+            (vmin, vmax) = np.nanpercentile(self.data, vperc)
+        else:
+            assert len(vrange) == 2
+            (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
         vmin /= dscale
         vmax /= dscale
         self.data[np.isfinite(self.data)] /= dscale
+
+        # define colrbar and its normalisation
+        lcolor = get_line_colors()
+        mid_val = (vmin + vmax) / 2
+        if self.method == 'diff':
+            cmap = sron_cmap('diverging_BuRd')
+            if vmin < 0 and vmax > 0:
+                (tmp1, tmp2) = (vmin, vmax)
+                vmin = -max(-tmp1, tmp2)
+                vmax = max(-tmp1, tmp2)
+                mid_val = 0.
+        elif self.method == 'ratio':
+            cmap = sron_cmap('diverging_BuRd')
+            if vmin < 1 and vmax > 1:
+                (tmp1, tmp2) = (vmin, vmax)
+                vmin = min(tmp1, 1 / tmp2)
+                vmax = max(1 / tmp1, tmp2)
+                mid_val = 1.
+        else:
+            cmap = sron_cmap('rainbow_PiRd')
+
+        norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # set label and range of X/Y axis
         (ylabel, xlabel) = msm.coords._fields
@@ -564,10 +559,7 @@ class S5Pplot(object):
             assert not np.all(np.isnan(ref_data))
 
         #++++++++++ set object attributes
-        if ref_data is None:
-            self.method = 'quality'
-        else:
-            self.method = 'diff'
+        self.method = 'quality'
 
         # set data-values of central image
         self.__data_img(msm, ref_data)
@@ -575,7 +567,7 @@ class S5Pplot(object):
         # define colors, data-range
         thres_worst = int(10 * thres_worst)
         thres_bad   = int(10 * thres_bad)
-        if self.method == 'quality':
+        if ref_data is None:
             qlabels = ["invalid", "worst", "bad", "good"]
 
             lcolor = get_qfour_colors()
@@ -636,11 +628,11 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        if self.method == 'diff':
+        if ref_data is None:
+            plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
+        else:
             plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds,
                          label='difference w.r.t. reference')
-        else:
-            plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
         cax.set_yticklabels(qlabels)
         #
         if show_medians:
@@ -651,7 +643,7 @@ class S5Pplot(object):
             ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.bad)
             data_row = np.sum((self.data == thres_worst), axis=0)     ## worst
             ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.worst)
-            if self.method == 'diff':
+            if ref_data is not None:
                 data_row = np.sum((self.data == -1), axis=0)          ## invalid
                 ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.invalid)
                 data_row    = np.sum((self.data == 10), axis=0)       ## good
@@ -666,7 +658,7 @@ class S5Pplot(object):
             ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.bad)
             data_col = np.sum((self.data == thres_worst), axis=1)     ## worst
             ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.worst)
-            if self.method == 'diff':
+            if ref_data is not None:
                 data_col = np.sum((self.data == -1), axis=1)          ## invalid
                 ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.invalid)
                 data_col = np.sum((self.data == 10), axis=1)          ## good
@@ -915,7 +907,7 @@ class S5Pplot(object):
             msm_err = S5Pmsm(msm_err)
         assert isinstance(msm_err, S5Pmsm)
 
-        # scale data to keep reduce number of significant digits small to
+        # scale data to keep reduce number of significant digits, and to keep
         # the axis-label and tickmarks readable
         if vrange is None:
             if vperc is None:
@@ -1012,6 +1004,7 @@ class S5Pplot(object):
 
             # add annotation
             (median, spread) = biweight(msm_err.value, spread=True)
+            print(umin, umax, uscale, median, spread)
             if zunit is not None:
                 median_str = r'{:.5g} {}'.format(median / uscale, uunit)
                 spread_str = r'{:.5g} {}'.format(spread / uscale, uunit)
@@ -1073,7 +1066,6 @@ class S5Pplot(object):
             assert isinstance(msm, S5Pmsm)
 
             axx = plt.subplot(gspec[ipos:ipos+4, 0])
-            print('*** generate figure {}'.format(msm.long_name))
             axx.set_title(r'histogram of {}'.format(msm.long_name),
                           fontsize='medium')
             data = msm.value[swir_region.mask()]
