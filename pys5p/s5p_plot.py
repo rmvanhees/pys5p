@@ -1002,7 +1002,6 @@ class S5Pplot(object):
 
             # add annotation
             (median, spread) = biweight(msm_err.value, spread=True)
-            print(umin, umax, uscale, median, spread)
             if zunit is not None:
                 median_str = r'{:.5g} {}'.format(median / uscale, uunit)
                 spread_str = r'{:.5g} {}'.format(spread / uscale, uunit)
