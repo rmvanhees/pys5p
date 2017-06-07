@@ -243,26 +243,22 @@ def get_qfive_colors():
     """
     Alternative color scheme for qualitative data
 
-    Defines 5 colors: Grey, White, Red, Yellow and Green
-    With labels: ["invalid", "unchanged", "worst", "bad", "good"]
-
+    Defines 5 colors: Grey, Red, Yellow and Green, White
     """
     from collections import namedtuple
 
-    qfive = namedtuple('Qfive', 'invalid unchanged worst bad good')
+    qfive = namedtuple('Qfive', 'unusable worst bad good unchanged')
 
-    return qfive('#BBBBBB', '#FFFFFF', '#EE6677', '#CCBB44', '#228833')
+    return qfive('#BBBBBB', '#EE6677', '#CCBB44', '#228833', '#FFFFFF')
 
 def get_qfour_colors():
     """
     Alternative color scheme for qualitative data
 
     Defines 4 colors: Grey, Red, Yellow and White
-    With labels: ["invalid", "worst", "bad", "good"]
-
     """
     from collections import namedtuple
 
-    qfour = namedtuple('Qfour', 'invalid worst bad good')
+    qfour = namedtuple('Qfour', 'unusable worst bad good')
 
     return qfour('#BBBBBB', '#EE6677', '#CCBB44', '#FFFFFF')
