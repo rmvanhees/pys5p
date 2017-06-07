@@ -212,7 +212,7 @@ class S5Pplot(object):
                      multialignment='left',
                      bbox={'facecolor':'white', 'pad':5})
         else:
-            fig.text(0.925, 0.965, info_str,
+            fig.text(0.9, 0.925, info_str,
                      fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
@@ -243,31 +243,30 @@ class S5Pplot(object):
         from . import swir_region
 
         if self.method == 'quality':
-            iarr = (msm.value * 10).astype(np.int8)
-            iarr[~np.isfinite(msm.value)] = -1
-            iarr[~swir_region.mask()] = -1
-
             scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
                                   dtype=np.int8)
+
+            iarr = (msm.value * 10).astype(np.int8)
+            assert (iarr >= 0).all() and (iarr <= 10).all()
+
             self.data = scale_dpqm[iarr+1]
             if ref_img is not None:
                 new_data = self.data.copy()
 
                 iarr = (ref_img * 10).astype(np.int8)
-                iarr[~np.isfinite(ref_img)] = -1
-                iarr[~swir_region.mask()] = -1
+                assert (iarr >= 0).all() and (iarr <= 10).all()
                 ref_data = scale_dpqm[iarr+1]
 
                 # all pixels are initialy unchanged
-                self.data = np.zeros_like(iarr)
-                # flag new invalid pixels
-                self.data[(ref_data > 0)   & (new_data == 0)] = -1
+                self.data = np.full_like(iarr, 11)
                 # flag new good pixels
                 self.data[(ref_data != 10) & (new_data == 10)] = 10
                 # flag new bad pixels
                 self.data[(ref_data == 10) & (new_data == 8)]  = 8
                 # new worst pixels
-                self.data[(ref_data >= 8)  & (new_data == 1)] = 1
+                self.data[(ref_data != 1)  & (new_data == 1)] = 1
+                #
+            self.data[~swir_region.mask()] = 0
         else:
             self.data = msm.value.copy()
             if self.method == 'diff':
@@ -283,24 +282,6 @@ class S5Pplot(object):
                         & (ref_img != 0.))
                 self.data[~mask] = np.nan
                 self.data[mask] /= ref_img[mask]
-
-    #-------------------------
-    def __label_data(self, zunit=None):
-        if self.method == 'diff':
-            if zunit is None:
-                zlabel = 'difference'
-            else:
-                zlabel = r'difference [{}]'.format(zunit)
-        elif self.method == 'ratio':
-            zunit  = None
-            zlabel = 'ratio'
-        else:
-            if zunit is None:
-                zlabel = 'value'
-            else:
-                zlabel = r'value [{}]'.format(zunit)
-
-        return zlabel
 
     # --------------------------------------------------
     def draw_signal(self, msm, ref_data=None, method='data',
@@ -410,9 +391,8 @@ class S5Pplot(object):
         ydata = msm.coords[0]
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
-        zlabel = self.__label_data(zunit)
 
-        # inititalize figure
+        # inititalize figure (and its size & aspect-ratio)
         fig, ax_img = plt.subplots(figsize=self.__fig_size())
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -442,6 +422,24 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
+        if self.method == 'diff':
+            if zunit is None:
+                zlabel = 'difference'
+            else:
+                zlabel = r'difference [{}]'.format(zunit)
+        elif self.method == 'ratio':
+            zunit  = None
+            zlabel = 'ratio'
+        elif msm.long_name.find('uncertainty') >= 0:
+            if zunit is None:
+                zlabel = 'uncertainty'
+            else:
+                zlabel = r'uncertainty [{}]'.format(zunit)
+        else:
+            if zunit is None:
+                zlabel = 'value'
+            else:
+                zlabel = r'value [{}]'.format(zunit)
         plt.colorbar(img, cax=cax, label=zlabel)
         #
         if show_medians:
@@ -521,19 +519,19 @@ class S5Pplot(object):
         fig_info  :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
-        The quality ranking labels are ['invalid', 'worst', 'bad', 'good'],
+        The quality ranking labels are ['unusable', 'worst', 'bad', 'good'],
         in case nor reference dataset is provided. Where:
-        - 'invalid': value is negative or NaN
-        - 'worst'  : 0 <= value < low_thres
-        - 'bad'    : 0 <= value < high_thres
-        - 'good'   : value >= high_thres
+        - 'unusable'  : pixels outside the illuminated region
+        - 'worst'     : 0 <= value < low_thres
+        - 'bad'       : 0 <= value < high_thres
+        - 'good'      : value >= high_thres
         Otherwise the labels for quality ranking indicate which pixels have
         changed w.r.t. reference. The labels are:
-        - 'invalid'   : from any rank to invalid
-        - 'unchanged' : no change in rank
+        - 'unusable'  : pixels outside the illuminated region
         - 'worst'     : from good or bad to worst
         - 'bad'       : from good to bad
         - 'good'      : from any rank to good
+        - 'unchanged' : no change in rank
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date and the data
@@ -566,7 +564,7 @@ class S5Pplot(object):
         thres_worst = int(10 * thres_worst)
         thres_bad   = int(10 * thres_bad)
         if ref_data is None:
-            qlabels = ["invalid", "worst", "bad", "good"]
+            qlabels = ["unusable", "worst", "bad", "good"]
 
             lcolor = get_qfour_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -577,7 +575,8 @@ class S5Pplot(object):
                        (bounds[4] + bounds[3]) / 2]
             norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
         else:
-            qlabels = ["invalid", "unchanged", "worst", "bad", "good"]
+            qlabels = ["unusable", "to worst", "good to bad ", "to good",
+                       "unchanged"]
 
             lcolor = get_qfive_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -596,7 +595,7 @@ class S5Pplot(object):
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
 
-        # inititalize figure
+        # inititalize figure (and its size & aspect-ratio)
         fig, ax_img = plt.subplots(figsize=self.__fig_size())
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -626,11 +625,8 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        if ref_data is None:
-            plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
-        else:
-            plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds,
-                         label='difference w.r.t. reference')
+        plt.colorbar(img, cax=cax, ticks=mbounds, boundaries=bounds)
+        cax.tick_params(axis='y', which='both', length=0)
         cax.set_yticklabels(qlabels)
         #
         if show_medians:
@@ -642,8 +638,6 @@ class S5Pplot(object):
             data_row = np.sum((self.data == thres_worst), axis=0)     ## worst
             ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.worst)
             if ref_data is not None:
-                data_row = np.sum((self.data == -1), axis=0)          ## invalid
-                ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.invalid)
                 data_row    = np.sum((self.data == 10), axis=0)       ## good
                 ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.good)
             ax_medx.set_xlim([0, xdata.size])
@@ -657,8 +651,6 @@ class S5Pplot(object):
             data_col = np.sum((self.data == thres_worst), axis=1)     ## worst
             ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.worst)
             if ref_data is not None:
-                data_col = np.sum((self.data == -1), axis=1)          ## invalid
-                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.invalid)
                 data_col = np.sum((self.data == 10), axis=1)          ## good
                 ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.good)
             ax_medy.set_ylim([0, ydata.size])
@@ -667,7 +659,7 @@ class S5Pplot(object):
 
         # add annotation
         if fig_info is None:
-            fig_info = OrderedDict({'bad (quality < {})'.format(thres_bad / 10) :
+            fig_info = OrderedDict({'bad (quality < {})'.format(thres_bad/10) :
                                     np.sum((self.data == thres_worst)
                                            | (self.data == thres_bad))})
         else:
@@ -729,7 +721,10 @@ class S5Pplot(object):
 
         from .sron_colormaps import sron_cmap, get_line_colors
 
-        # refine colors
+        # define aspect for the location of fig_info
+        self.aspect = -1
+
+        # define colors
         line_colors = get_line_colors()
 
         # assert that we have some data to show
@@ -896,6 +891,9 @@ class S5Pplot(object):
 
         from .sron_colormaps import get_line_colors
 
+        # define aspect for the location of fig_info
+        self.aspect = 4
+
         # assert that we have some data to show
         if isinstance(msm, np.ndarray):
             msm = S5Pmsm(msm)
@@ -951,9 +949,8 @@ class S5Pplot(object):
             axx = plt.subplot(gspec[1:5, 0])
             axx.hist(values / zscale,
                      range=[np.floor(vmin / zscale), np.ceil(vmax / zscale)],
-                     bins=15, color=line_colors[0])
-            axx.set_title(r'histogram of {}'.format(msm.long_name),
-                          fontsize='large')
+                     bins='auto', histtype='stepfilled', color=line_colors[0])
+            axx.set_title('histograms', fontsize='large')
             self.add_copyright(axx)
             axx.set_xlim([np.floor(vmin / zscale), np.ceil(vmax / zscale)])
             axx.set_xlabel(d_label)
@@ -994,7 +991,7 @@ class S5Pplot(object):
             axx = plt.subplot(gspec[6:-1, 0])
             axx.hist(uncertainties / uscale,
                      range=[np.floor(umin / uscale), np.ceil(umax / uscale)],
-                     bins=15, color=line_colors[0])
+                     bins='auto', histtype='stepfilled', color=line_colors[0])
             self.add_copyright(axx)
             axx.set_xlim([np.floor(umin / uscale), np.ceil(umax / uscale)])
             axx.set_xlabel(d_label)
@@ -1046,9 +1043,11 @@ class S5Pplot(object):
         from . import swir_region
         from .sron_colormaps import get_line_colors
 
-        line_colors = get_line_colors()
+        # define aspect for the location of fig_info
+        self.aspect = -1
 
         # create figure
+        line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 9))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -1067,7 +1066,8 @@ class S5Pplot(object):
                           fontsize='medium')
             data = msm.value[swir_region.mask()]
             data[np.isnan(data)] = 0.
-            axx.hist(data, bins=11, range=[-.1, 1.], color=line_colors[0])
+            axx.hist(data, bins=11, range=[-.1, 1.], histtype='stepfilled',
+                     color=line_colors[0])
             self.add_copyright(axx)
             axx.set_xlim([0, 1])
             axx.set_yscale('log', nonposy='clip')
@@ -1117,7 +1117,7 @@ class S5Pplot(object):
         import shapely.geometry as sgeom
 
         # define aspect for the location of fig_info
-        self.aspect = 1
+        self.aspect = -1
 
         # define colors
         watercolor = '#ddeeff'
@@ -1452,7 +1452,7 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
 
-        from .sron_colormaps import get_line_colors
+        from .sron_colormaps import get_qfour_colors, get_line_colors
 
         assert msm is not None or hk_data is not None
 
@@ -1463,7 +1463,7 @@ class S5Pplot(object):
         self.aspect = 3
 
         # define colors
-        line_colors = get_line_colors()
+        lcolors = get_line_colors()
 
         # how many histograms?
         nplots = 0
@@ -1500,40 +1500,51 @@ class S5Pplot(object):
             if sub_title is not None:
                 axarr[0].set_title(sub_title, fontsize='large')
 
+        (xlabel,) = hk_data.coords._fields
+        xdata = hk_data.coords[0][:]
+        xstep = np.diff(xdata).min()
+        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+
+        # Implemented 3 options
+        # 1) only house-keeping data, no upper-panel with detector data
+        # 2) draw pixel-quality data, displayed in the upper-panel
+        # 3) draw measurement data, displayed in the upper-panel
         i_ax = 0
         if msm is None:
-            (xlabel,) = hk_data.coords._fields
-            xdata = hk_data.coords[0][:]
-            xstep = np.diff(xdata).min()
+            pass
         elif (msm.value.dtype.names is not None
               and 'bad' in msm.value.dtype.names):
-            (xlabel,) = msm.coords._fields
-            xdata  = msm.coords[0][:]
-            xstep = np.diff(xdata).min()
-            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
-                             np.append(
-                                 msm.value['bad'] - msm.value['bad'][0],
-                                 msm.value['bad'][-1] - msm.value['bad'][0]),
-                             where='post', lw=1.5,
-                             color=line_colors[3],  # yellow
+            qcolors = get_qfour_colors()
+
+            ybad = msm.value['bad'].copy()
+            yworst = msm.value['worst'].copy()
+            for indx in reversed(gap_list):
+                xdata  = np.insert(xdata, indx, xdata[indx]-xstep)
+                ybad   = np.insert(ybad, indx, ybad[indx])
+                yworst = np.insert(yworst, indx, yworst[indx])
+                xdata  = np.insert(xdata, indx, xdata[indx])
+                ybad   = np.insert(ybad, indx, np.nan)
+                yworst = np.insert(yworst, indx, np.nan)
+                xdata  = np.insert(xdata, indx, xdata[indx-1])
+                ybad   = np.insert(ybad, indx, np.nan)
+                yworst = np.insert(yworst, indx, yworst[indx-1])
+
+            xdata  = np.insert(xdata, 0, xdata[0]-xstep)
+            ybad   = np.append(ybad, ybad[-1])
+            yworst = np.append(yworst, yworst[-1])
+
+            axarr[i_ax].step(xdata, ybad, where='post', lw=1.5,
+                             color=qcolors.bad,
                              label='bad (quality < 0.8)')
-            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
-                             np.append(
-                                 msm.value['worst'] - msm.value['worst'][0],
-                                 msm.value['worst'][-1]-msm.value['worst'][0]),
-                             where='post', lw=1.5,
-                             color=line_colors[4],  # red
+            axarr[i_ax].step(xdata, yworst, where='post', lw=1.5,
+                             color=qcolors.worst,
                              label='worst (quality < 0.1)')
-            axarr[i_ax].set_xlim([xdata[0]-xstep, xdata[-1]])
+            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
             axarr[i_ax].grid(True)
-            axarr[i_ax].set_ylabel('{}'.format('count (relative)'))
+            axarr[i_ax].set_ylabel('{}'.format('count'))
             axarr[i_ax].legend(loc='upper left', fontsize='smaller')
             i_ax += 1
         else:
-            (xlabel,) = msm.coords._fields
-            xdata  = msm.coords[0][:]
-            xstep = np.diff(xdata).min()
-
             # convert units from electrons to ke, Me, ...
             if msm.error is None:
                 vmin = msm.value.min()
@@ -1543,18 +1554,37 @@ class S5Pplot(object):
                 vmax = msm.error[1].max()
             (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
-            axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
-                             np.append(msm.value / dscale,
-                                       msm.value[-1] / dscale),
-                             where='post', lw=1.5, color=line_colors[i_ax])
+            ydata = msm.value.copy() / dscale
+            for indx in reversed(gap_list):
+                xdata = np.insert(xdata, indx, xdata[indx]-xstep)
+                ydata = np.insert(ydata, indx, ydata[indx])
+                xdata = np.insert(xdata, indx, xdata[indx])
+                ydata = np.insert(ydata, indx, np.nan)
+                xdata = np.insert(xdata, indx, xdata[indx-1])
+                ydata = np.insert(ydata, indx, np.nan)
+
+            xdata = np.insert(xdata, 0, xdata[0]-xstep)
+            ydata = np.append(ydata, ydata[-1])
+            axarr[i_ax].step(xdata, ydata,
+                             where='post', lw=1.5, color=lcolors[i_ax])
+
             if msm.error is not None:
-                axarr[i_ax].fill_between(np.insert(xdata, 0, xdata[0]-xstep),
-                                         np.append(msm.error[0] / dscale,
-                                                   msm.error[0][-1] / dscale),
-                                         np.append(msm.error[1] / dscale,
-                                                   msm.error[1][-1] / dscale),
+                yerr1 = msm.error[0].copy() / dscale
+                yerr2 = msm.error[1].copy() / dscale
+                for indx in reversed(gap_list):
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx])
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+                yerr1 = np.append(yerr1, yerr1[-1])
+                yerr2 = np.append(yerr2, yerr2[-1])
+                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
                                          step='post', facecolor='#dddddd')
-            axarr[i_ax].set_xlim([xdata[0]-xstep, xdata[-1]])
+
+            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
             axarr[i_ax].grid(True)
             if zunit is None:
                 axarr[i_ax].set_ylabel('detector value')
@@ -1562,14 +1592,6 @@ class S5Pplot(object):
                 axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
             i_ax += 1
 
-        if i_ax == 1:
-            self.add_copyright(axarr[0])
-            if placeholder:
-                print('*** show placeholder')
-                axarr[0].text(0.5, 0.5, 'PLACEHOLDER',
-                              transform=axarr[0].transAxes, alpha=0.5,
-                              fontsize=50, color='gray', rotation=45.,
-                              ha='center', va='center')
 
         def blank_legend_key():
             """
@@ -1583,38 +1605,57 @@ class S5Pplot(object):
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
                 indx = hk_data.value.dtype.names.index(key)
+                hk_name = hk_data.long_name[indx].decode('ascii')
                 if np.mean(hk_data.value[key]) < 150:
-                    lcolor = line_colors[0]
+                    lcolor = lcolors.bleu
                 elif np.mean(hk_data.value[key]) < 190:
-                    lcolor = line_colors[1]
+                    lcolor = lcolors.cyan
                 elif np.mean(hk_data.value[key]) < 220:
-                    lcolor = line_colors[2]
+                    lcolor = lcolors.green
                 elif np.mean(hk_data.value[key]) < 250:
-                    lcolor = line_colors[3]
+                    lcolor = lcolors.yellow
                 elif np.mean(hk_data.value[key]) < 270:
-                    lcolor = line_colors[4]
+                    lcolor = lcolor.red
                 else:
-                    lcolor = line_colors[5]
-                axarr[i_ax].step(np.insert(xdata, 0, xdata[0]-xstep),
-                                 np.append(hk_data.value[key],
-                                           hk_data.value[key][-1]),
+                    lcolor = lcolors.pink
+
+                ydata = hk_data.value[key].copy()
+                yerr1 = hk_data.error[key][:, 0].copy()
+                yerr2 = hk_data.error[key][:, 1].copy()
+                for indx in reversed(gap_list):
+                    ydata = np.insert(ydata, indx, ydata[indx])
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx])
+                    ydata = np.insert(ydata, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    ydata = np.insert(ydata, indx, ydata[indx-1])
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+                ydata = np.append(ydata, ydata[-1])
+                yerr1 = np.append(yerr1, yerr1[-1])
+                yerr2 = np.append(yerr2, yerr2[-1])
+                
+                axarr[i_ax].step(xdata, ydata,
                                  where='post', lw=1.5, color=lcolor)
-                axarr[i_ax].fill_between(np.insert(xdata, 0, xdata[0]-xstep),
-                                         np.append(hk_data.error[key][:, 0],
-                                                   hk_data.error[key][-1, 0]),
-                                         np.append(hk_data.error[key][:, 1],
-                                                   hk_data.error[key][-1, 1]),
+                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
                                          step='post', facecolor='#dddddd')
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].grid(True)
                 axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
                 legenda = axarr[i_ax].legend(
-                    [blank_legend_key()],
-                    [hk_data.long_name[indx].decode('ascii')],
-                    loc='upper left')
+                    [blank_legend_key()], [hk_name], loc='upper left')
                 legenda.draw_frame(False)
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
+
+        self.add_copyright(axarr[0])
+        if placeholder:
+            print('*** show placeholder')
+            axarr[0].text(0.5, 0.5, 'PLACEHOLDER',
+                          transform=axarr[0].transAxes, alpha=0.5,
+                          fontsize=50, color='gray', rotation=45.,
+                          ha='center', va='center')
 
         fig.subplots_adjust(hspace=0.02)
         plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
