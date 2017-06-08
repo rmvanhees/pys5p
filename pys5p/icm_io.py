@@ -478,6 +478,44 @@ class ICMio(object):
         return res
 
     #-------------------------
+    def get_msmt_keys(self, band=None):
+        """
+        Read msmt_keys from the analysis groups
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product.
+            Default is 'None' which returns the first available band
+
+        Returns
+        -------
+         [ANALOG_OFFSET_SWIR] analog_offset_swir_group_keys
+         [LONG_TERM_SWIR]     long_term_swir_group_keys
+         [NOISE]              noise_msmt_keys
+         else                 None
+        """
+        if self.__msm_path is None:
+            return None
+
+        if band is None:
+            band = self.bands[0]
+        else:
+            assert self.bands.find(band) >= 0
+
+        msm_path = self.__msm_path.replace('%', band)
+        msm_type = os.path.basename(self.__msm_path)
+
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+            grp = self.fid[msm_path]
+            return np.squeeze(grp[msm_type.lower() + '_group_keys'])
+        elif msm_type in ['NOISE']:
+            grp = self.fid[msm_path]
+            return np.squeeze(grp[msm_type.lower() + '_msmt_keys'])
+
+        return None
+
+    #-------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
         """
         Returns attribute of measurement dataset "msm_dset"
