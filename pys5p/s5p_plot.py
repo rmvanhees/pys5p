@@ -1607,7 +1607,7 @@ class S5Pplot(object):
                 indx = hk_data.value.dtype.names.index(key)
                 hk_name = hk_data.long_name[indx].decode('ascii')
                 if np.mean(hk_data.value[key]) < 150:
-                    lcolor = lcolors.bleu
+                    lcolor = lcolors.blue
                 elif np.mean(hk_data.value[key]) < 190:
                     lcolor = lcolors.cyan
                 elif np.mean(hk_data.value[key]) < 220:
