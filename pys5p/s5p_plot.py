@@ -947,12 +947,23 @@ class S5Pplot(object):
 
             # create histogram
             axx = plt.subplot(gspec[1:5, 0])
-            axx.hist(values / zscale,
-                     range=[np.floor(vmin / zscale), np.ceil(vmax / zscale)],
-                     bins='auto', histtype='stepfilled', color=line_colors[0])
             axx.set_title('histograms', fontsize='large')
+            res = axx.hist(values / zscale,
+                           range=[np.floor(vmin / zscale),
+                                  np.ceil(vmax / zscale)],
+                           bins='auto', histtype='stepfilled',
+                           color=line_colors[0])
             self.add_copyright(axx)
-            axx.set_xlim([np.floor(vmin / zscale), np.ceil(vmax / zscale)])
+            indx = np.where(res[0] > 0)[0]
+            if indx[0] == 0:
+                xlim_mn = np.floor(vmin / zscale)
+            else:
+                xlim_mn = res[1][np.min(indx)]
+            if indx[-1] == res[0].size-1:
+                xlim_mx = np.ceil(vmax / zscale)
+            else:
+                xlim_mx = res[1][np.max(indx)+1]
+            axx.set_xlim([xlim_mn, xlim_mx])
             axx.set_xlabel(d_label)
             axx.set_ylabel('count')
 
@@ -989,11 +1000,22 @@ class S5Pplot(object):
 
             # create histogram
             axx = plt.subplot(gspec[6:-1, 0])
-            axx.hist(uncertainties / uscale,
-                     range=[np.floor(umin / uscale), np.ceil(umax / uscale)],
-                     bins='auto', histtype='stepfilled', color=line_colors[0])
+            res = axx.hist(uncertainties / uscale,
+                           range=[np.floor(umin / uscale),
+                                  np.ceil(umax / uscale)],
+                           bins='auto', histtype='stepfilled',
+                           color=line_colors[0])
             self.add_copyright(axx)
-            axx.set_xlim([np.floor(umin / uscale), np.ceil(umax / uscale)])
+            indx = np.where(res[0] > 0)[0]
+            if indx[0] == 0:
+                xlim_mn = np.floor(umin / uscale)
+            else:
+                xlim_mn = res[1][np.min(indx)]
+            if indx[-1] == res[0].size-1:
+                xlim_mx = np.ceil(umax / uscale)
+            else:
+                xlim_mx = res[1][np.max(indx)+1]
+            axx.set_xlim([xlim_mn, xlim_mx])
             axx.set_xlabel(d_label)
             axx.set_ylabel('count')
 
@@ -1073,165 +1095,6 @@ class S5Pplot(object):
             axx.set_yscale('log', nonposy='clip')
             axx.set_ylabel('count')
             ipos += 5
-
-        # save and close figure
-        if self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-        else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
-        plt.close()
-
-    # --------------------------------------------------
-    def draw_geolocation(self, lats, lons,
-                         *, sequence=None, subsatellite=False,
-                         title=None, fig_info=None):
-        """
-        Display footprint of sub-satellite coordinates project on the globe
-
-        Parameters
-        ----------
-        lats         :  ndarray
-           Latitude coordinates
-        lons         :  ndarray
-           Longitude coordinates
-        sequence     :  list
-           Indices to footprints to be drawn by polygons
-        subsatellite :  boolean
-           Coordinates are given for sub-satellite point. Default is False
-        title      :  string
-           Title of the figure. Default is None
-           Suggestion: use attribute "title" of data-product
-        fig_info   :  dictionary
-           OrderedDict holding meta-data to be displayed in the figure
-
-        The information provided in the parameter 'fig_info' will be displayed
-        in a small box.
-        """
-        from matplotlib import pyplot as plt
-        from matplotlib.patches import Polygon
-
-        import cartopy.crs as ccrs
-        import cartopy.feature as cfeature
-        from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-        import shapely.geometry as sgeom
-
-        # define aspect for the location of fig_info
-        self.aspect = -1
-
-        # define colors
-        watercolor = '#ddeeff'
-        landcolor  = '#e1c999'
-        gridcolor  = '#bbbbbb'
-        s5p_color  = '#ee6677'
-
-        class BetterTransverseMercator(ccrs.Projection):
-            """
-            Implement improved transverse mercator projection
-
-            By Paul Tol (SRON)
-            """
-            def __init__(self, central_latitude=0.0, central_longitude=0.0,
-                         orientation=0, scale_factor=1.0,
-                         false_easting=0.0, false_northing=0.0, globe=None):
-                centlon = np.round(central_longitude / 15.0) * 15.0 + 0.01
-                gam = np.sign(orientation) * 89.99
-                proj4_params = [('proj', 'omerc'), ('lat_0', central_latitude),
-                                ('lonc', centlon), ('alpha', '0.01'),
-                                ('gamma', gam), ('over', ''),
-                                ('k_0', scale_factor),
-                                ('x_0', false_easting), ('y_0', false_northing),
-                                ('units', 'm')]
-                super(BetterTransverseMercator, self).__init__(proj4_params,
-                                                               globe=globe)
-
-            @property
-            def threshold(self):
-                return 1e4
-
-            @property
-            def boundary(self):
-                xx0, xx1 = self.x_limits
-                yy0, yy1 = self.y_limits
-                return sgeom.LineString([(xx0, yy0), (xx0, yy1),
-                                         (xx1, yy1), (xx1, yy0),
-                                         (xx0, yy0)])
-            @property
-            def x_limits(self):
-                return (-2e7, 2e7)
-
-            @property
-            def y_limits(self):
-                return (-2e7, 2e7)
-
-        # determine central longitude
-        sphere_radius = 6370997.0
-        parallel_half = 0.883 * sphere_radius
-        meridian_half = 2.360 * sphere_radius
-        if lons.max() - lons.min() > 180:
-            if np.sum(lons > 0) > np.sum(lons < 0):
-                lons[lons < 0] += 360
-            else:
-                lons[lons > 0] -= 360
-        lon_0 = np.around(np.mean(lons), decimals=-1)
-
-        # inititalize figure
-        fig = plt.figure(figsize=(15, 10))
-        if title is not None:
-            fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
-        # draw worldmap
-        axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
-                                                           orientation=1,
-                                                           globe=ccrs.Globe(ellipse='sphere')))
-        axx.set_xlim(-meridian_half, meridian_half)
-        axx.set_ylim(-parallel_half, parallel_half)
-        axx.outline_patch.set_visible(False)
-        axx.background_patch.set_facecolor(watercolor)
-        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
-        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
-        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
-        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
-        glx.xformatter = LONGITUDE_FORMATTER
-        glx.yformatter = LATITUDE_FORMATTER
-        # draw footprint
-        if not subsatellite:
-            if sequence is None:
-                lat = np.concatenate((lats[0, :], lats[1:-1, -1],
-                                      lats[-1, ::-1], lats[1:-1:-1, 0]))
-                lon = np.concatenate((lons[0, :], lons[1:-1, -1],
-                                      lons[-1, ::-1], lons[1:-1:-1, 0]))
-
-                poly = Polygon(xy=list(zip(lon, lat)), closed=True,
-                               alpha=0.6, facecolor=s5p_color,
-                               transform=ccrs.PlateCarree())
-                axx.add_patch(poly)
-            else:
-                print('Unique sequence: {}'.format(np.unique(sequence)))
-                for ii in np.unique(sequence):
-                    indx = np.unique(np.where(sequence == ii)[0])
-                    indx_rev = indx[::-1]
-                    lat = np.concatenate((lats[indx[0], :],
-                                          lats[indx, -1],
-                                          lats[indx[-1], ::-1],
-                                          lats[indx_rev, 0]))
-                    lon = np.concatenate((lons[indx[0], :],
-                                          lons[indx, -1],
-                                          lons[indx[-1], ::-1],
-                                          lons[indx_rev, 0]))
-
-                    poly = Polygon(xy=list(zip(lon, lat)), closed=True,
-                                   alpha=0.6, facecolor=s5p_color,
-                                   transform=ccrs.PlateCarree())
-                    axx.add_patch(poly)
-
-        # draw sub-satellite spot(s)
-        else:
-            axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
-                        marker='o', color=s5p_color)
-        self.add_copyright(axx)
-        if fig_info is None:
-            fig_info = OrderedDict({'lon0': lon_0})
 
         # save and close figure
         if self.__pdf is None:
@@ -1454,32 +1317,51 @@ class S5Pplot(object):
 
         from .sron_colormaps import get_qfour_colors, get_line_colors
 
+        # we require mesurement data and/or house-keeping data
         assert msm is not None or hk_data is not None
 
+        # ---------- local function ----------
+        def blank_legend_key():
+            """
+            Show only text in matplotlib legenda, no key
+            """
+            from matplotlib.patches import Rectangle
+
+            return Rectangle((0,0), 0, 0, fill=False,
+                             edgecolor='none', visible=False)
+
+        # make sure that we use 'large' fonts in the small plots 
         if self.__pdf is None:
             plt.rc('font', size=15)
 
         # define aspect for the location of fig_info
         self.aspect = 3
 
-        # define colors
+        # define colors and number of pannels
         lcolors = get_line_colors()
 
-        # how many histograms?
-        nplots = 0
-        if msm is not None:
-            nplots += 1
+        if msm is None:
+            plot_mode = 'house-keeping'
+            npannels = 0
+        elif (msm.value.dtype.names is not None
+              and 'bad' in msm.value.dtype.names):
+            plot_mode = 'quality'
+            npannels = 2
+        else:
+            plot_mode = 'data'
+            npannels = 1
 
         if hk_data is not None:
             if hk_keys is None:
                 hk_keys = ('temp_det4', 'temp_obm_swir_grating')
-            nplots += len(hk_keys)
+            npannels += len(hk_keys)
         else:
             hk_keys = ()
 
-        figsize = (10, 3.5 + nplots * 2)
-        (fig, axarr) = plt.subplots(nplots, sharex=True, figsize=figsize)
-        if nplots == 1:
+        # initialize matplotlib using 'subplots'
+        figsize = (10, 3.5 + npannels * 2)
+        (fig, axarr) = plt.subplots(npannels, sharex=True, figsize=figsize)
+        if npannels == 1:
             axarr = [axarr]
             caption = ''
             if title is not None:
@@ -1500,51 +1382,50 @@ class S5Pplot(object):
             if sub_title is not None:
                 axarr[0].set_title(sub_title, fontsize='large')
 
+        # define x-axis and its label
         (xlabel,) = hk_data.coords._fields
         xdata = hk_data.coords[0][:]
+
+        # define data gaps to avoid interpolation over missing data
         xstep = np.diff(xdata).min()
         gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+        for indx in reversed(gap_list):
+            xdata = np.insert(xdata, indx, xdata[indx]-xstep)
+            xdata = np.insert(xdata, indx, xdata[indx])
+            xdata = np.insert(xdata, indx, xdata[indx-1])
+        xdata = np.insert(xdata, 0, xdata[0]-xstep)
 
         # Implemented 3 options
         # 1) only house-keeping data, no upper-panel with detector data
         # 2) draw pixel-quality data, displayed in the upper-panel
         # 3) draw measurement data, displayed in the upper-panel
         i_ax = 0
-        if msm is None:
-            pass
-        elif (msm.value.dtype.names is not None
-              and 'bad' in msm.value.dtype.names):
+        if plot_mode == 'quality':
             qcolors = get_qfour_colors()
+            qc_dict = {'bad'   : qcolors.bad,
+                       'worst' : qcolors.worst}
+            ql_dict = {'bad'   : 'bad (quality < 0.8)',
+                       'worst' : 'worst (quality < 0.1)'}
 
-            ybad = msm.value['bad'].copy()
-            yworst = msm.value['worst'].copy()
-            for indx in reversed(gap_list):
-                xdata  = np.insert(xdata, indx, xdata[indx]-xstep)
-                ybad   = np.insert(ybad, indx, ybad[indx])
-                yworst = np.insert(yworst, indx, yworst[indx])
-                xdata  = np.insert(xdata, indx, xdata[indx])
-                ybad   = np.insert(ybad, indx, np.nan)
-                yworst = np.insert(yworst, indx, np.nan)
-                xdata  = np.insert(xdata, indx, xdata[indx-1])
-                ybad   = np.insert(ybad, indx, np.nan)
-                yworst = np.insert(yworst, indx, yworst[indx-1])
+            for key in ['bad', 'worst']:
+                ydata = msm.value[key].copy()
+                for indx in reversed(gap_list):
+                    ydata = np.insert(ydata, indx, ydata[indx])
+                    ydata = np.insert(ydata, indx, np.nan)
+                    ydata = np.insert(ydata, indx, ydata[indx-1])
+                ydata = np.append(ydata, ydata[-1])
 
-            xdata  = np.insert(xdata, 0, xdata[0]-xstep)
-            ybad   = np.append(ybad, ybad[-1])
-            yworst = np.append(yworst, yworst[-1])
+                axarr[i_ax].step(xdata, ydata, where='post', lw=1.5,
+                                 color=qc_dict[key])
 
-            axarr[i_ax].step(xdata, ybad, where='post', lw=1.5,
-                             color=qcolors.bad,
-                             label='bad (quality < 0.8)')
-            axarr[i_ax].step(xdata, yworst, where='post', lw=1.5,
-                             color=qcolors.worst,
-                             label='worst (quality < 0.1)')
-            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
-            axarr[i_ax].grid(True)
-            axarr[i_ax].set_ylabel('{}'.format('count'))
-            axarr[i_ax].legend(loc='upper left', fontsize='smaller')
-            i_ax += 1
-        else:
+                axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+                axarr[i_ax].grid(True)
+                axarr[i_ax].set_ylabel('{}'.format('count'))
+                legenda = axarr[i_ax].legend(
+                    [blank_legend_key()], [ql_dict[key]], loc='upper left')
+                legenda.draw_frame(False)
+                i_ax += 1
+        elif plot_mode == 'data':
             # convert units from electrons to ke, Me, ...
             if msm.error is None:
                 vmin = msm.value.min()
@@ -1556,15 +1437,11 @@ class S5Pplot(object):
 
             ydata = msm.value.copy() / dscale
             for indx in reversed(gap_list):
-                xdata = np.insert(xdata, indx, xdata[indx]-xstep)
                 ydata = np.insert(ydata, indx, ydata[indx])
-                xdata = np.insert(xdata, indx, xdata[indx])
                 ydata = np.insert(ydata, indx, np.nan)
-                xdata = np.insert(xdata, indx, xdata[indx-1])
-                ydata = np.insert(ydata, indx, np.nan)
-
-            xdata = np.insert(xdata, 0, xdata[0]-xstep)
+                ydata = np.insert(ydata, indx, ydata[indx-1])
             ydata = np.append(ydata, ydata[-1])
+
             axarr[i_ax].step(xdata, ydata,
                              where='post', lw=1.5, color=lcolors[i_ax])
 
@@ -1591,16 +1468,6 @@ class S5Pplot(object):
             else:
                 axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
             i_ax += 1
-
-
-        def blank_legend_key():
-            """
-            Show only text in matplotlib legenda, no key
-            """
-            from matplotlib.patches import Rectangle
-
-            return Rectangle((0,0), 0, 0, fill=False,
-                             edgecolor='none', visible=False)
 
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
@@ -1664,6 +1531,165 @@ class S5Pplot(object):
         if self.__pdf is None:
             plt.tight_layout()
             plt.savefig(self.filename, bbox_inches='tight', dpi=150)
+        else:
+            self.__fig_info(fig, fig_info)
+            self.__pdf.savefig()
+        plt.close()
+
+    # --------------------------------------------------
+    def draw_geolocation(self, lats, lons,
+                         *, sequence=None, subsatellite=False,
+                         title=None, fig_info=None):
+        """
+        Display footprint of sub-satellite coordinates project on the globe
+
+        Parameters
+        ----------
+        lats         :  ndarray
+           Latitude coordinates
+        lons         :  ndarray
+           Longitude coordinates
+        sequence     :  list
+           Indices to footprints to be drawn by polygons
+        subsatellite :  boolean
+           Coordinates are given for sub-satellite point. Default is False
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box.
+        """
+        from matplotlib import pyplot as plt
+        from matplotlib.patches import Polygon
+
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+        import shapely.geometry as sgeom
+
+        # define aspect for the location of fig_info
+        self.aspect = -1
+
+        # define colors
+        watercolor = '#ddeeff'
+        landcolor  = '#e1c999'
+        gridcolor  = '#bbbbbb'
+        s5p_color  = '#ee6677'
+
+        class BetterTransverseMercator(ccrs.Projection):
+            """
+            Implement improved transverse mercator projection
+
+            By Paul Tol (SRON)
+            """
+            def __init__(self, central_latitude=0.0, central_longitude=0.0,
+                         orientation=0, scale_factor=1.0,
+                         false_easting=0.0, false_northing=0.0, globe=None):
+                centlon = np.round(central_longitude / 15.0) * 15.0 + 0.01
+                gam = np.sign(orientation) * 89.99
+                proj4_params = [('proj', 'omerc'), ('lat_0', central_latitude),
+                                ('lonc', centlon), ('alpha', '0.01'),
+                                ('gamma', gam), ('over', ''),
+                                ('k_0', scale_factor),
+                                ('x_0', false_easting), ('y_0', false_northing),
+                                ('units', 'm')]
+                super(BetterTransverseMercator, self).__init__(proj4_params,
+                                                               globe=globe)
+
+            @property
+            def threshold(self):
+                return 1e4
+
+            @property
+            def boundary(self):
+                xx0, xx1 = self.x_limits
+                yy0, yy1 = self.y_limits
+                return sgeom.LineString([(xx0, yy0), (xx0, yy1),
+                                         (xx1, yy1), (xx1, yy0),
+                                         (xx0, yy0)])
+            @property
+            def x_limits(self):
+                return (-2e7, 2e7)
+
+            @property
+            def y_limits(self):
+                return (-2e7, 2e7)
+
+        # determine central longitude
+        sphere_radius = 6370997.0
+        parallel_half = 0.883 * sphere_radius
+        meridian_half = 2.360 * sphere_radius
+        if lons.max() - lons.min() > 180:
+            if np.sum(lons > 0) > np.sum(lons < 0):
+                lons[lons < 0] += 360
+            else:
+                lons[lons > 0] -= 360
+        lon_0 = np.around(np.mean(lons), decimals=-1)
+
+        # inititalize figure
+        fig = plt.figure(figsize=(15, 10))
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.96), horizontalalignment='center')
+        # draw worldmap
+        axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
+                                                           orientation=1,
+                                                           globe=ccrs.Globe(ellipse='sphere')))
+        axx.set_xlim(-meridian_half, meridian_half)
+        axx.set_ylim(-parallel_half, parallel_half)
+        axx.outline_patch.set_visible(False)
+        axx.background_patch.set_facecolor(watercolor)
+        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
+        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
+        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
+        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
+        glx.xformatter = LONGITUDE_FORMATTER
+        glx.yformatter = LATITUDE_FORMATTER
+        # draw footprint
+        if not subsatellite:
+            if sequence is None:
+                lat = np.concatenate((lats[0, :], lats[1:-1, -1],
+                                      lats[-1, ::-1], lats[1:-1:-1, 0]))
+                lon = np.concatenate((lons[0, :], lons[1:-1, -1],
+                                      lons[-1, ::-1], lons[1:-1:-1, 0]))
+
+                poly = Polygon(xy=list(zip(lon, lat)), closed=True,
+                               alpha=0.6, facecolor=s5p_color,
+                               transform=ccrs.PlateCarree())
+                axx.add_patch(poly)
+            else:
+                print('Unique sequence: {}'.format(np.unique(sequence)))
+                for ii in np.unique(sequence):
+                    indx = np.unique(np.where(sequence == ii)[0])
+                    indx_rev = indx[::-1]
+                    lat = np.concatenate((lats[indx[0], :],
+                                          lats[indx, -1],
+                                          lats[indx[-1], ::-1],
+                                          lats[indx_rev, 0]))
+                    lon = np.concatenate((lons[indx[0], :],
+                                          lons[indx, -1],
+                                          lons[indx[-1], ::-1],
+                                          lons[indx_rev, 0]))
+
+                    poly = Polygon(xy=list(zip(lon, lat)), closed=True,
+                                   alpha=0.6, facecolor=s5p_color,
+                                   transform=ccrs.PlateCarree())
+                    axx.add_patch(poly)
+
+        # draw sub-satellite spot(s)
+        else:
+            axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
+                        marker='o', color=s5p_color)
+        self.add_copyright(axx)
+        if fig_info is None:
+            fig_info = OrderedDict({'lon0': lon_0})
+
+        # save and close figure
+        if self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
         else:
             self.__fig_info(fig, fig_info)
             self.__pdf.savefig()
