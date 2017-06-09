@@ -15,14 +15,7 @@ from __future__ import division
 
 import numpy as np
 
-def __corr_std(nval):
-    """
-    Corrects the biweight spread to an unbaised estimator for the standard
-    deviation, unther the assumption of an uncontaminated normal distribution.
-    """
-    return 0.9909 + (0.5645 + 2.805 / nval) / nval
-
-def biweight(data, axis=None, spread=False, std=False):
+def biweight(data, axis=None, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
@@ -35,16 +28,13 @@ def biweight(data, axis=None, spread=False, std=False):
        Axis along which the biweight medians are computed.
     spread :   bool
        If True, then return the biweight spread
-    std :   bool
-       If True, then return an approximation of the unbiased standard deviation
+
     Returns
     -------
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
     sbi = 0.
-    if std:
-        spread = True
 
     # define lambda function to return only median or (median, spread)
     out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi
@@ -73,8 +63,6 @@ def biweight(data, axis=None, spread=False, std=False):
             sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
             sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
             sbi = np.sqrt(len(xx) * sbi)
-            if std:
-                sbi *= __corr_std(len(xx))
     else:
         med_xx = np.nanmedian(data, axis=axis)
         xbi = med_xx
@@ -96,10 +84,7 @@ def biweight(data, axis=None, spread=False, std=False):
                 len_xx = np.sum(np.isfinite(data), axis=axis)
                 buff = np.sum(deltas ** 2 * (1 - umn) ** 4, axis=axis)
                 buff /= np.sum((1 - umn) *  (1 - 5 * umn), axis=axis) ** 2
-                if std:
-                    buff = __corr_std(len_xx) * np.sqrt(len_xx * buff)
-                else:
-                    buff = np.sqrt(len_xx * buff)
+                buff = np.sqrt(len_xx * buff)
                 sbi[~indices] = buff[~indices]
 
     return out_parms(xbi, sbi, spread)
