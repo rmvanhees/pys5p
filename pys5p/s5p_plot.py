@@ -241,6 +241,7 @@ class S5Pplot(object):
     #-------------------------
     def __data_img(self, msm, ref_img):
         from . import swir_region
+        from . import error_propagation
 
         if self.method == 'quality':
             scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
@@ -267,6 +268,15 @@ class S5Pplot(object):
                 self.data[(ref_data != 1)  & (new_data == 1)] = 1
                 #
             self.data[~swir_region.mask()] = 0
+        elif self.method == 'ratio_unc':
+            assert ref_img is not None
+
+            mask = swir_region.mask() & (ref_img.value != 0.)
+
+            self.data = np.full_like(msm.value, np.nan)
+            self.data[mask] = error_propagation.unc_div(
+                msm.value[mask], msm.error[mask],
+                ref_img.value[mask], ref_img.error[mask])
         else:
             self.data = msm.value.copy()
             if self.method == 'diff':
@@ -300,7 +310,7 @@ class S5Pplot(object):
             'diff'  where reference is subtracted from the measurement data
         method    : string
            Method of plot to be generated, default is 'data', optional are
-           'ratio', 'diff'
+            'diff', 'ratio', 'ratio_unc'
         show_medians :  boolean
            show in side plots row and column medians. Default=True.
 
@@ -338,13 +348,19 @@ class S5Pplot(object):
         assert not np.all(np.isnan(msm.value))
 
         if ref_data is not None:
-            assert msm.value.shape == ref_data.shape
-            assert not np.all(np.isnan(ref_data))
+            if isinstance(ref_data, np.ndarray):
+                assert msm.value.shape == ref_data.shape
+                assert not np.all(np.isnan(ref_data))
+            elif method == 'ratio_unc':
+                assert msm.value.shape == ref_data.value.shape
+                assert not np.all(np.isnan(ref_data.value))
+            else:
+                raise TypeError
 
         #++++++++++ set object attributes
         self.method = method
 
-        #++++++++++
+        # set data to be displayed (based chosen method)
         self.__data_img(msm, ref_data)
 
         # define data-range
@@ -367,22 +383,24 @@ class S5Pplot(object):
         # define colrbar and its normalisation
         lcolor = get_line_colors()
         mid_val = (vmin + vmax) / 2
-        if self.method == 'diff':
+        if method == 'diff':
             cmap = sron_cmap('diverging_BuRd')
             if vmin < 0 and vmax > 0:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
-        elif self.method == 'ratio':
+        elif method == 'ratio':
             cmap = sron_cmap('diverging_BuRd')
             if vmin < 1 and vmax > 1:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
                 mid_val = 1.
-        else:
+        elif method == 'data' or method == 'ratio_unc':
             cmap = sron_cmap('rainbow_PiRd')
+        else:
+            ValueError
 
         norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
@@ -422,15 +440,15 @@ class S5Pplot(object):
 
         # color bar
         cax = divider.append_axes("right", size=0.3, pad=0.05)
-        if self.method == 'diff':
+        if method == 'diff':
             if zunit is None:
                 zlabel = 'difference'
             else:
                 zlabel = r'difference [{}]'.format(zunit)
-        elif self.method == 'ratio':
+        elif method == 'ratio':
             zunit  = None
             zlabel = 'ratio'
-        elif msm.long_name.find('uncertainty') >= 0:
+        elif method == 'ratio_unc' or msm.long_name.find('uncertainty') >= 0:
             if zunit is None:
                 zlabel = 'uncertainty'
             else:
@@ -1330,7 +1348,7 @@ class S5Pplot(object):
             return Rectangle((0,0), 0, 0, fill=False,
                              edgecolor='none', visible=False)
 
-        # make sure that we use 'large' fonts in the small plots 
+        # make sure that we use 'large' fonts in the small plots
         if self.__pdf is None:
             plt.rc('font', size=15)
 
@@ -1502,7 +1520,7 @@ class S5Pplot(object):
                 ydata = np.append(ydata, ydata[-1])
                 yerr1 = np.append(yerr1, yerr1[-1])
                 yerr2 = np.append(yerr2, yerr2[-1])
-                
+
                 axarr[i_ax].step(xdata, ydata,
                                  where='post', lw=1.5, color=lcolor)
                 axarr[i_ax].fill_between(xdata, yerr1, yerr2,
