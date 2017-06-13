@@ -94,7 +94,7 @@ class S5Pmsm(object):
         self.coords = None
         self.coverage = None
         self.units = None
-        self.long_name = None
+        self.long_name = ''
         self.fillvalue = None
 
         if isinstance(dset, h5py.Dataset):
@@ -234,7 +234,7 @@ class S5Pmsm(object):
         """
         Set the long_name attribute, overwrite when force is true
         """
-        if self.long_name is None or force:
+        if force or self.long_name:
             self.long_name = name
 
     def fill_as_nan(self):
