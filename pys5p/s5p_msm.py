@@ -15,7 +15,7 @@ dimensions. Initialization:
                    | or None                |
   coords           | h5_dset.dims           | [[['time',] 'row',] 'column']
   units            | attrs['units']         | None
-  long_name        | attrs['long_name']     | None
+  long_name        | attrs['long_name']     | ''
   fillvalue        | h5_dset.fillvalue      | None
   coverage         | None                   | None
 
@@ -234,7 +234,7 @@ class S5Pmsm(object):
         """
         Set the long_name attribute, overwrite when force is true
         """
-        if force or self.long_name:
+        if force or not self.long_name:
             self.long_name = name
 
     def fill_as_nan(self):
