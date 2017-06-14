@@ -21,7 +21,7 @@ def mask(region='illuminated'):
     ----------
     region  :   string, optional
       'illuminated' - detector area illuminated by external sources,
-      defined as the area where the signal is at least 50% of the maoin signal
+      defined as the area where the signal is at least 50% of the main signal
       'level2' - a smaller area used for (ir)radiance products given to level 2
     """
     res = np.zeros((256, 1000), dtype=np.bool)
@@ -40,8 +40,8 @@ def coords(region='illuminated'):
     ----------
     region  :   string, optional
       'illuminated' - detector area illuminated by external sources,
-      defined as the area where the signal is at least 50% of the maoin signal
-      'level2' - a smaller area for which the (ir)radiance CKD are valid
+      defined as the area where the signal is at least 50% of the main signal
+      'level2' - a smaller area used for (ir)radiance products given to level 2
     """
     if region == 'level2':
         return np.s_[12:227, 20:980]
