@@ -400,7 +400,7 @@ class S5Pplot(object):
         elif method == 'data' or method == 'ratio_unc':
             cmap = sron_cmap('rainbow_PiRd')
         else:
-            ValueError
+            raise ValueError
 
         norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
@@ -598,7 +598,7 @@ class S5Pplot(object):
 
             lcolor = get_qfive_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
-            bounds = [-1, 0, thres_worst, thres_bad, 10, 11]
+            bounds = [0, thres_worst, thres_bad, 10, 11, 12]
             mbounds = [(bounds[1] + bounds[0]) / 2,
                        (bounds[2] + bounds[1]) / 2,
                        (bounds[3] + bounds[2]) / 2,
@@ -676,16 +676,25 @@ class S5Pplot(object):
             ax_medy.set_ylabel(ylabel)
 
         # add annotation
-        if fig_info is None:
-            fig_info = OrderedDict({'bad (quality < {})'.format(thres_bad/10) :
-                                    np.sum((self.data == thres_worst)
-                                           | (self.data == thres_bad))})
+        if ref_data is None:
+            count = np.sum((self.data == thres_worst)
+                           | (self.data == thres_bad))
+            if fig_info is None:
+                fig_info = OrderedDict(
+                    {'bad (quality < {})'.format(thres_bad/10) : count})
+            else:
+                fig_info.update(
+                    {'bad (quality < {})'.format(thres_bad/10) : count})
+            count = np.sum(self.data == thres_worst)
+            fig_info.update(
+                {'worst (quality < {})'.format(thres_worst/10) : count})
         else:
-            fig_info.update({'bad (quality < {})'.format(thres_bad / 10) :
-                             np.sum((self.data == thres_worst)
-                                    | (self.data == thres_bad))})
-        fig_info.update({'worst (quality < {})'.format(thres_worst / 10) :
-                         np.sum((self.data == thres_worst))})
+            if fig_info is None:
+                fig_info = OrderedDict({'to good' : np.sum(self.data == 10)})
+            else:
+                fig_info.update({'to good' : np.sum(self.data == 10)})
+            fig_info.update({'good to bad' : np.sum(self.data == 8)})
+            fig_info.update({'to worst' : np.sum(self.data == 1)})
 
         # save and close figure
         if self.__pdf is None:
@@ -939,6 +948,7 @@ class S5Pplot(object):
                     & (msm.value >= vmin) & (msm.value <= vmax))
             (umin, umax) = (msm_err.value[indx].min(),
                             msm_err.value[indx].max())
+            print('vrange: ', umin, umax)
 
         line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 7))
@@ -1417,7 +1427,6 @@ class S5Pplot(object):
         # 1) only house-keeping data, no upper-panel with detector data
         # 2) draw pixel-quality data, displayed in the upper-panel
         # 3) draw measurement data, displayed in the upper-panel
-        i_ax = 0
         if plot_mode == 'quality':
             qcolors = get_qfour_colors()
             qc_dict = {'bad'   : qcolors.bad,
@@ -1425,6 +1434,7 @@ class S5Pplot(object):
             ql_dict = {'bad'   : 'bad (quality < 0.8)',
                        'worst' : 'worst (quality < 0.1)'}
 
+            i_ax = 0
             for key in ['bad', 'worst']:
                 ydata = msm.value[key].copy()
                 for indx in reversed(gap_list):
@@ -1460,8 +1470,8 @@ class S5Pplot(object):
                 ydata = np.insert(ydata, indx, ydata[indx-1])
             ydata = np.append(ydata, ydata[-1])
 
-            axarr[i_ax].step(xdata, ydata,
-                             where='post', lw=1.5, color=lcolors[i_ax])
+            axarr[0].step(xdata, ydata,
+                          where='post', lw=1.5, color=lcolors[0])
 
             if msm.error is not None:
                 yerr1 = msm.error[0].copy() / dscale
@@ -1476,16 +1486,18 @@ class S5Pplot(object):
 
                 yerr1 = np.append(yerr1, yerr1[-1])
                 yerr2 = np.append(yerr2, yerr2[-1])
-                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                         step='post', facecolor='#dddddd')
+                axarr[0].fill_between(xdata, yerr1, yerr2,
+                                      step='post', facecolor='#BBCCEE')
 
-            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
-            axarr[i_ax].grid(True)
+            axarr[0].set_xlim([xdata[0], xdata[-1]])
+            axarr[0].grid(True)
             if zunit is None:
-                axarr[i_ax].set_ylabel('detector value')
+                axarr[0].set_ylabel('detector value')
             else:
-                axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
-            i_ax += 1
+                axarr[0].set_ylabel(r'detector value [{}]'.format(zunit))
+            i_ax = 1
+        else:
+            i_ax = 0
 
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
@@ -1493,16 +1505,22 @@ class S5Pplot(object):
                 hk_name = hk_data.long_name[indx].decode('ascii')
                 if np.mean(hk_data.value[key]) < 150:
                     lcolor = lcolors.blue
+                    fcolor = '#BBCCEE'
                 elif np.mean(hk_data.value[key]) < 190:
                     lcolor = lcolors.cyan
+                    fcolor = '#CCEEFF'
                 elif np.mean(hk_data.value[key]) < 220:
                     lcolor = lcolors.green
+                    fcolor = '#CCDDAA'
                 elif np.mean(hk_data.value[key]) < 250:
                     lcolor = lcolors.yellow
+                    fcolor = '#EEEEBB'
                 elif np.mean(hk_data.value[key]) < 270:
                     lcolor = lcolor.red
+                    fcolor = '#FFCCCC'
                 else:
                     lcolor = lcolors.pink
+                    fcolor = '#EEBBDD'
 
                 ydata = hk_data.value[key].copy()
                 yerr1 = hk_data.error[key][:, 0].copy()
@@ -1524,7 +1542,7 @@ class S5Pplot(object):
                 axarr[i_ax].step(xdata, ydata,
                                  where='post', lw=1.5, color=lcolor)
                 axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                         step='post', facecolor='#dddddd')
+                                         step='post', facecolor=fcolor)
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].grid(True)
                 axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
