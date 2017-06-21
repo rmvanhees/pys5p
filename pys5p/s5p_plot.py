@@ -400,12 +400,7 @@ class S5Pplot(object):
         elif method == 'data':
             cmap = sron_cmap('rainbow_PiRd')
         elif method == 'ratio_unc':
-            cmap = sron_cmap('diverging_PiGn')
-            if vmin < 1 and vmax > 1:
-                (tmp1, tmp2) = (vmin, vmax)
-                vmin = min(tmp1, 1 / tmp2)
-                vmax = max(1 / tmp1, tmp2)
-                mid_val = 1.
+            cmap = sron_cmap('rainbow_PiRd')
         else:
             raise ValueError
 
