@@ -144,10 +144,9 @@ class S5Pplot(object):
             return
 
         doc = self.__pdf.infodict()
-        doc['Title'] = 'Report on Tropomi SWIR diode-laser ISRF measurement'
+        doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
         doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
-        doc['Subject'] = 'Shown are ISRF parameters and goodness of fit'
-        doc['Keywords'] = 'PdfPages multipage keywords author title subject'
+        doc['Keywords'] = 'PdfPages multipage keywords author title'
         self.__pdf.close()
 
     # --------------------------------------------------
