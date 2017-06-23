@@ -270,7 +270,8 @@ class S5Pplot(object):
         elif self.method == 'ratio_unc':
             assert ref_img is not None
 
-            mask = swir_region.mask() & (ref_img.value != 0.)
+            #mask = swir_region.mask() & (ref_img.value != 0.)
+            mask = ref_img.value != 0.
 
             self.data = np.full_like(msm.value, np.nan)
             self.data[mask] = error_propagation.unc_div(
@@ -449,7 +450,10 @@ class S5Pplot(object):
         elif method == 'ratio':
             zunit  = None
             zlabel = 'ratio'
-        elif method == 'ratio_unc' or msm.long_name.find('uncertainty') >= 0:
+        elif method == 'ratio_unc':
+            zunit = None
+            zlabel = 'uncertainty'
+        elif msm.long_name.find('uncertainty') >= 0:
             if zunit is None:
                 zlabel = 'uncertainty'
             else:
