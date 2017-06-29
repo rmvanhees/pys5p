@@ -668,8 +668,8 @@ class ICMio(object):
 
         # list potential names of the dataset dimensions
         time_list = ['time', 'scanline']
-        row_list = ['width', 'pixel', 'ground_pixel']
-        column_list = ['height', 'spectral_channel']
+        row_list = ['width', 'pixel', 'pixel_window', 'ground_pixel']
+        column_list = ['height', 'spectral_channel', 'spectral_channel_window']
 
         data = []
         column_dim = None   # column dimension is unkown
