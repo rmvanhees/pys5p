@@ -54,8 +54,6 @@ def band2channel(dict_a, dict_b, mode=None):
     """
     from pys5p.biweight import biweight
 
-    if dict_b is None:
-        dict_b = {}
     if mode is None:
         mode = []
 
@@ -63,54 +61,43 @@ def band2channel(dict_a, dict_b, mode=None):
     for key in sorted(dict_a):
         buff = dict_a[key][...]
 
-        if 'combine' not in mode:
-            if 'mean' in mode:
-                buff = np.nanmean(buff, axis=0)
-            elif 'median' in mode:
-                buff = np.nanmedian(buff, axis=0)
-            elif 'biweight' in mode:
-                buff = biweight(buff, axis=0)
-
         if data_a is None:
             data_a = buff
         else:
             data_a = np.vstack((data_a, buff))
 
+    if data_a is not None:
+        if 'mean' in mode:
+            data_a = np.nanmean(data_a, axis=0)
+        elif 'median' in mode:
+            data_a = np.nanmedian(data_a, axis=0)
+        elif 'biweight' in mode:
+            data_a = biweight(data_a, axis=0)
+
+    if dict_b is None:
+        return data_a
+
     data_b = None
     for key in sorted(dict_b):
         buff = dict_b[key][...]
-
-        if 'combine' not in mode:
-            if 'mean' in mode:
-                buff = np.nanmean(buff, axis=0)
-            elif 'median' in mode:
-                buff = np.nanmedian(buff, axis=0)
-            elif 'biweight' in mode:
-                buff = biweight(buff, axis=0)
 
         if data_b is None:
             data_b = buff
         else:
             data_b = np.vstack((data_b, buff))
 
-    if 'combine' in mode:
+    if data_b is not None:
         if 'mean' in mode:
-            data_a = np.nanmean(data_a, axis=0)
-            if data_b is not None:
-                data_b = np.nanmean(data_b, axis=0)
+            data_b = np.nanmean(data_b, axis=0)
         elif 'median' in mode:
-            data_a = np.nanmedian(data_a, axis=0)
-            if data_b is not None:
-                data_b = np.nanmedian(data_b, axis=0)
+            data_b = np.nanmedian(data_b, axis=0)
         elif 'biweight' in mode:
-            data_a = biweight(data_a, axis=0)
-            if data_b is not None:
-                data_b = biweight(data_b, axis=0)
+            data_b = biweight(data_b, axis=0)
 
-    if data_b is None:
-        return data_a
+    if 'combined' in mode:
+        return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
 
-    return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
+    return (data_a, data_b)
 
 #- class definition -------------------------------
 class OCMio(object):
@@ -247,8 +234,8 @@ class OCMio(object):
 
         if int(self.band) > 6:
             return 1.25e-6 * (65540 - instr['int_delay'] + instr['int_hold'])
-        else:
-            return instr['exposure_time']
+
+        return instr['exposure_time']
 
     def get_housekeeping_data(self):
         """
@@ -276,7 +263,7 @@ class OCMio(object):
           used as "BAND%/ICID_{}_GROUP_%".format(ic_id)
         msm_grp : string
           select measurement group with name msm_grp
-        
+
         All measurements groups are shown when ic_id and msm_grp are None
 
         Returns
