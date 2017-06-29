@@ -3,8 +3,7 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
-offline level 1b products, resp. calibration, irradiance and radiance.
+Provides acces to the Tropomi SWIR CKD's
 
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -301,6 +300,32 @@ class CKDio(object):
         ckd.concatenate(ckd_b8, axis=1)
         ckd.set_fillvalue()
         ckd.set_long_name('SWIR saturation(pre-offset) CKD')
+        return ckd
+
+    def get_swir_saturation_ext(self):
+        """
+        returns saturation values (external) for SWIR, except row 257
+
+        Note the saturation-CKD has no error attached to it (always zero)
+        """
+        ckd_dir = os.path.join(self.__ckd_dir, 'ckd_release_swir',
+                               'saturation_external')
+        assert os.path.isdir(ckd_dir), \
+            '*** Fatal, can not find saturation directory: {}'.format(ckd_dir)
+
+        file_ch4 = os.path.join(ckd_dir,'ckd.saturation_external.detector4.nc')
+        assert os.path.isfile(file_ch4), \
+            '*** Fatal, no saturation CKD found on the system'
+
+        with h5py.File(file_ch4, 'r') as fid:
+            ckd = S5Pmsm(np.full((256, 500),
+                                 fid['/BAND7/pixel_full_well'][:]))
+            ckd_b8 = S5Pmsm(np.full((256, 500),
+                                    fid['/BAND8/pixel_full_well'][:]))
+
+        ckd.concatenate(ckd_b8, axis=1)
+        ckd.set_fillvalue()
+        ckd.set_long_name('SWIR saturation(pre-external) CKD')
         return ckd
 
     def get_swir_v2c(self):
