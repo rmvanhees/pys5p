@@ -14,7 +14,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os.path
+from pathlib import Path
 
 import numpy as np
 import h5py
@@ -50,7 +50,7 @@ class ICMio(object):
         self.bands = None
         self.fid = None
 
-        assert os.path.isfile(icm_product), \
+        assert Path(icm_product).is_file(), \
             '*** Fatal, can not find ICM_CA_SIR file: {}'.format(icm_product)
 
         # open ICM product as HDF5 file
@@ -160,22 +160,21 @@ class ICMio(object):
                 '*** Fatal: msm_path should start with BAND%'
 
             for ii in '12345678':
-                grp_path = os.path.join(msm_path.replace('%', ii), msm_type)
+                grp_path = str(Path(msm_path.replace('%', ii), msm_type))
                 if grp_path in self.fid:
                     self.bands += ii
         else:
             grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
             for ii in '12345678':
                 for name in grp_list:
-                    grp_path = os.path.join('BAND{}_{}'.format(ii, name),
-                                            msm_type)
+                    grp_path = str(Path('BAND{}_{}'.format(ii, name), msm_type))
                     if grp_path in self.fid:
                         msm_path = 'BAND{}_{}'.format('%', name)
                         self.bands += ii
 
         # return in case no data was found
         if self.bands:
-            self.__msm_path = os.path.join(msm_path, msm_type)
+            self.__msm_path = Path(msm_path, msm_type)
 
         return self.bands
 
@@ -235,7 +234,7 @@ class ICMio(object):
         from datetime import datetime, timedelta
 
         ref_time = datetime(2010, 1, 1, 0, 0, 0)
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return ref_time
 
         if band is None:
@@ -243,27 +242,26 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 ref_time += timedelta(seconds=int(sgrp['time'][0]))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
-            grp_path = os.path.join(os.path.dirname(msm_path),
-                                    'ANALOG_OFFSET_SWIR')
+            grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 ref_time += timedelta(seconds=int(sgrp['time'][0]))
@@ -283,7 +281,7 @@ class ICMio(object):
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -291,8 +289,8 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         res = None
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
@@ -300,8 +298,8 @@ class ICMio(object):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 if res is None:
@@ -309,14 +307,13 @@ class ICMio(object):
                 else:
                     res = np.append(res, sgrp['delta_time'][0,:].astype(int))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
-            grp_path = os.path.join(os.path.dirname(msm_path),
-                                    'ANALOG_OFFSET_SWIR')
+            grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 if res is None:
@@ -340,7 +337,7 @@ class ICMio(object):
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -348,8 +345,8 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         res = None
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
@@ -357,8 +354,8 @@ class ICMio(object):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
@@ -366,14 +363,13 @@ class ICMio(object):
                 else:
                     res = np.append(res, sgrp['instrument_settings'][:])
         elif msm_type == 'DPQF_MAP':
-            grp_path = os.path.join(os.path.dirname(msm_path),
-                                    'ANALOG_OFFSET_SWIR')
+            grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
@@ -384,14 +380,14 @@ class ICMio(object):
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_msmt_keys']
             icid = dset['icid'][dset.size // 2]
-            grp_path = os.path.join(
+            grp_path = str(Path(
                 'BAND{}_CALIBRATION'.format(band),
-                'BACKGROUND_RADIANCE_MODE_{:04d}'.format(icid))
+                'BACKGROUND_RADIANCE_MODE_{:04d}'.format(icid)))
             grp = self.fid[grp_path]
             sgrp = grp['INSTRUMENT']
             res = sgrp['instrument_settings'][:]
         else:
-            grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
+            grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
             res = grp['instrument_settings'][:]
 
         return res
@@ -431,7 +427,7 @@ class ICMio(object):
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -439,8 +435,8 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         res = None
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
@@ -448,8 +444,8 @@ class ICMio(object):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
@@ -457,14 +453,13 @@ class ICMio(object):
                 else:
                     res = np.append(res, np.squeeze(sgrp['housekeeping_data']))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
-            grp_path = os.path.join(os.path.dirname(msm_path),
-                                    'ANALOG_OFFSET_SWIR')
+            grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['INSTRUMENT']
                 if res is None:
@@ -472,7 +467,7 @@ class ICMio(object):
                 else:
                     res = np.append(res, np.squeeze(sgrp['housekeeping_data']))
         else:
-            grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
+            grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
             res = np.squeeze(grp['housekeeping_data'])
 
         return res
@@ -495,7 +490,7 @@ class ICMio(object):
          [NOISE]              noise_msmt_keys
          else                 None
         """
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -503,8 +498,8 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
@@ -544,8 +539,8 @@ class ICMio(object):
             assert self.bands.find(band) >= 0
 
         for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-            ds_path = os.path.join(self.__msm_path.replace('%', band),
-                                   dset_grp, msm_dset)
+            ds_path = str(Path(str(self.__msm_path).replace('%', band),
+                               dset_grp, msm_dset))
             if ds_path not in self.fid:
                 continue
 
@@ -577,7 +572,7 @@ class ICMio(object):
         out   :   array-like
            Compound array with data of selected datasets from the GEODATA group
         """
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -585,8 +580,8 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         res = None
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
@@ -594,8 +589,8 @@ class ICMio(object):
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['GEODATA']
                 for key in geo_dset.split(','):
@@ -604,14 +599,13 @@ class ICMio(object):
                     else:
                         res = np.append(res, np.squeeze(sgrp[key]))
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
-            grp_path = os.path.join(os.path.dirname(msm_path),
-                                    'ANALOG_OFFSET_SWIR')
+            grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = os.path.join('BAND{}_CALIBRATION'.format(band),
-                                        name.decode('ascii'))
+                grp_path = str(Path('BAND{}_CALIBRATION'.format(band),
+                                    name.decode('ascii')))
                 grp = self.fid[grp_path]
                 sgrp = grp['GEODATA']
                 for key in geo_dset.split(','):
@@ -620,7 +614,7 @@ class ICMio(object):
                     else:
                         res = np.append(res, np.squeeze(sgrp[key]))
         else:
-            grp = self.fid[os.path.join(msm_path, 'GEODATA')]
+            grp = self.fid[str(Path(msm_path, 'GEODATA'))]
             for key in geo_dset.split(','):
                 if res is None:
                     res = np.squeeze(grp[key])
@@ -675,8 +669,8 @@ class ICMio(object):
         column_dim = None   # column dimension is unkown
         for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                ds_path = os.path.join(self.__msm_path.replace('%', ii),
-                                       dset_grp, msm_dset)
+                msm_path = str(self.__msm_path).replace('%', ii)
+                ds_path = str(Path(msm_path, dset_grp, msm_dset))
                 if ds_path not in self.fid:
                     continue
                 dset = self.fid[ds_path]
@@ -686,14 +680,14 @@ class ICMio(object):
                 for xx in range(dset.ndim):
                     if len(dset.dims[xx][0][:]) == 1:
                         skipped += 1
-                    if os.path.basename(dset.dims[xx][0].name) in time_list:
+                    if Path(dset.dims[xx][0].name).name in time_list:
                         data_sel += (np.s_[:],)
-                    elif os.path.basename(dset.dims[xx][0].name) in row_list:
+                    elif Path(dset.dims[xx][0].name).name in row_list:
                         if rows is None:
                             data_sel += (np.s_[:],)
                         else:
                             data_sel += (np.s_[rows[0]:rows[1]],)
-                    elif os.path.basename(dset.dims[xx][0].name) in column_list:
+                    elif Path(dset.dims[xx][0].name).name in column_list:
                         column_dim = xx - skipped
                         if columns is None:
                             data_sel += (np.s_[:],)
@@ -738,7 +732,7 @@ class ICMio(object):
         """
         assert self.__rw
 
-        if self.__msm_path is None:
+        if not self.__msm_path:
             return None
 
         if band is None:
@@ -746,15 +740,15 @@ class ICMio(object):
         else:
             assert self.bands.find(band) >= 0
 
-        msm_path = self.__msm_path.replace('%', band)
-        msm_type = os.path.basename(self.__msm_path)
+        msm_path = str(self.__msm_path).replace('%', band)
+        msm_type = self.__msm_path.name
 
         if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
             pass
         elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
             pass
         else:
-            ds_path = os.path.join(msm_path, 'INSTRUMENT', 'housekeeping_data')
+            ds_path = str(Path(msm_path, 'INSTRUMENT', 'housekeeping_data'))
             self.fid[ds_path][0,:] = data
 
             self.__patched_msm.append(ds_path)
@@ -798,8 +792,8 @@ class ICMio(object):
         indx = 0
         for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                ds_path = os.path.join(self.__msm_path.replace('%', ii),
-                                       dset_grp, msm_dset)
+                msm_path = str(self.__msm_path).replace('%', ii)
+                ds_path = str(Path(msm_path, dset_grp, msm_dset))
                 if ds_path not in self.fid:
                     continue
                 dset = self.fid[ds_path]
@@ -808,14 +802,14 @@ class ICMio(object):
                 for xx in range(dset.ndim):
                     if len(dset.dims[xx][0][:]) == 1:
                         data_sel += (np.s_[0],)
-                    elif os.path.basename(dset.dims[xx][0].name) in time_list:
+                    elif Path(dset.dims[xx][0].name).name in time_list:
                         data_sel += (np.s_[:],)
-                    elif os.path.basename(dset.dims[xx][0].name) in row_list:
+                    elif Path(dset.dims[xx][0].name).name in row_list:
                         if rows is None:
                             data_sel += (np.s_[:],)
                         else:
                             data_sel += (np.s_[rows[0]:rows[1]],)
-                    elif os.path.basename(dset.dims[xx][0].name) in column_list:
+                    elif Path(dset.dims[xx][0].name).name in column_list:
                         if len(band) == 2:
                             jj = data.ndim-1
                             data = np.stack(np.split(data, 2, axis=jj))

@@ -32,7 +32,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os.path
+from pathlib import Path
 from collections import OrderedDict
 
 import numpy as np
@@ -125,8 +125,7 @@ class S5Pplot(object):
         self.method = None
 
         self.filename = figname
-        (_, ext) = os.path.splitext(figname)
-        if ext.lower() == '.pdf':
+        if Path(figname).suffix.lower() == '.pdf':
             from matplotlib.backends.backend_pdf import PdfPages
 
             self.__pdf  = PdfPages(figname)

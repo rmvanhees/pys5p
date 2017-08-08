@@ -21,17 +21,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 #import sys
-import os.path
 import shutil
 
-from glob import glob
+from pathlib import Path
+
 import numpy as np
-#from unittest import TestCase
 
 from ..get_data_dir import get_data_dir
 from ..icm_io import ICMio
-##from pys5p.get_data_dir import get_data_dir
-##from pys5p.icm_io import ICMio
 
 #--------------------------------------------------
 def test_rd_icm():
@@ -45,11 +42,11 @@ def test_rd_icm():
     except FileNotFoundError:
         return
 
-    filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
-    if len(filelist) == 0:
+    filelist = list(Path(data_dir, 'ICM').glob('S5P_TEST_ICM_CA_SIR_*.h5'))
+    if not filelist:
         return
 
-    for flname in filelist:
+    for flname in sorted(filelist):
         icm = ICMio(flname)
         print(icm)
         print(icm.get_processor_version())
@@ -108,13 +105,13 @@ def test_rd_icm():
             print('measurement_quality: ', res.shape, np.sum(res == 0))
 
     ## check patching of ICM product
-    for flname in filelist:
+    for flname in sorted(filelist):
         icm = ICMio(flname)
         if not icm.select('BACKGROUND_MODE_1063'):
             continue
 
-        fl_patch = os.path.basename(flname)
-        fl_patch = os.path.join('/tmp', fl_patch.replace('_TEST_', '_PATCH_'))
+        fl_patch = Path(flname).name
+        fl_patch = str(Path('/tmp', fl_patch.replace('_TEST_', '_PATCH_')))
         print(fl_patch)
         shutil.copy(flname, fl_patch)
         icm = ICMio(fl_patch, readwrite=True)

@@ -1,9 +1,9 @@
-import os.path
-from setuptools import setup
+from pathlib import Path
 
+from setuptools import setup
 from setuptools_scm import get_version
 
-version_py = os.path.join(os.path.abspath('.'), 'pys5p', 'version.py')
+version_py = str(Path('.', 'pys5p', 'version.py').resolve())
 __version__ = get_version(root='.', relative_to=__file__, write_to=version_py)
 
 def readme():
@@ -21,7 +21,7 @@ setup(name='pys5p',
           'Intended Audience :: Information Technology',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License (standard 3-clause)',
-          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
           'Topic :: Scientific/Engineering :: Atmospheric Science',
           'Topic :: Software Development :: Libraries :: Python Modules',
           'Operating System :: POSIX :: Linux',
@@ -35,11 +35,12 @@ setup(name='pys5p',
       license='BSD',
       packages=['pys5p'],
       install_requires=[
-          'setuptools-scm>=1.1',
-          'h5py>=2.6',
-          'numpy>=1.11',
-          'matplotlib>=1.5',
-          'Cartopy>=0.14',
+          'setuptools-scm>=1.15',
+          'numpy>=1.12',
+          'scipy>=0.19',
+          'h5py>=2.7',
+          'matplotlib>=2.0',
+          'Cartopy>=0.15',
           'Shapely>=1.5',
       ],
       test_suite='nose.collector',

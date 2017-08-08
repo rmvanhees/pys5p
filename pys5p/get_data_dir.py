@@ -13,9 +13,8 @@ License:  Standard 3-clause BSD
 """
 from __future__ import absolute_import
 
-import os.path
-
 from os import environ
+from pathlib import Path
 
 def get_data_dir():
     """
@@ -53,7 +52,7 @@ def get_data_dir():
         guesses_data_dir.append(environ['PYS5P_DATA_DIR'])
 
     for key in guesses_data_dir:
-        if os.path.isdir(key):
+        if Path(key).is_dir():
             return key
 
     raise FileNotFoundError

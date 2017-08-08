@@ -15,7 +15,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os.path
+from pathlib import Path
 
 import numpy as np
 import h5py
@@ -69,7 +69,7 @@ class L1Bio(object):
         self.imsm = None
 
         # open L1b product as HDF5 file
-        assert os.path.isfile(l1b_product), \
+        assert Path(l1b_product).is_file(), \
             '*** Fatal, can not find S5p L1b product: {}'.format(l1b_product)
 
         if readwrite:
@@ -178,7 +178,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
+        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
         return datetime(2010,1,1,0,0,0) + timedelta(seconds=int(grp['time'][0]))
 
     # ---------- class L1Bio::
@@ -194,7 +194,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
+        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
         return grp['delta_time'][0,:].astype(int)
 
     # ---------- class L1Bio::
@@ -215,7 +215,7 @@ class L1Bio(object):
         #    KeyError: 'Unable to open object (Component not found)'.
         # This is my workaround
         #
-        grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
+        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
         instr = np.empty(grp['instrument_settings'].shape,
                          dtype=grp['instrument_settings'].dtype)
         grp['instrument_settings'].read_direct(instr)
@@ -237,7 +237,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
+        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
         return np.squeeze(grp['housekeeping_data'])
 
     # ---------- class L1Bio::
@@ -260,8 +260,8 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
-        return self.fid[ds_path].shape
+        ds_path = Path(msm_path, 'OBSERVATIONS', msm_dset)
+        return self.fid[str(ds_path)].shape
 
     # ---------- class L1Bio::
     def msm_info(self, msm_path):
@@ -282,11 +282,11 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        grp = self.fid[os.path.join(msm_path, 'INSTRUMENT')]
+        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
         icid_list = np.squeeze(grp['instrument_configuration']['ic_id'])
         master_cycle = grp['instrument_settings']['master_cycle_period_us'][0]
         master_cycle /= 1000
-        grp = self.fid[os.path.join(msm_path, 'OBSERVATIONS')]
+        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
         delta_time = np.squeeze(grp['delta_time'])
         length = delta_time.size
         self.imsm = np.empty((length,), dtype=[('icid','u2'),
@@ -332,7 +332,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
         if attr_name in self.fid[ds_path].attrs.keys():
             attr = self.fid[ds_path].attrs[attr_name]
             if isinstance(attr, bytes):
@@ -364,7 +364,7 @@ class L1Bio(object):
         if msm_path is None:
             return None
 
-        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
         dset = self.fid[ds_path]
 
         if icid is None:
@@ -410,7 +410,7 @@ class L1Bio(object):
         # we will overwrite existing data, thus readwrite access is required
         assert self.__rw
 
-        ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
         dset = self.fid[ds_path]
 
         # overwrite the data
@@ -474,14 +474,14 @@ class L1BioCAL(L1Bio):
         grp_list = [ 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
         for name in grp_list:
             for ii in '12345678':
-                grp_path = os.path.join('BAND{}_{}'.format(ii, name), msm_type)
+                grp_path = str(Path('BAND{}_{}'.format(ii, name), msm_type))
                 if grp_path in self.fid:
                     if self.__verbose:
                         print('*** INFO: found: ', grp_path)
                     self.bands += ii
 
             if self.bands:
-                grp_path = os.path.join('BAND%_{}'.format(name), msm_type)
+                grp_path = str(Path('BAND%_{}'.format(name), msm_type))
                 break
 
         if self.bands:
@@ -585,8 +585,7 @@ class L1BioCAL(L1Bio):
         res = np.empty((nscans,), dtype=dtype)
         res['sequence'] = self.imsm['sequence']
 
-        grp = self.fid[os.path.join(self.__msm_path.replace('%', band),
-                                    'GEODATA')]
+        grp = self.fid[str(Path(self.__msm_path.replace('%', band), 'GEODATA'))]
         for name in geo_dset.split(','):
             res[name][...] = grp[name][0, :]
 
@@ -721,14 +720,14 @@ class L1BioIRR(L1Bio):
         self.bands = ''
         self.imsm = None
         for ii in '12345678':
-            grp_path = os.path.join('BAND{}_IRRADIANCE'.format(ii), msm_type)
+            grp_path = str(Path('BAND{}_IRRADIANCE'.format(ii), msm_type))
             if grp_path in self.fid:
                 if self.__verbose:
                     print('*** INFO: found: ', grp_path)
                 self.bands += ii
 
         if self.bands:
-            self.__msm_path = os.path.join('BAND%_IRRADIANCE', msm_type)
+            self.__msm_path = str(Path('BAND%_IRRADIANCE', msm_type))
             super().msm_info(self.__msm_path.replace('%', self.bands[0]))
 
         return self.bands
@@ -904,7 +903,7 @@ class L1BioRAD(L1Bio):
         self.bands = ''
         self.imsm = None
         for ii in '12345678':
-            grp_path = os.path.join('BAND{}_RADIANCE'.format(ii), msm_type)
+            grp_path = str(Path('BAND{}_RADIANCE'.format(ii), msm_type))
             if grp_path in self.fid:
                 if self.__verbose:
                     print('*** INFO: found: ', grp_path)
@@ -978,7 +977,7 @@ class L1BioRAD(L1Bio):
         """
         nrows = self.fid[self.__msm_path]['ground_pixel'].size
 
-        grp = self.fid[os.path.join(self.__msm_path, 'GEODATA')]
+        grp = self.fid[str(Path(self.__msm_path, 'GEODATA'))]
 
         if icid is None:
             nscans = self.fid[self.__msm_path]['scanline'].size

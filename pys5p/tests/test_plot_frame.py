@@ -20,9 +20,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os.path
-
-from glob import glob
+from pathlib import Path
 
 import numpy as np
 
@@ -42,17 +40,17 @@ def test_frame():
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    if not os.path.isdir(os.path.join(data_dir, 'OCM')):
+    if not Path(data_dir, 'OCM').is_dir():
         return
-    msmlist = glob(os.path.join(data_dir, 'OCM', '*'))
-    sdirlist = glob(os.path.join(msmlist[0], '*'))
+    msmlist = list(Path(data_dir, 'OCM').glob('*'))
+    sdirlist = list(Path(msmlist[0]).glob('*'))
 
     # read background measurements
     icid = 31523
 
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
-    ocm_product = os.path.join(sdirlist[0], product_b7)
+    ocm_product = str(Path(sdirlist[0], product_b7))
     print(ocm_product)
 
     # open OCAL Lx poduct
@@ -65,7 +63,7 @@ def test_frame():
 
     # Read BAND8 product
     product_b8 = 'trl1brb8g.lx.nc'
-    ocm_product = os.path.join(sdirlist[0], product_b8)
+    ocm_product = str(Path(sdirlist[0], product_b8))
 
     # open OCAL Lx poduct
     ocm8 = OCMio(ocm_product)

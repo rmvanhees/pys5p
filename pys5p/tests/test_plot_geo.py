@@ -21,9 +21,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os.path
 
-from glob import glob
+from pathlib import Path
 
 #-------------------------
 def test_geo():
@@ -40,7 +39,7 @@ def test_geo():
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_RA_*.nc'))
     if not filelist:
         return
 
@@ -56,7 +55,7 @@ def test_geo():
                           sequence=geo['sequence'])
 
     # test subsatellite mode
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_CA_*.nc'))
     l1b = L1BioCAL(filelist[-1])
     print(l1b, file=sys.stderr)
     l1b.select('BACKGROUND_RADIANCE_MODE_0005')

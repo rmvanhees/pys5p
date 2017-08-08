@@ -22,10 +22,8 @@ from __future__ import print_function
 
 import sys
 import re
-import os.path
 
-from glob import glob
-#from unittest import TestCase
+from pathlib import Path
 
 def test_rd_calib(msm_dset=None):
     """
@@ -40,11 +38,11 @@ def test_rd_calib(msm_dset=None):
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_CA_*.nc'))
     if not filelist:
         return
 
-    for name in filelist:
+    for name in sorted(filelist):
         print(name, file=sys.stderr)
         l1b = L1BioCAL(name)
         print( l1b )

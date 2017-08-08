@@ -15,7 +15,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os.path
+from pathlib import Path
 
 import numpy as np
 import h5py
@@ -122,7 +122,7 @@ class OCMio(object):
         self.band = None
         self.fid  = None
 
-        assert os.path.isfile(ocm_product), \
+        assert Path(ocm_product).is_file(), \
             '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
 
         # open OCM product as HDF5 file
@@ -184,7 +184,7 @@ class OCMio(object):
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[os.path.join(msm, 'GEODATA')]
+            sgrp = grp[str(Path(msm, 'GEODATA'))]
             res[msm] = datetime(2010,1,1,0,0,0)
             res[msm] += timedelta(seconds=int(sgrp['time'][0]))
 
@@ -200,7 +200,7 @@ class OCMio(object):
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[os.path.join(msm, 'GEODATA')]
+            sgrp = grp[str(Path(msm, 'GEODATA'))]
             res[msm] = sgrp['delta_time'][:].astype(int)
 
         return res
@@ -215,7 +215,7 @@ class OCMio(object):
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
+            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
             res[msm] = np.squeeze(sgrp['instrument_settings'])
 
         return res
@@ -229,7 +229,7 @@ class OCMio(object):
 
         grp = self.fid['BAND{}'.format(self.band)]
         msm = self.__msm_path[0] ## all measurement sets have the same ICID
-        sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
+        sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
         instr = np.squeeze(sgrp['instrument_settings'])
 
         if int(self.band) > 6:
@@ -247,7 +247,7 @@ class OCMio(object):
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[os.path.join(msm, 'INSTRUMENT')]
+            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
             res[msm] = np.squeeze(sgrp['housekeeping_data'])
 
         return res
@@ -319,7 +319,7 @@ class OCMio(object):
 
         grp = self.fid['BAND{}'.format(self.band)]
         for msm_path in self.__msm_path:
-            ds_path = os.path.join(msm_path, 'OBSERVATIONS', msm_dset)
+            ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
 
             if attr_name in grp[ds_path].attrs.keys():
                 attr = grp[ds_path].attrs[attr_name]
@@ -363,7 +363,7 @@ class OCMio(object):
         # show HDF5 dataset names and return
         grp = self.fid['BAND{}'.format(self.band)]
         if msm_dset is None:
-            ds_path = os.path.join(self.__msm_path[0], 'OBSERVATIONS')
+            ds_path = str(Path(self.__msm_path[0], 'OBSERVATIONS'))
             for kk in grp[ds_path]:
                 print(kk)
             return {}
@@ -376,20 +376,20 @@ class OCMio(object):
         # combine data of all measurement groups in dictionary
         res = {}
         for msm_grp in sorted(self.__msm_path):
-            dset = grp[os.path.join(msm_grp, 'OBSERVATIONS', msm_dset)]
+            dset = grp[str(Path(msm_grp, 'OBSERVATIONS', msm_dset))]
             data_sel = ()
             for ii in range(dset.ndim):
-                if os.path.basename(dset.dims[ii][0].name) == 'msmt_time':
+                if Path(dset.dims[ii][0].name).name == 'msmt_time':
                     if frames is None:
                         data_sel += (np.s_[:],)
                     else:
                         data_sel += (np.s_[frames[0]:frames[1]],)
-                elif os.path.basename(dset.dims[ii][0].name) == 'row':
+                elif Path(dset.dims[ii][0].name).name == 'row':
                     if rows is None:
                         data_sel += (np.s_[:],)
                     else:
                         data_sel += (np.s_[rows[0]:rows[1]],)
-                elif os.path.basename(dset.dims[ii][0].name) == 'column':
+                elif Path(dset.dims[ii][0].name).name == 'column':
                     if columns is None:
                         data_sel += (np.s_[:],)
                     else:

@@ -30,7 +30,7 @@ License:  Standard 3-clause BSD
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os.path
+from pathlib import Path
 from collections import namedtuple
 
 import numpy as np
@@ -106,7 +106,7 @@ class S5Pmsm(object):
         """
         initialize S5Pmsm object from h5py dataset
         """
-        self.name = os.path.basename(h5_dset.name)
+        self.name = Path(h5_dset.name).name
 
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -130,13 +130,13 @@ class S5Pmsm(object):
             if self.value.shape[ii] == 1:
                 continue
             elif self.value.shape[ii] == h5_dset.shape[ii]:
-                keys.append(os.path.basename(h5_dset.dims[ii][0].name))
+                keys.append(Path(h5_dset.dims[ii][0].name).name)
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
                 dims.append(buff)
             else:
-                keys.append(os.path.basename(h5_dset.dims[ii][0].name))
+                keys.append(Path(h5_dset.dims[ii][0].name).name)
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
@@ -268,7 +268,7 @@ class S5Pmsm(object):
          - The arrays must have the same shape, except in the dimension
         corresponding to axis (the first, by default).
         """
-        assert self.name == os.path.basename(msm.name), \
+        assert self.name == Path(msm.name).name, \
             '*** Fatal, only combine the same dataset from different bands'
 
         if self.error is None and msm.error is None:

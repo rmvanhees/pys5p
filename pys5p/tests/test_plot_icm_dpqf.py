@@ -21,10 +21,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os.path
 
-from glob import glob
-#from unittest import TestCase
+from pathlib import Path
 
 #-------------------------
 def test_icm_dpqf():
@@ -41,7 +39,7 @@ def test_icm_dpqf():
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'ICM', 'S5P_TEST_ICM_CA_SIR_*.h5'))
+    filelist = list(Path(data_dir, 'ICM').glob('S5P_TEST_ICM_CA_SIR_*.h5'))
     if not filelist:
         return
 
@@ -60,19 +58,19 @@ def test_icm_dpqf():
     # generate figure
     plot = S5Pplot('test_plot_icm_dpqm.pdf')
     plot.draw_quality(dpqm,
-                      title=os.path.basename(icm.filename),
+                      title=Path(icm.filename).name,
                       sub_title='dpqf_map')
     plot.draw_quality(dpqm_dark,
-                      title=os.path.basename(icm.filename),
+                      title=Path(icm.filename).name,
                       sub_title='dpqm_dark_flux')
     plot.draw_quality(dpqm_noise,
-                      title=os.path.basename(icm.filename),
+                      title=Path(icm.filename).name,
                       sub_title='dpqm_noise')
     plot.draw_quality(dpqm_noise, ref_data=dpqm_dark,
-                      title=os.path.basename(icm.filename),
+                      title=Path(icm.filename).name,
                       sub_title='dpqm_noise')
     plot.draw_quality(dpqm_noise, show_medians=False,
-                      title=os.path.basename(icm.filename),
+                      title=Path(icm.filename).name,
                       sub_title='dpqm_noise')
     del plot
     del icm

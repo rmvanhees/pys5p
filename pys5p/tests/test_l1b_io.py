@@ -21,10 +21,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os.path
 
-from glob import glob
-#from unittest import TestCase
+from pathlib import Path
 
 #------------------------- TEST-modules and Tutorials -------------------------
 def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
@@ -40,7 +38,7 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_CA_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_CA_*.nc'))
     if not filelist:
         return
 
@@ -80,7 +78,7 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_IR_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_IR_*.nc'))
     if not filelist:
         return
 
@@ -115,7 +113,7 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = glob(os.path.join(data_dir, 'L1B', 'S5P_OFFL_L1B_RA_*.nc'))
+    filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_RA_*.nc'))
     if not filelist:
         return
 

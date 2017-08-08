@@ -21,10 +21,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os.path
 
-from glob import glob
-#from unittest import TestCase
+from pathlib import Path
 
 #--------------------------------------------------
 def test_rd_ocm(msm_dset='signal', print_data=False):
@@ -40,17 +38,17 @@ def test_rd_ocm(msm_dset='signal', print_data=False):
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    if not os.path.isdir(os.path.join(data_dir, 'OCM')):
+    if not Path(data_dir, 'OCM').is_dir():
         return
-    msmlist = glob(os.path.join(data_dir, 'OCM', '*'))
-    sdirlist = glob(os.path.join(msmlist[0], '*'))
+    msmlist = list(Path(data_dir, 'OCM').glob('*'))
+    sdirlist = list(Path(msmlist[0]).glob('*'))
 
     # read background measurements
     msm_icid = 31523
 
     # Read BAND7 product
     product_b7 = 'trl1brb7g.lx.nc'
-    ocm_product = os.path.join(sdirlist[0], product_b7)
+    ocm_product = str(Path(sdirlist[0], product_b7))
 
     # open OCAL Lx poduct
     ocm = OCMio(ocm_product)
