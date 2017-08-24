@@ -182,40 +182,27 @@ class S5Pplot(object):
             datetime.utcnow().isoformat(timespec='seconds'))
 
         if self.aspect == 4:
-            fig.text(0.9, 0.975, info_str,
-                     fontsize=fontsize, style='normal',
-                     verticalalignment='top',
-                     horizontalalignment='right',
-                     multialignment='left',
-                     bbox={'facecolor':'white', 'pad':5})
+            xpos = 0.9
+            ypos = 0.975
         elif self.aspect == 3:
-            fig.text(0.95, 0.975, info_str,
-                     fontsize=fontsize, style='normal',
-                     verticalalignment='top',
-                     horizontalalignment='right',
-                     multialignment='left',
-                     bbox={'facecolor':'white', 'pad':5})
+            xpos = 0.95
+            ypos = 0.975
         elif self.aspect == 2:
-            fig.text(1, 1, info_str,
-                     fontsize=fontsize, style='normal',
-                     verticalalignment='top',
-                     horizontalalignment='right',
-                     multialignment='left',
-                     bbox={'facecolor':'white', 'pad':5})
+            xpos = 1.
+            ypos = 1.
         elif self.aspect == 1:
-            fig.text(0.3, 0.225, info_str,
-                     fontsize=fontsize, style='normal',
-                     verticalalignment='top',
-                     horizontalalignment='right',
-                     multialignment='left',
-                     bbox={'facecolor':'white', 'pad':5})
+            xpos = 0.3
+            ypos = 0.225
         else:
-            fig.text(0.9, 0.925, info_str,
-                     fontsize=fontsize, style='normal',
-                     verticalalignment='top',
-                     horizontalalignment='right',
-                     multialignment='left',
-                     bbox={'facecolor':'white', 'pad':5})
+            xpos = 0.9
+            ypos = 0.925
+
+        fig.text(xpos, ypos, info_str,
+                 fontsize=fontsize, style='normal',
+                 verticalalignment='top',
+                 horizontalalignment='right',
+                 multialignment='left',
+                 bbox={'facecolor':'white', 'pad':5})
 
     #-------------------------
     def __fig_size(self):
@@ -753,7 +740,7 @@ class S5Pplot(object):
         from .sron_colormaps import sron_cmap, get_line_colors
 
         # define aspect for the location of fig_info
-        self.aspect = -1
+        self.aspect = 4
 
         # define colors
         line_colors = get_line_colors()
@@ -863,17 +850,18 @@ class S5Pplot(object):
 
         # ignore NaN's and flatten the images for the histograms
         ax4 = plt.subplot(gspec[3, 0])
-        ax4.hist(value[np.isfinite(value)],
-                 range=[vmin / dscale, vmax / dscale], bins=15,
+        ax4.hist(value[np.isfinite(value)].reshape(-1),
+                 range=[vmin / dscale, vmax / dscale],
+                 bins='auto', histtype='stepfilled',
                  normed=True, color=line_colors[0])
         ax4.set_xlabel(zlabel)
-        ax4.set_ylabel('fraction')
+        ax4.set_ylabel('probability density')
         ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
 
         ax5 = plt.subplot(gspec[3, 1])
-
-        ax5.hist(residual[np.isfinite(residual)],
-                 range=[rmin / rscale, rmax / rscale], bins=15,
+        ax5.hist(residual[np.isfinite(residual)].reshape(-1),
+                 range=[rmin / rscale, rmax / rscale],
+                 bins='auto', histtype='stepfilled',
                  normed=True, color=line_colors[1])
         if runit is None:
             ax5.set_xlabel('residual')
