@@ -322,6 +322,7 @@ class S5Pplot(object):
 
         """
         from matplotlib import pyplot as plt
+        from matplotlib.ticker import MultipleLocator
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         from .sron_colormaps import sron_cmap, get_line_colors
@@ -420,6 +421,29 @@ class S5Pplot(object):
             ax_img.set_xlabel(xlabel)
             ax_img.set_ylabel(ylabel)
 
+        # define ticks locations for X & Y valid for most detectors
+        if (len(xdata) % 10) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 20)
+            major_locator = MultipleLocator(len(xdata) / 5)
+            ax_img.xaxis.set_major_locator(major_locator)
+            ax_img.xaxis.set_minor_locator(minor_locator)
+        elif (len(xdata) % 8) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 16)
+            major_locator = MultipleLocator(len(xdata) / 4)
+            ax_img.xaxis.set_major_locator(major_locator)
+            ax_img.xaxis.set_minor_locator(minor_locator)
+
+        if (len(ydata) % 10) == 0:
+            minor_locator = MultipleLocator(len(ydata) / 20)
+            major_locator = MultipleLocator(len(ydata) / 5)
+            ax_img.yaxis.set_major_locator(major_locator)
+            ax_img.yaxis.set_minor_locator(minor_locator)
+        elif (len(ydata) % 8) == 0:
+            minor_locator = MultipleLocator(len(ydata) / 16)
+            major_locator = MultipleLocator(len(ydata) / 4)
+            ax_img.yaxis.set_major_locator(major_locator)
+            ax_img.yaxis.set_minor_locator(minor_locator)
+
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
         # a new axes on the given side of (“top”, “right”, “bottom” and “left”)
@@ -455,7 +479,7 @@ class S5Pplot(object):
             ax_medx = divider.append_axes("bottom", 1.2, pad=0.25,
                                           sharex=ax_img)
             data_row = biweight(self.data, axis=0)
-            if xdata.size < 250:
+            if xdata.size > 250:
                 ax_medx.plot(xdata, data_row, lw=0.75, color=lcolor[0])
             else:
                 ax_medx.step(xdata, data_row, lw=0.75, color=lcolor[0])
@@ -465,10 +489,10 @@ class S5Pplot(object):
 
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = biweight(self.data, axis=1)
-            if ydata.size < 500:
-                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor[0])
-            else:
+            if ydata.size > 250:
                 ax_medy.plot(data_col, ydata, lw=0.75, color=lcolor[0])
+            else:
+                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor[0])
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
@@ -548,6 +572,7 @@ class S5Pplot(object):
 
         """
         from matplotlib import pyplot as plt
+        from matplotlib.ticker import MultipleLocator
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         from .sron_colormaps import get_qfour_colors, get_qfive_colors
@@ -625,6 +650,29 @@ class S5Pplot(object):
         else:
             ax_img.set_xlabel(xlabel)
             ax_img.set_ylabel(ylabel)
+
+        # define ticks locations for X & Y valid for most detectors
+        if (len(xdata) % 10) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 20)
+            major_locator = MultipleLocator(len(xdata) / 5)
+            ax_img.xaxis.set_major_locator(major_locator)
+            ax_img.xaxis.set_minor_locator(minor_locator)
+        elif (len(xdata) % 8) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 16)
+            major_locator = MultipleLocator(len(xdata) / 4)
+            ax_img.xaxis.set_major_locator(major_locator)
+            ax_img.xaxis.set_minor_locator(minor_locator)
+
+        if (len(ydata) % 10) == 0:
+            minor_locator = MultipleLocator(len(ydata) / 20)
+            major_locator = MultipleLocator(len(ydata) / 5)
+            ax_img.yaxis.set_major_locator(major_locator)
+            ax_img.yaxis.set_minor_locator(minor_locator)
+        elif (len(ydata) % 8) == 0:
+            minor_locator = MultipleLocator(len(ydata) / 16)
+            major_locator = MultipleLocator(len(ydata) / 4)
+            ax_img.yaxis.set_major_locator(major_locator)
+            ax_img.yaxis.set_minor_locator(minor_locator)
 
         # 'make_axes_locatable' returns an instance of the AxesLocator class,
         # derived from the Locator. It provides append_axes method that creates
@@ -735,6 +783,7 @@ class S5Pplot(object):
         median & spread.
         """
         from matplotlib import pyplot as plt
+        from matplotlib.ticker import MultipleLocator
         from matplotlib.gridspec import GridSpec
 
         from .sron_colormaps import sron_cmap, get_line_colors
@@ -793,6 +842,8 @@ class S5Pplot(object):
         # convert units from electrons to ke, Me, ...
         (runit, rscale) = convert_units(msm.units, rmin, rmax)
         residual[mask] /= rscale
+        rmin /= dscale
+        rmax /= dscale
 
         # inititalize figure
         fig = plt.figure(figsize=(10.8, 10))
@@ -811,23 +862,41 @@ class S5Pplot(object):
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         self.add_copyright(ax1)
-        #ax1.locator_params(axis='y', nbins=7)
-        #ax1.yaxis.set_ticks([0,64,128,192,256])
-        #ax1.set_ylabel(ylabel)
+
+        # define ticks locations for X & Y valid for most detectors
+        if (len(xdata) % 10) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 20)
+            major_locator = MultipleLocator(len(xdata) / 5)
+            ax1.xaxis.set_major_locator(major_locator)
+            ax1.xaxis.set_minor_locator(minor_locator)
+        elif (len(xdata) % 8) == 0:
+            minor_locator = MultipleLocator(len(xdata) / 16)
+            major_locator = MultipleLocator(len(xdata) / 4)
+            ax1.xaxis.set_major_locator(major_locator)
+            ax1.xaxis.set_minor_locator(minor_locator)
 
         cbar = plt.colorbar(img)
         if zlabel is not None:
             cbar.set_label(zlabel)
 
         # create centre-pannel with residuals
+        cmap = sron_cmap('diverging_BuRd')
+        mid_val = (rmin + rmax) / 2
+        if rmin < 0 and rmax > 0:
+            (tmp1, tmp2) = (rmin, rmax)
+            rmin = -max(-tmp1, tmp2)
+            rmax = max(-tmp1, tmp2)
+            mid_val = 0.
+        norm = MidpointNormalize(midpoint=mid_val, vmin=rmin, vmax=rmax)
+
         ax2 = plt.subplot(gspec[1, :], sharex=ax1)
         for xtl in ax2.get_xticklabels():
             xtl.set_visible(False)
-        img = ax2.imshow(residual, vmin=rmin / rscale, vmax=rmax / rscale,
-                         aspect='equal', interpolation='none', origin='lower',
-                         extent=extent, cmap=sron_cmap('diverging_BuRd'))
+        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, norm=norm,
+                         interpolation='none', origin='lower',
+                         aspect='equal', extent=extent, cmap=cmap)
         self.add_copyright(ax2)
-        #ax2.set_ylabel(ylabel)
+
         cbar = plt.colorbar(img)
         if runit is None:
             cbar.set_label('residual')
@@ -840,8 +909,7 @@ class S5Pplot(object):
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         self.add_copyright(ax3)
-        #ax3.set_xlabel(xlabel)
-        #ax3.set_ylabel(ylabel)
+
         cbar = plt.colorbar(img)
         if zunit is None:
             cbar.set_label(model_label)
