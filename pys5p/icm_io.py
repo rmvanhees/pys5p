@@ -394,7 +394,14 @@ class ICMio(object):
 
     def get_exposure_time(self, band=None):
         """
-        Returns the exact pixel exposure time of the measurements
+        Returns pixel exposure time of the measurements, which is calculated
+        from the parameters 'int_delay' and 'int_hold' for SWIR.
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
         """
         # obtain instrument settings
         instr_arr = self.get_instrument_settings(band)

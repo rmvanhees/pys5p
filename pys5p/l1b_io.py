@@ -50,6 +50,12 @@ def pad_rows(arr1, arr2):
 
     return (arr1, arr2)
 
+def swir_exp_time(int_delay, int_hold):
+    """
+    Returns the exact pixel exposure time of the measurements
+    """
+    return 1.25e-6 * (65540 - int_delay + int_hold)
+
 #- class definition -------------------------------
 class L1Bio(object):
     """
@@ -539,6 +545,31 @@ class L1BioCAL(L1Bio):
         return super().instrument_settings(self.__msm_path.replace('%', band))
 
     # ---------- class L1BioCAL::
+    def get_exposure_time(self, band=None):
+        """
+        Returns pixel exposure time of the measurements, which is calculated
+        from the parameters 'int_delay' and 'int_hold' for SWIR.
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
+        """
+        if band is None:
+            band = self.bands[0]
+
+        instr_arr = super().instrument_settings(self.__msm_path.replace('%',
+                                                                        band))
+
+        # calculate exact exposure time
+        if int(band) < 7:
+            return [instr['exposure_time'] for instr in instr_arr]
+
+        return [swir_exp_time(instr['int_delay'],
+                              instr['int_hold']) for instr in instr_arr]
+
+    # ---------- class L1BioCAL::
     def get_housekeeping_data(self, band=None):
         """
         Returns housekeeping data of measurements
@@ -763,6 +794,31 @@ class L1BioIRR(L1Bio):
         return super().instrument_settings(self.__msm_path.replace('%', band))
 
     # ---------- class L1BioIRR::
+    def get_exposure_time(self, band=None):
+        """
+        Returns pixel exposure time of the measurements, which is calculated
+        from the parameters 'int_delay' and 'int_hold' for SWIR.
+
+        Parameters
+        ----------
+        band      :  None or {'1', '2', '3', ..., '8'}
+            Select one of the band present in the product
+            Default is 'None' which returns the first available band
+        """
+        if band is None:
+            band = self.bands[0]
+
+        instr_arr = super().instrument_settings(self.__msm_path.replace('%',
+                                                                        band))
+
+        # calculate exact exposure time
+        if int(band) < 7:
+            return [instr['exposure_time'] for instr in instr_arr]
+
+        return [swir_exp_time(instr['int_delay'],
+                              instr['int_hold']) for instr in instr_arr]
+
+    # ---------- class L1BioIRR::
     def get_housekeeping_data(self, band=None):
         """
         Returns housekeeping data of measurements
@@ -936,6 +992,21 @@ class L1BioRAD(L1Bio):
         Returns instrument settings of measurement
         """
         return super().instrument_settings(self.__msm_path)
+
+    # ---------- class L1BioRAD::
+    def get_exposure_time(self):
+        """
+        Returns pixel exposure time of the measurements, which is calculated
+        from the parameters 'int_delay' and 'int_hold' for SWIR.
+        """
+        instr_arr = super().instrument_settings(self.__msm_path)
+
+        # calculate exact exposure time
+        if int(self.bands) < 7:
+            return [instr['exposure_time'] for instr in instr_arr]
+
+        return [swir_exp_time(instr['int_delay'],
+                              instr['int_hold']) for instr in instr_arr]
 
     # ---------- class L1BioRAD::
     def get_housekeeping_data(self, icid=None):
