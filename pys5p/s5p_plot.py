@@ -298,7 +298,7 @@ class S5Pplot(object):
            Method of plot to be generated, default is 'data', optional are
             'diff', 'ratio', 'ratio_unc'
         show_medians :  boolean
-           show in side plots row and column medians. Default=True.
+           show in side plots row and column (biweight) medians. Default=True.
 
         vrange    :  list [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
@@ -318,7 +318,7 @@ class S5Pplot(object):
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date and the data
-        median & spread.
+        (biweight) median & spread.
 
         """
         from matplotlib import pyplot as plt
@@ -536,7 +536,7 @@ class S5Pplot(object):
            reference map taken from the CKD. Shown are the changes with
            respect to the reference data. Default is None
         show_medians :  boolean
-           show in side plots row and column medians. Default=True
+           show in side plots number of bad and worst pixels. Default=True
 
         thres_worst  :  float
            Threshold to reject only the worst of the bad pixels, intended
@@ -555,9 +555,9 @@ class S5Pplot(object):
         The quality ranking labels are ['unusable', 'worst', 'bad', 'good'],
         in case nor reference dataset is provided. Where:
         - 'unusable'  : pixels outside the illuminated region
-        - 'worst'     : 0 <= value < low_thres
-        - 'bad'       : 0 <= value < high_thres
-        - 'good'      : value >= high_thres
+        - 'worst'     : 0 <= value < thres_worst
+        - 'bad'       : 0 <= value < thres_bad
+        - 'good'      : thres_bad <= value <= 1
         Otherwise the labels for quality ranking indicate which pixels have
         changed w.r.t. reference. The labels are:
         - 'unusable'  : pixels outside the illuminated region
@@ -567,9 +567,8 @@ class S5Pplot(object):
         - 'unchanged' : no change in rank
 
         The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date and the data
-        median & spread.
-
+        in a small box. In addition, we display the creation date and statistics
+        on the number of bad and worst pixels.
         """
         from matplotlib import pyplot as plt
         from matplotlib.ticker import MultipleLocator
@@ -882,17 +881,17 @@ class S5Pplot(object):
         # create centre-pannel with residuals
         cmap = sron_cmap('diverging_BuRd')
         mid_val = (rmin + rmax) / 2
+        (rmin_c, rmax_c) = (rmin, rmax)
         if rmin < 0 and rmax > 0:
-            (tmp1, tmp2) = (rmin, rmax)
-            rmin = -max(-tmp1, tmp2)
-            rmax = max(-tmp1, tmp2)
+            rmin_c = -max(-rmin, rmax)
+            rmax_c = max(-rmin, rmax)
             mid_val = 0.
-        norm = MidpointNormalize(midpoint=mid_val, vmin=rmin, vmax=rmax)
+        norm = MidpointNormalize(midpoint=mid_val, vmin=rmin_c, vmax=rmax_c)
 
         ax2 = plt.subplot(gspec[1, :], sharex=ax1)
         for xtl in ax2.get_xticklabels():
             xtl.set_visible(False)
-        img = ax2.imshow(residual, vmin=rmin, vmax=rmax, norm=norm,
+        img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c, norm=norm,
                          interpolation='none', origin='lower',
                          aspect='equal', extent=extent, cmap=cmap)
         self.add_copyright(ax2)
@@ -936,6 +935,21 @@ class S5Pplot(object):
         else:
             ax5.set_xlabel('residual [{}]'.format(runit))
         ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
+
+        # add annotation
+        (median, spread) = biweight(residual, spread=True)
+        if zunit is None:
+            median_str = '{:.5g}'.format(median)
+            spread_str = '{:.5g}'.format(spread)
+        else:
+            median_str = r'{:.5g} {}'.format(median, zunit)
+            spread_str = r'{:.5g} {}'.format(spread, zunit)
+
+        if fig_info is None:
+            fig_info = OrderedDict({'median' : median_str})
+        else:
+            fig_info.update({'median' : median_str})
+        fig_info.update({'spread' : spread_str})
 
         # save and close figure
         if self.__pdf is None:
