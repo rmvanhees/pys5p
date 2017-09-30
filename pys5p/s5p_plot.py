@@ -522,7 +522,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_quality(self, msm, ref_data=None, show_medians=True,
-                     *, thres_worst=0.1, thres_bad=0.8,
+                     *, thres_worst=0.1, thres_bad=0.8, qlabels=None,
                      title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
@@ -597,7 +597,10 @@ class S5Pplot(object):
         thres_worst = int(10 * thres_worst)
         thres_bad   = int(10 * thres_bad)
         if ref_data is None:
-            qlabels = ["unusable", "worst", "bad", "good"]
+            if qlabels is None:
+                qlabels = ["unusable", "worst", "bad", "good"]
+            else:
+                assert len(qlabels) == 4, "*** Fatal, requires 4 labels"
 
             lcolor = get_qfour_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -608,8 +611,11 @@ class S5Pplot(object):
                        (bounds[4] + bounds[3]) / 2]
             norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
         else:
-            qlabels = ["unusable", "to worst", "good to bad ", "to good",
-                       "unchanged"]
+            if qlabels is None:
+                qlabels = ["unusable", "to worst", "good to bad ", "to good",
+                           "unchanged"]
+            else:
+                assert len(qlabels) == 5, "*** Fatal, requires 5 labels"
 
             lcolor = get_qfive_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -717,15 +723,15 @@ class S5Pplot(object):
         if ref_data is None:
             count = np.sum((self.data == thres_worst)
                            | (self.data == thres_bad))
+            info_str = '{} (quality < {})'.format(qlabels[2], thres_bad/10)
             if fig_info is None:
-                fig_info = OrderedDict(
-                    {'bad (quality < {})'.format(thres_bad/10) : count})
+                fig_info = OrderedDict({info_str : count})
             else:
-                fig_info.update(
-                    {'bad (quality < {})'.format(thres_bad/10) : count})
+                fig_info.update({info_str : count})
+
             count = np.sum(self.data == thres_worst)
-            fig_info.update(
-                {'worst (quality < {})'.format(thres_worst/10) : count})
+            info_str = '{} (quality < {})'.format(qlabels[1], thres_worst/10)
+            fig_info.update({info_str : count})
         else:
             if fig_info is None:
                 fig_info = OrderedDict({'to good' : np.sum(self.data == 10)})
