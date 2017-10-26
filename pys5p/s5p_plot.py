@@ -111,7 +111,7 @@ class S5Pplot(object):
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
-    def __init__(self, figname):
+    def __init__(self, figname, add_info=True):
         """
         Initialize multipage PDF document for an SRON SWIR ICM report
 
@@ -123,6 +123,7 @@ class S5Pplot(object):
         self.data = None
         self.aspect = -1
         self.method = None
+        self.add_info = add_info
 
         self.filename = figname
         if Path(figname).suffix.lower() == '.pdf':
@@ -281,7 +282,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_signal(self, msm, ref_data=None, method='data',
-                    show_medians=True, *, vperc=None, vrange=None,
+                    add_medians=True, *, vperc=None, vrange=None,
                     title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
@@ -297,7 +298,7 @@ class S5Pplot(object):
         method    : string
            Method of plot to be generated, default is 'data', optional are
             'diff', 'ratio', 'ratio_unc'
-        show_medians :  boolean
+        add_medians :  boolean
            show in side plots row and column (biweight) medians. Default=True.
 
         vrange    :  list [vmin,vmax]
@@ -412,7 +413,7 @@ class S5Pplot(object):
                             interpolation='none', origin='lower',
                             aspect='equal', extent=extent, cmap=cmap)
         self.add_copyright(ax_img)
-        if show_medians:
+        if add_medians:
             for xtl in ax_img.get_xticklabels():
                 xtl.set_visible(False)
             for ytl in ax_img.get_yticklabels():
@@ -475,7 +476,7 @@ class S5Pplot(object):
                 zlabel = r'value [{}]'.format(zunit)
         plt.colorbar(img, cax=cax, label=zlabel)
         #
-        if show_medians:
+        if add_medians:
             ax_medx = divider.append_axes("bottom", 1.2, pad=0.25,
                                           sharex=ax_img)
             data_row = biweight(self.data, axis=0)
@@ -497,31 +498,37 @@ class S5Pplot(object):
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
 
-        # add annotation
-        (median, spread) = biweight(self.data, spread=True)
-        if zunit is None:
-            median_str = '{:.5g}'.format(median)
-            spread_str = '{:.5g}'.format(spread)
-        else:
-            median_str = r'{:.5g} {}'.format(median, zunit)
-            spread_str = r'{:.5g} {}'.format(spread, zunit)
+        # add annotation and save figure
+        if self.add_info:
+            (median, spread) = biweight(self.data, spread=True)
+            if zunit is None:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
+            else:
+                median_str = r'{:.5g} {}'.format(median, zunit)
+                spread_str = r'{:.5g} {}'.format(spread, zunit)
 
-        if fig_info is None:
-            fig_info = OrderedDict({'median' : median_str})
-        else:
-            fig_info.update({'median' : median_str})
-        fig_info.update({'spread' : spread_str})
+            if fig_info is None:
+                fig_info = OrderedDict({'median' : median_str})
+            else:
+                fig_info.update({'median' : median_str})
+            fig_info.update({'spread' : spread_str})
+            self.__fig_info(fig, fig_info)
 
-        # save and close figure
-        if self.__pdf is None:
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
-    def draw_quality(self, msm, ref_data=None, show_medians=True,
+    def draw_quality(self, msm, ref_data=None, add_medians=True,
                      *, thres_worst=0.1, thres_bad=0.8, qlabels=None,
                      title=None, sub_title=None, fig_info=None):
         """
@@ -535,7 +542,7 @@ class S5Pplot(object):
            Numpy array holding reference data, for example pixel quality
            reference map taken from the CKD. Shown are the changes with
            respect to the reference data. Default is None
-        show_medians :  boolean
+        add_medians :  boolean
            show in side plots number of bad and worst pixels. Default=True
 
         thres_worst  :  float
@@ -647,7 +654,7 @@ class S5Pplot(object):
                             interpolation='none', origin='lower',
                             aspect='equal', extent=extent, cmap=cmap)
         self.add_copyright(ax_img)
-        if show_medians:
+        if add_medians:
             for xtl in ax_img.get_xticklabels():
                 xtl.set_visible(False)
             for ytl in ax_img.get_yticklabels():
@@ -691,7 +698,7 @@ class S5Pplot(object):
         cax.tick_params(axis='y', which='both', length=0)
         cax.set_yticklabels(qlabels)
         #
-        if show_medians:
+        if add_medians:
             ax_medx = divider.append_axes("bottom", 1.2, pad=0.25,
                                           sharex=ax_img)
             data_row = np.sum(((self.data == thres_worst)             ## bad
@@ -719,7 +726,7 @@ class S5Pplot(object):
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
 
-        # add annotation
+        # add annotation and save figure
         if ref_data is None:
             count = np.sum((self.data == thres_worst)
                            | (self.data == thres_bad))
@@ -740,12 +747,19 @@ class S5Pplot(object):
             fig_info.update({'good to bad' : np.sum(self.data == 8)})
             fig_info.update({'to worst' : np.sum(self.data == 1)})
 
-        # save and close figure
-        if self.__pdf is None:
+        if self.add_info:
+            self.__fig_info(fig, fig_info)
+            
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -942,27 +956,33 @@ class S5Pplot(object):
             ax5.set_xlabel('residual [{}]'.format(runit))
         ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
 
-        # add annotation
-        (median, spread) = biweight(residual, spread=True)
-        if zunit is None:
-            median_str = '{:.5g}'.format(median)
-            spread_str = '{:.5g}'.format(spread)
-        else:
-            median_str = r'{:.5g} {}'.format(median, zunit)
-            spread_str = r'{:.5g} {}'.format(spread, zunit)
+        # add annotation and save figure
+        if self.add_info:
+            (median, spread) = biweight(residual, spread=True)
+            if zunit is None:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
+            else:
+                median_str = r'{:.5g} {}'.format(median, zunit)
+                spread_str = r'{:.5g} {}'.format(spread, zunit)
 
-        if fig_info is None:
-            fig_info = OrderedDict({'median' : median_str})
-        else:
-            fig_info.update({'median' : median_str})
-        fig_info.update({'spread' : spread_str})
+            if fig_info is None:
+                fig_info = OrderedDict({'median' : median_str})
+            else:
+                fig_info.update({'median' : median_str})
+            fig_info.update({'spread' : spread_str})
+            self.__fig_info(fig, fig_info)
 
-        # save and close figure
-        if self.__pdf is None:
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -1076,19 +1096,20 @@ class S5Pplot(object):
             axx.set_ylabel('count')
 
             # add annotation
-            (median, spread) = biweight(msm.value, spread=True)
-            if zunit is not None:
-                median_str = r'{:.5g} {}'.format(median / zscale, zunit)
-                spread_str = r'{:.5g} {}'.format(spread / zscale, zunit)
-            else:
-                median_str = '{:.5g}'.format(median)
-                spread_str = '{:.5g}'.format(spread)
+            if self.add_info:
+                (median, spread) = biweight(msm.value, spread=True)
+                if zunit is not None:
+                    median_str = r'{:.5g} {}'.format(median / zscale, zunit)
+                    spread_str = r'{:.5g} {}'.format(spread / zscale, zunit)
+                else:
+                    median_str = '{:.5g}'.format(median)
+                    spread_str = '{:.5g}'.format(spread)
 
-            if fig_info is None:
-                fig_info = OrderedDict({'val_median' : median_str})
-            else:
-                fig_info.update({'val_median' : median_str})
-            fig_info.update({'val_spread' : spread_str})
+                if fig_info is None:
+                    fig_info = OrderedDict({'val_median' : median_str})
+                else:
+                    fig_info.update({'val_median' : median_str})
+                fig_info.update({'val_spread' : spread_str})
 
         #---------- create second histogram ----------
         # convert units from electrons to ke, Me, ...
@@ -1128,23 +1149,32 @@ class S5Pplot(object):
             axx.set_ylabel('count')
 
             # add annotation
-            (median, spread) = biweight(msm_err.value, spread=True)
-            if zunit is not None:
-                median_str = r'{:.5g} {}'.format(median / uscale, uunit)
-                spread_str = r'{:.5g} {}'.format(spread / uscale, uunit)
+            if self.add_info:
+                (median, spread) = biweight(msm_err.value, spread=True)
+                if zunit is not None:
+                    median_str = r'{:.5g} {}'.format(median / uscale, uunit)
+                    spread_str = r'{:.5g} {}'.format(spread / uscale, uunit)
+                else:
+                    median_str = '{:.5g}'.format(median)
+                    spread_str = '{:.5g}'.format(spread)
+
+                fig_info.update({'unc_median' : median_str})
+                fig_info.update({'unc_spread' : spread_str})
+
+        # add annotation and save figure
+        if self.add_info:
+            self.__fig_info(fig, fig_info)
+
+            if self.__pdf is None:
+                plt.savefig(self.filename)
             else:
-                median_str = '{:.5g}'.format(median)
-                spread_str = '{:.5g}'.format(spread)
-
-            fig_info.update({'unc_median' : median_str})
-            fig_info.update({'unc_spread' : spread_str})
-
-        # save and close figure
-        if self.__pdf is None:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -1204,12 +1234,20 @@ class S5Pplot(object):
             axx.set_ylabel('count')
             ipos += 5
 
-        # save and close figure
-        if self.__pdf is None:
+        # add annotation and save figure
+        if self.add_info:
+            self.__fig_info(fig, fig_info)
+
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -1368,29 +1406,35 @@ class S5Pplot(object):
         ax_medy.grid(True)
         ax_medy.set_ylabel(ylabel)
 
-        # add annotation
-        (median, spread) = biweight(msm.value, spread=True)
-        if zunit is not None:
-            median_str = r'{:.5g} {}'.format(median / dscale, zunit)
-            spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
-        else:
-            median_str = '{:.5g}'.format(median)
-            spread_str = '{:.5g}'.format(spread)
+        # add annotation and save figure
+        if self.add_info:
+            (median, spread) = biweight(msm.value, spread=True)
+            if zunit is not None:
+                median_str = r'{:.5g} {}'.format(median / dscale, zunit)
+                spread_str = r'{:.5g} {}'.format(spread / dscale, zunit)
+            else:
+                median_str = '{:.5g}'.format(median)
+                spread_str = '{:.5g}'.format(spread)
 
-        if 'orbit' in fig_info:
-            fig_info.update({'orbit' : [extent[0], extent[1]]})
-        if fig_info is None:
-            fig_info = OrderedDict({'median' : median_str})
-        else:
-            fig_info.update({'median' : median_str})
-        fig_info.update({'spread' : spread_str})
+            if fig_info is None:
+                fig_info = OrderedDict({'median' : median_str})
+            else:
+                if 'orbit' in fig_info:
+                    fig_info.update({'orbit' : [extent[0], extent[1]]})
+                fig_info.update({'median' : median_str})
+            fig_info.update({'spread' : spread_str})
+            self.__fig_info(fig, fig_info)
 
-        # save and close figure
-        if self.__pdf is None:
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -1643,13 +1687,20 @@ class S5Pplot(object):
         fig.subplots_adjust(hspace=0.02)
         plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
-        # save and close figure
-        if self.__pdf is None:
-            plt.tight_layout()
-            plt.savefig(self.filename, bbox_inches='tight', dpi=150)
-        else:
+        # add annotation and save figure
+        if self.add_info:
             self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+        else:
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
 
     # --------------------------------------------------
@@ -1800,13 +1851,20 @@ class S5Pplot(object):
             axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
                         marker='o', color=s5p_color)
         self.add_copyright(axx)
-        if fig_info is None:
-            fig_info = OrderedDict({'lon0': lon_0})
 
-        # save and close figure
-        if self.__pdf is None:
+        if self.add_info:
+            if fig_info is None:
+                fig_info = OrderedDict({'lon0': lon_0})
+            self.__fig_info(fig, fig_info)
+
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
         else:
-            self.__fig_info(fig, fig_info)
-            self.__pdf.savefig()
+            self.__pdf.savefig(bbox_inches='tight')
+            
+        # close figure
         plt.close()
