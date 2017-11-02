@@ -21,6 +21,7 @@ import numpy as np
 import h5py
 
 from .version import version as __version__
+from .biweight import biweight
 
 #- global parameters ------------------------------
 
@@ -1139,3 +1140,145 @@ class L1BioRAD(L1Bio):
            ICID of measurement data
         """
         return super()._set_msm_data(self.__msm_path, msm_dset, data, icid=icid)
+
+#--------------------------------------------------
+class L1BioENG(L1Bio):
+    """
+    class with function to access Tropomi offline L1b engineering products
+
+    The L1b engineering products are available for UVN (band 1-6)
+    and SWIR (band 7-8).
+    """
+    def __init__(self, l1b_product, readwrite=False, verbose=False):
+        super().__init__(l1b_product, readwrite=readwrite)
+
+        # initialize class-attributes
+        self.__verbose = verbose
+        self.__msm_path = None
+        self.bands = ''
+
+    # ---------- class L1BioENG::
+    def get_ref_time(self):
+        """
+        Returns reference start time of measurements
+        """
+        return self.fid['reference_time'][0].astype(int)
+
+    # ---------- class L1BioENG::
+    def get_delta_time(self):
+        """
+        Returns offset from the reference start time of measurement
+        """
+        return self.fid['/MSMTSET/msmtset']['delta_time'][:].astype(int)
+
+    # ---------- class L1BioENG::
+    def get_msmtset(self):
+        """
+        Returns msmtset, which includes delta_time, icid, icid_version and class
+        """
+        return self.fid['/MSMTSET/msmtset'][:]
+
+    # ---------- class L1BioENG::
+    def get_msmtset_db(self):
+        """
+        Returns compressed msmtset
+
+        Note this function is used to fill the product and monitoring databases
+        """
+        dtype_msmt_db = np.dtype([('meta_id'          , np.int32),
+                                  ('ic_id'            , np.uint16),
+                                  ('ic_version'       , np.uint8),
+                                  ('class'            , np.uint8),
+                                  ('delta_time_start' , np.int32),
+                                  ('delta_time_end'   , np.int32)])
+
+        # read full msmtset
+        msmtset = self.get_msmtset()
+
+        # get indices to start and end of every measurement (based in ICID)
+        icid = msmtset['icid']
+        indx = np.where(np.diff(icid) != 0)[0] + 1
+        indx = np.insert(indx, 0, 0)
+        indx = np.append(indx, -1)
+
+        # compress data from msmtset
+        msmt = np.zeros(indx.size-1, dtype=dtype_msmt_db)
+        msmt[:]['ic_id']      = msmtset[indx[0:-1]]['icid']
+        msmt[:]['ic_version'] = msmtset[indx[0:-1]]['icv']
+        msmt[:]['class']      = msmtset[indx[0:-1]]['class']
+        msmt[:]['delta_time_start'] = msmtset[indx[0:-1]]['delta_time']
+        msmt[:]['delta_time_end']   = msmtset[indx[1:]]['delta_time']
+
+        return msmt
+
+    # ---------- class L1BioENG::
+    def get_swir_hk_db(self, stats=None):
+        """
+        Returns the most important SWIR house keeping parameters
+
+        Note this function is used to fill the product and monitoring databases
+        """
+        dtype_hk_db = np.dtype([('detector_temp'       , np.float32),
+                                ('grating_temp'        , np.float32),
+                                ('imager_temp'         , np.float32),
+                                ('obm_temp'            , np.float32),
+                                ('calib_unit_temp'     , np.float32),
+                                ('fee_inner_temp'      , np.float32),
+                                ('fee_board_temp'      , np.float32),
+                                ('fee_ref_volt_temp'   , np.float32),
+                                ('fee_video_amp_temp'  , np.float32),
+                                ('fee_video_adc_temp'  , np.float32),
+                                ('detector_heater'     , np.float32),
+                                ('obm_heater'          , np.float32),
+                                ('obm_heater_cycle'    , np.float32),
+                                ('fee_box_heater'      , np.float32),
+                                ('fee_box_heater_cycle', np.float32)])
+
+        num_eng_pkts = self.fid['nr_of_engdat_pkts'].size
+        swir_hk = np.zeros(num_eng_pkts, dtype=dtype_hk_db)
+
+        hk_tbl = self.fid['/DETECTOR4/DETECTOR_HK/temperature_info'][:]
+        swir_hk['detector_temp']      = hk_tbl['temp_det_ts2']
+        swir_hk['fee_inner_temp']     = hk_tbl['temp_d1_box']
+        swir_hk['fee_board_temp']     = hk_tbl['temp_d5_cold']
+        swir_hk['fee_ref_volt_temp']  = hk_tbl['temp_a3_vref']
+        swir_hk['fee_video_amp_temp'] = hk_tbl['temp_d6_vamp']
+        swir_hk['fee_video_adc_temp'] = hk_tbl['temp_d4_vadc']
+
+        hk_tbl = self.fid['/NOMINAL_HK/TEMPERATURES/hires_temperatures'][:]
+        swir_hk['grating_temp'] = hk_tbl['hires_temp_1']
+
+        hk_tbl = self.fid['/NOMINAL_HK/TEMPERATURES/instr_temperatures'][:]
+        swir_hk['imager_temp']     = hk_tbl['instr_temp_29']
+        swir_hk['obm_temp']        = hk_tbl['instr_temp_28']
+        swir_hk['calib_unit_temp'] = hk_tbl['instr_temp_25']
+
+        hk_tbl = self.fid['/DETECTOR4/DETECTOR_HK/heater_data'][:]
+        swir_hk['detector_heater'] = hk_tbl['det_htr_curr']
+
+        hk_tbl = self.fid['/NOMINAL_HK/HEATERS/heater_data'][:]
+        swir_hk['obm_heater']           = hk_tbl['meas_cur_val_htr13']
+        swir_hk['obm_heater_cycle']     = hk_tbl['last_pwm_val_htr13']
+        swir_hk['fee_box_heater']       = hk_tbl['meas_cur_val_htr14']
+        swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr14']
+
+        if stats is None:
+            return swir_hk
+
+        if stats == 'median':
+            hk_median = np.zeros(1, dtype=dtype_hk_db)
+            hk_spread = np.zeros(1, dtype=dtype_hk_db)
+            for key in dtype_hk_db.names:
+                (mval, sval) = biweight(swir_hk[key], spread=True)
+                hk_median[key][0] = mval
+                hk_spread[key][0] = sval
+            return (hk_median, hk_spread)
+
+        if stats == 'range':
+            hk_range =  np.zeros(2, dtype=dtype_hk_db)
+            for key in dtype_hk_db.names:
+                hk_range[key][0] = swir_hk[key].min()
+                hk_range[key][1] = swir_hk[key].max()
+            return hk_range
+
+        return None
