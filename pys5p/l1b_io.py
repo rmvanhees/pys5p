@@ -1212,9 +1212,14 @@ class L1BioENG(L1Bio):
         return msmt
 
     # ---------- class L1BioENG::
-    def get_swir_hk_db(self, stats=None):
+    def get_swir_hk_db(self, stats=None, fill_as_nan=False):
         """
         Returns the most important SWIR house keeping parameters
+
+        Parameters
+        ----------
+        fill_as_nan :  boolean
+            Replace (float) FillValues with Nan's, when True
 
         Note this function is used to fill the product and monitoring databases
         """
@@ -1235,7 +1240,7 @@ class L1BioENG(L1Bio):
                                 ('fee_box_heater_cycle', np.float32)])
 
         num_eng_pkts = self.fid['nr_of_engdat_pkts'].size
-        swir_hk = np.zeros(num_eng_pkts, dtype=dtype_hk_db)
+        swir_hk = np.empty(num_eng_pkts, dtype=dtype_hk_db)
 
         hk_tbl = self.fid['/DETECTOR4/DETECTOR_HK/temperature_info'][:]
         swir_hk['detector_temp']      = hk_tbl['temp_det_ts2']
@@ -1262,23 +1267,38 @@ class L1BioENG(L1Bio):
         swir_hk['fee_box_heater']       = hk_tbl['meas_cur_val_htr14']
         swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr14']
 
+        ## Note all elements should be floats!
+        if fill_as_nan:
+            for key in dtype_hk_db.names:
+                swir_hk[key][swir_hk[key] == 999.] = np.nan
+        
         if stats is None:
             return swir_hk
 
         if stats == 'median':
-            hk_median = np.zeros(1, dtype=dtype_hk_db)
-            hk_spread = np.zeros(1, dtype=dtype_hk_db)
+            hk_median = np.empty(1, dtype=dtype_hk_db)
             for key in dtype_hk_db.names:
-                (mval, sval) = biweight(swir_hk[key], spread=True)
-                hk_median[key][0] = mval
-                hk_spread[key][0] = sval
-            return (hk_median, hk_spread)
+                if np.all(np.isnan(swir_hk[key])):
+                    hk_median[key][0] = np.nan
+                elif np.nanmin(swir_hk[key]) == np.nanmax(swir_hk[key]):
+                    hk_median[key][0] = swir_hk[key][0]
+                else:
+                    hk_median[key][0] = biweight(swir_hk[key])
+            return hk_median
 
         if stats == 'range':
-            hk_range =  np.zeros(2, dtype=dtype_hk_db)
+            hk_min =  np.empty(1, dtype=dtype_hk_db)
+            hk_max =  np.empty(1, dtype=dtype_hk_db)
             for key in dtype_hk_db.names:
-                hk_range[key][0] = swir_hk[key].min()
-                hk_range[key][1] = swir_hk[key].max()
-            return hk_range
+                if np.all(np.isnan(swir_hk[key])):
+                    hk_min[key][0] = np.nan
+                    hk_max[key][0] = np.nan
+                elif np.nanmin(swir_hk[key]) == np.nanmax(swir_hk[key]):
+                    hk_min[key][0] = swir_hk[key][0]
+                    hk_max[key][0] = swir_hk[key][0]
+                else:
+                    hk_min[key][0] = np.nanmin(swir_hk[key])
+                    hk_max[key][0] = np.nanmax(swir_hk[key])
+            return (hk_min, hk_max)
 
         return None

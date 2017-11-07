@@ -764,7 +764,7 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_cmp_swir(self, msm, model_in, model_label='reference',
-                      *, vrange=None, vperc=None,
+                      *, vrange=None, vperc=None, add_hist=True,
                       title=None, sub_title=None, fig_info=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
@@ -865,11 +865,18 @@ class S5Pplot(object):
         rmax /= dscale
 
         # inititalize figure
-        fig = plt.figure(figsize=(10.8, 10))
-        if title is not None:
-            fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
-        gspec = GridSpec(4, 2)
+        if add_hist:
+            fig = plt.figure(figsize=(10.8, 10))
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             position=(0.5, 0.96), horizontalalignment='center')
+            gspec = GridSpec(4, 2)
+        else:
+            fig = plt.figure(figsize=(10.8, 7.5))
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             position=(0.5, 0.94), horizontalalignment='center')
+            gspec = GridSpec(3, 2)
 
         # create top-pannel with measurements
         ax1 = plt.subplot(gspec[0, :])
@@ -935,26 +942,27 @@ class S5Pplot(object):
         else:
             cbar.set_label(r'{} [{}]'.format(model_label, zunit))
 
-        # ignore NaN's and flatten the images for the histograms
-        ax4 = plt.subplot(gspec[3, 0])
-        ax4.hist(value[np.isfinite(value)].reshape(-1),
-                 range=[vmin / dscale, vmax / dscale],
-                 bins='auto', histtype='stepfilled',
-                 normed=True, color=line_colors[0])
-        ax4.set_xlabel(zlabel)
-        ax4.set_ylabel('probability density')
-        ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
+        if add_hist:
+            # ignore NaN's and flatten the images for the histograms
+            ax4 = plt.subplot(gspec[3, 0])
+            ax4.hist(value[np.isfinite(value)].reshape(-1),
+                     range=[vmin / dscale, vmax / dscale],
+                     bins='auto', histtype='stepfilled',
+                     normed=True, color=line_colors[0])
+            ax4.set_xlabel(zlabel)
+            ax4.set_ylabel('probability density')
+            ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
 
-        ax5 = plt.subplot(gspec[3, 1])
-        ax5.hist(residual[np.isfinite(residual)].reshape(-1),
-                 range=[rmin / rscale, rmax / rscale],
-                 bins='auto', histtype='stepfilled',
-                 normed=True, color=line_colors[1])
-        if runit is None:
-            ax5.set_xlabel('residual')
-        else:
-            ax5.set_xlabel('residual [{}]'.format(runit))
-        ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
+            ax5 = plt.subplot(gspec[3, 1])
+            ax5.hist(residual[np.isfinite(residual)].reshape(-1),
+                     range=[rmin / rscale, rmax / rscale],
+                     bins='auto', histtype='stepfilled',
+                     normed=True, color=line_colors[1])
+            if runit is None:
+                ax5.set_xlabel('residual')
+            else:
+                ax5.set_xlabel('residual [{}]'.format(runit))
+            ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
 
         # add annotation and save figure
         if self.add_info:
@@ -1626,7 +1634,21 @@ class S5Pplot(object):
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
                 indx = hk_data.value.dtype.names.index(key)
-                hk_name = hk_data.long_name[indx].decode('ascii')
+                hk_unit = hk_data.units[indx].decode('ascii')
+                full_string = hk_data.long_name[indx].decode('ascii')
+                if hk_unit == 'K':
+                    hk_name = full_string.rsplit(' ', 1)[0]
+                    hk_label = 'temperature [{}]'.format(hk_unit)
+                elif hk_unit == 'A' or hk_unit == 'mA':
+                    hk_name = full_string.rsplit(' ', 1)[0]
+                    hk_label = 'current [{}]'.format(hk_unit)
+                elif hk_unit == '%':
+                    hk_name = full_string.rsplit(' ', 2)[0]
+                    hk_label = 'duty cycle [{}]'.format(hk_unit)
+                else:
+                    hk_name = full_string
+                    hk_label = 'value [{}]'.format(hk_unit)
+
                 if np.mean(hk_data.value[key]) < 150:
                     lcolor = lcolors.blue
                     fcolor = '#BBCCEE'
@@ -1663,13 +1685,26 @@ class S5Pplot(object):
                 yerr1 = np.append(yerr1, yerr1[-1])
                 yerr2 = np.append(yerr2, yerr2[-1])
 
+                if np.all(np.isnan(ydata)):
+                    ydata[:] = 0
+                    yerr1[:] = 0
+                    yerr2[:] = 0
                 axarr[i_ax].step(xdata, ydata,
                                  where='post', lw=1.5, color=lcolor)
-                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                         step='post', facecolor=fcolor)
+
+                if not (np.array_equal(ydata, yerr1)
+                        and np.array_equal(ydata, yerr2)):
+                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                             step='post', facecolor=fcolor)
                 axarr[i_ax].locator_params(axis='y', nbins=4)
+                axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+                #ymin = (np.nanmin(ydata)
+                #        - (np.nanmax(yerr2) - np.nanmin(yerr1)) / 10)
+                #ymax = (np.nanmax(ydata)
+                #        + (np.nanmax(yerr2) - np.nanmin(yerr1)) / 10)
+                #axarr[i_ax].set_ylim([ymin, ymax])
                 axarr[i_ax].grid(True)
-                axarr[i_ax].set_ylabel('temperature [{}]'.format('K'))
+                axarr[i_ax].set_ylabel(hk_label)
                 legenda = axarr[i_ax].legend(
                     [blank_legend_key()], [hk_name], loc='upper left')
                 legenda.draw_frame(False)
