@@ -1234,10 +1234,10 @@ class L1BioENG(L1Bio):
                                 ('fee_video_amp_temp'  , np.float32),
                                 ('fee_video_adc_temp'  , np.float32),
                                 ('detector_heater'     , np.float32),
-                                ('obm_heater'          , np.float32),
                                 ('obm_heater_cycle'    , np.float32),
-                                ('fee_box_heater'      , np.float32),
-                                ('fee_box_heater_cycle', np.float32)])
+                                ('fee_box_heater_cycle', np.float32),
+                                ('obm_heater'          , np.float32),
+                                ('fee_box_heater'      , np.float32)])
 
         num_eng_pkts = self.fid['nr_of_engdat_pkts'].size
         swir_hk = np.empty(num_eng_pkts, dtype=dtype_hk_db)
