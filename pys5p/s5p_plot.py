@@ -764,7 +764,8 @@ class S5Pplot(object):
 
     # --------------------------------------------------
     def draw_cmp_swir(self, msm, model_in, model_label='reference',
-                      *, vrange=None, vperc=None, add_hist=True,
+                      *, vrange=None, vperc=None,
+                      add_hist=True, add_residual=True,
                       title=None, sub_title=None, fig_info=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
@@ -834,7 +835,7 @@ class S5Pplot(object):
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
         if zunit is None:
-            zlabel = '{}'.format(msm.name)
+            zlabel = None ##'{}'.format(msm.name)
         else:
             zlabel = r'{} [{}]'.format(msm.name, zunit)
 
@@ -865,12 +866,18 @@ class S5Pplot(object):
         rmax /= dscale
 
         # inititalize figure
-        if add_hist:
+        if add_hist and add_residual:
             fig = plt.figure(figsize=(10.8, 10))
             if title is not None:
                 fig.suptitle(title, fontsize='x-large',
                              position=(0.5, 0.96), horizontalalignment='center')
             gspec = GridSpec(4, 2)
+        elif not (add_hist or add_residual):
+            fig = plt.figure(figsize=(10.8, 5.0))
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             position=(0.5, 0.94), horizontalalignment='center')
+            gspec = GridSpec(2, 2)
         else:
             fig = plt.figure(figsize=(10.8, 7.5))
             if title is not None:
@@ -878,12 +885,13 @@ class S5Pplot(object):
                              position=(0.5, 0.94), horizontalalignment='center')
             gspec = GridSpec(3, 2)
 
-        # create top-pannel with measurements
-        ax1 = plt.subplot(gspec[0, :])
+        # create top-panel with measurements
+        iplot = 0
+        ax1 = plt.subplot(gspec[iplot, :])
         for xtl in ax1.get_xticklabels():
             xtl.set_visible(False)
         if sub_title is not None:
-            ax1.set_title(sub_title, fontsize='large')
+            ax1.set_title('(a) ' + sub_title)
         img = ax1.imshow(value, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
@@ -905,55 +913,66 @@ class S5Pplot(object):
         if zlabel is not None:
             cbar.set_label(zlabel)
 
-        # create centre-pannel with residuals
-        cmap = sron_cmap('diverging_BuRd')
-        mid_val = (rmin + rmax) / 2
-        (rmin_c, rmax_c) = (rmin, rmax)
-        if rmin < 0 and rmax > 0:
-            rmin_c = -max(-rmin, rmax)
-            rmax_c = max(-rmin, rmax)
-            mid_val = 0.
-        norm = MidpointNormalize(midpoint=mid_val, vmin=rmin_c, vmax=rmax_c)
+        # create centre-panel with residuals
+        if add_residual:
+            cmap = sron_cmap('diverging_BuRd')
+            mid_val = (rmin + rmax) / 2
+            (rmin_c, rmax_c) = (rmin, rmax)
+            if rmin < 0 and rmax > 0:
+                rmin_c = -max(-rmin, rmax)
+                rmax_c = max(-rmin, rmax)
+                mid_val = 0.
+            norm = MidpointNormalize(midpoint=mid_val, vmin=rmin_c, vmax=rmax_c)
 
-        ax2 = plt.subplot(gspec[1, :], sharex=ax1)
-        for xtl in ax2.get_xticklabels():
-            xtl.set_visible(False)
-        img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c, norm=norm,
-                         interpolation='none', origin='lower',
-                         aspect='equal', extent=extent, cmap=cmap)
-        self.add_copyright(ax2)
+            iplot += 1
+            ax2 = plt.subplot(gspec[iplot, :], sharex=ax1)
+            for xtl in ax2.get_xticklabels():
+                xtl.set_visible(False)
+            if sub_title is not None:
+                ax2.set_title('(b) residual')
+            img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c, norm=norm,
+                             interpolation='none', origin='lower',
+                             aspect='equal', extent=extent, cmap=cmap)
+            self.add_copyright(ax2)
 
-        cbar = plt.colorbar(img)
-        if runit is None:
-            cbar.set_label('residual')
-        else:
-            cbar.set_label('residual [{}]'.format(runit))
+            cbar = plt.colorbar(img)
+            if zunit is not None:
+                cbar.set_label(zlabel)
 
-        # create lower-pannel with reference (model, CKD, previous measurement)
-        ax3 = plt.subplot(gspec[2, :], sharex=ax1)
+        # create lower-panel with reference (model, CKD, previous measurement)
+        iplot += 1
+        ax3 = plt.subplot(gspec[iplot, :], sharex=ax1)
+        if sub_title is not None:
+            if add_residual:
+                ax3.set_title('(c) ' + model_label)
+            else:
+                ax3.set_title('(b) ' + model_label)
         img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         self.add_copyright(ax3)
 
         cbar = plt.colorbar(img)
-        if zunit is None:
-            cbar.set_label(model_label)
-        else:
-            cbar.set_label(r'{} [{}]'.format(model_label, zunit))
+        if runit is not None:
+            cbar.set_label('value [{}]'.format(runit))
 
         if add_hist:
+            iplot += 1
+
             # ignore NaN's and flatten the images for the histograms
-            ax4 = plt.subplot(gspec[3, 0])
+            ax4 = plt.subplot(gspec[iplot, 0])
             ax4.hist(value[np.isfinite(value)].reshape(-1),
                      range=[vmin / dscale, vmax / dscale],
                      bins='auto', histtype='stepfilled',
                      normed=True, color=line_colors[0])
-            ax4.set_xlabel(zlabel)
+            if zunit is None:
+                ax4.set_xlabel('{}'.format(msm.name))
+            else:
+                ax4.set_xlabel( r'{} [{}]'.format(msm.name, zunit))
             ax4.set_ylabel('probability density')
             ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
 
-            ax5 = plt.subplot(gspec[3, 1])
+            ax5 = plt.subplot(gspec[iplot, 1])
             ax5.hist(residual[np.isfinite(residual)].reshape(-1),
                      range=[rmin / rscale, rmax / rscale],
                      bins='auto', histtype='stepfilled',
@@ -1056,7 +1075,7 @@ class S5Pplot(object):
                     & (msm.value >= vmin) & (msm.value <= vmax))
             (umin, umax) = (msm_err.value[indx].min(),
                             msm_err.value[indx].max())
-            print('vrange: ', umin, umax)
+            #print('vrange: ', umin, umax)
 
         line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 7))
@@ -1497,50 +1516,42 @@ class S5Pplot(object):
         # define aspect for the location of fig_info
         self.aspect = 3
 
-        # define colors and number of pannels
+        # define colors and number of panels
         lcolors = get_line_colors()
 
         if msm is None:
             plot_mode = 'house-keeping'
-            npannels = 0
+            npanels = 0
         elif (msm.value.dtype.names is not None
               and 'bad' in msm.value.dtype.names):
             plot_mode = 'quality'
-            npannels = 2
+            npanels = 2
         else:
             plot_mode = 'data'
-            npannels = 1
+            npanels = 1
 
         if hk_data is not None:
             if hk_keys is None:
                 hk_keys = ('temp_det4', 'temp_obm_swir_grating')
-            npannels += len(hk_keys)
+            npanels += len(hk_keys)
         else:
             hk_keys = ()
 
         # initialize matplotlib using 'subplots'
-        figsize = (10, 3.5 + npannels * 2)
-        (fig, axarr) = plt.subplots(npannels, sharex=True, figsize=figsize)
-        if npannels == 1:
+        figsize = (10., (npanels + 1) * 2)
+        margin = 1. / (2 * (npanels + 1))
+        (fig, axarr) = plt.subplots(npanels, sharex=True, figsize=figsize)
+        if npanels == 1:
             axarr = [axarr]
-            caption = ''
-            if title is not None:
-                caption += title
+        fig.subplots_adjust(bottom=margin, top=1-margin, hspace=0.02)
 
-            if sub_title is not None:
-                if caption:
-                    caption += '\n'
-                caption += sub_title
-
-            if caption:
-                axarr[0].set_title(caption, fontsize='large')
-        else:
-            if title is not None:
-                fig.suptitle(title, fontsize='x-large', position=(0.5, 0.96),
-                             horizontalalignment='center')
-
-            if sub_title is not None:
-                axarr[0].set_title(sub_title, fontsize='large')
+        # draw titles (and put it at the same place)
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 1 - margin / 3),
+                         horizontalalignment='center')
+        if sub_title is not None:
+            axarr[0].set_title(sub_title, fontsize='large')
 
         # define x-axis and its label
         (xlabel,) = hk_data.coords._fields
@@ -1710,17 +1721,16 @@ class S5Pplot(object):
                 legenda.draw_frame(False)
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
+        if npanels > 1:
+            plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
-        self.add_copyright(axarr[0])
+        self.add_copyright(axarr[-1])
         if placeholder:
             print('*** show placeholder')
             axarr[0].text(0.5, 0.5, 'PLACEHOLDER',
                           transform=axarr[0].transAxes, alpha=0.5,
                           fontsize=50, color='gray', rotation=45.,
                           ha='center', va='center')
-
-        fig.subplots_adjust(hspace=0.02)
-        plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
         # add annotation and save figure
         if self.add_info:
