@@ -350,24 +350,28 @@ class L1Bio(object):
         return None
 
     # ---------- class L1Bio::
-    def _get_msm_data(self, msm_path, msm_dset, icid=None):
+    def _get_msm_data(self, msm_path, msm_dset, icid, fill_as_nan):
         """
         Reads data from dataset "msm_dset" in group "msm_path"
 
         Parameters
         ----------
-        msm_path   :  string
+        msm_path    :  string
            Full path to measurement group
-        msm_dset   :  string
+        msm_dset    :  string
             Name of measurement dataset.
-        icid       :  integer
+        icid        :  integer
             Select measurement data of measurements with given ICID
+        fill_as_nan :  boolean
+            Set data values equal (KNMI) FillValue to NaN
 
         Returns
         -------
         out   :  values read from or written to dataset "msm_dset"
 
         """
+        fillvalue = float.fromhex('0x1.ep+122')
+
         if msm_path is None:
             return None
 
@@ -375,7 +379,12 @@ class L1Bio(object):
         dset = self.fid[ds_path]
 
         if icid is None:
-            return np.squeeze(dset)
+            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                data = np.squeeze(dset)
+                data[(data == fillvalue)] = np.nan
+                return data
+            else:
+                return np.squeeze(dset)
         else:
             if self.imsm is None:
                 return None
@@ -388,6 +397,8 @@ class L1Bio(object):
                 ibgn = indx[kk[ii]]
                 iend = indx[kk[ii+1]-1]+1
                 data = dset[0, ibgn:iend, :, :]
+                if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                    data[(data == fillvalue)] = np.nan
                 if res is None:
                     res = data
                 else:
@@ -395,7 +406,7 @@ class L1Bio(object):
             return res
 
     # ---------- class L1Bio::
-    def _set_msm_data(self, msm_path, msm_dset, write_data, icid=None):
+    def _set_msm_data(self, msm_path, msm_dset, write_data, icid):
         """
         Writes data from dataset "msm_dset" in group "msm_path"
 
@@ -1100,7 +1111,8 @@ class L1BioRAD(L1Bio):
         return super().msm_attr(self.__msm_path, msm_dset, attr_name)
 
     # ---------- class L1BioRAD::
-    def get_msm_data(self, msm_dset, icid=None, msm_to_row=None):
+    def get_msm_data(self, msm_dset, icid=None, msm_to_row=None,
+                     fill_as_nan=False):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -1122,7 +1134,7 @@ class L1BioRAD(L1Bio):
         """
         if msm_to_row is None:
             return super()._get_msm_data(self.__msm_path, msm_dset,
-                                         icid=icid)
+                                         icid, fill_as_nan)
         return None
 
     # ---------- class L1BioRAD::
