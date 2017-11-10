@@ -140,10 +140,12 @@ class S5Pmsm(object):
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
-                if data_sel.ndim > 1:
+                if len(data_sel) == h5_dset.ndim:
                     dims.append(buff[data_sel[ii]])
-                else:
+                elif not isinstance(data_sel, tuple):
                     dims.append(buff[data_sel])
+                elif ii > len(data_sel):
+                    dims.append(buff[data_sel[-1]])
 
         # add dimensions as a namedtuple
         coords_namedtuple = namedtuple('Coords', keys)
@@ -169,7 +171,10 @@ class S5Pmsm(object):
 
         # copy its long_name
         if 'long_name' in h5_dset.attrs:
-            self.long_name = h5_dset.attrs['long_name']
+            if isinstance(h5_dset.attrs['long_name'], bytes):
+                self.long_name = h5_dset.attrs['long_name'].decode('ascii')
+            else:
+                self.long_name = h5_dset.attrs['long_name']
 
     def __from_ndarray(self, data, data_sel):
         """
@@ -324,8 +329,9 @@ class S5Pmsm(object):
         else:
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
         self.coords = self.coords._replace(**{key : dims})
+        return self
 
-    def nanmedian(self, data_sel=None, *, axis=0, keepdims=False):
+    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
         """
         Returns median of the data in the S5Pmsm
 
@@ -382,6 +388,8 @@ class S5Pmsm(object):
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
 
+        return self
+
     def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
         """
         Returns median of the data in the S5Pmsm
@@ -428,13 +436,13 @@ class S5Pmsm(object):
 
         if data_sel is None:
             if self.value.size <= 1 or self.value.ndim <= max(axis):
-                return
+                return self
             perc = np.nanpercentile(self.value, vperc,
                                     axis=axis, keepdims=keepdims)
         else:
             if (self.value[data_sel].size <= 1
                 or self.value[data_sel].ndim <= max(axis)):
-                return
+                return self
             perc = np.nanpercentile(self.value[data_sel], vperc,
                                     axis=axis, keepdims=keepdims)
         if len(vperc) == 3:
@@ -462,6 +470,8 @@ class S5Pmsm(object):
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
+
+        return self
 
     def biweight(self, data_sel=None, axis=0, keepdims=False):
         """
@@ -522,12 +532,14 @@ class S5Pmsm(object):
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
 
+        return self
+
     def transpose(self):
         """
         Transpose data and coordinates of S5Pmsm object
         """
         if self.value.ndim <= 1:
-            return
+            return self
 
         if self.error is not None:
             self.error = np.transpose(self.error)
@@ -546,3 +558,5 @@ class S5Pmsm(object):
         dims[0] = tmp
         coords_namedtuple = namedtuple('Coords', keys)
         self.coords = coords_namedtuple._make(dims)
+
+        return self
