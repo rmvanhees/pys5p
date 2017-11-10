@@ -67,7 +67,7 @@ def show_signals(args):
 
     res = icm.get_msm_data('radiance_avg_row')
     print('radiance_avg_row: ', res.shape)
-    plot.draw_trend2d(res, time_axis=0, 
+    plot.draw_trend2d(res, time_axis=1, 
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
     del plot
     del icm
