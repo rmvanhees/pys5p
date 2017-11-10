@@ -1334,12 +1334,21 @@ class S5Pplot(object):
         assert isinstance(msm, S5Pmsm)
         assert msm.value.ndim == 2
 
-        if time_axis is None:
+        if isinstance(msm_in, np.ndarray):
             (ylabel, xlabel) = msm.coords._fields
-            if ylabel == 'orbit' or ylabel == 'time':
+            if time_axis == 0:
                 msm.transpose()
-        elif time_axis == 0:
-            msm.transpose()
+                xlabel = 'time'
+            else:
+                ylabel = 'time'
+        else:
+            if time_axis is None:
+                (ylabel, xlabel) = msm.coords._fields
+                if ylabel == 'orbit' or ylabel == 'time':
+                    msm.transpose()
+            elif time_axis == 0:
+                msm.transpose()
+            (ylabel, xlabel) = msm.coords._fields
 
         # calculate column/row medians (if required)
         if data_col is None:
@@ -1353,7 +1362,6 @@ class S5Pplot(object):
                 data_row = np.nanmedian(msm.value, axis=0)
 
         # set label and range of X/Y axis
-        (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
         xstep = np.diff(xdata).min()
