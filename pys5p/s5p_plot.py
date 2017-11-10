@@ -1622,7 +1622,7 @@ class S5Pplot(object):
             ydata = np.append(ydata, ydata[-1])
 
             axarr[0].step(xdata, ydata,
-                          where='post', lw=1.5, color=lcolors[0])
+                          where='post', lw=1.5, color=lcolors.blue)
 
             if msm.error is not None:
                 yerr1 = msm.error[0].copy() / dscale
@@ -1658,32 +1658,21 @@ class S5Pplot(object):
                 if hk_unit == 'K':
                     hk_name = full_string.rsplit(' ', 1)[0]
                     hk_label = 'temperature [{}]'.format(hk_unit)
+                    lcolor = lcolors.blue
+                    fcolor = '#BBCCEE'
                 elif hk_unit == 'A' or hk_unit == 'mA':
                     hk_name = full_string.rsplit(' ', 1)[0]
                     hk_label = 'current [{}]'.format(hk_unit)
+                    lcolor = lcolors.green
+                    fcolor = '#CCDDAA'
                 elif hk_unit == '%':
                     hk_name = full_string.rsplit(' ', 2)[0]
                     hk_label = 'duty cycle [{}]'.format(hk_unit)
+                    lcolor = lcolors.red
+                    fcolor = '#FFCCCC'
                 else:
                     hk_name = full_string
                     hk_label = 'value [{}]'.format(hk_unit)
-
-                if np.mean(hk_data.value[key]) < 150:
-                    lcolor = lcolors.blue
-                    fcolor = '#BBCCEE'
-                elif np.mean(hk_data.value[key]) < 190:
-                    lcolor = lcolors.cyan
-                    fcolor = '#CCEEFF'
-                elif np.mean(hk_data.value[key]) < 220:
-                    lcolor = lcolors.green
-                    fcolor = '#CCDDAA'
-                elif np.mean(hk_data.value[key]) < 250:
-                    lcolor = lcolors.yellow
-                    fcolor = '#EEEEBB'
-                elif np.mean(hk_data.value[key]) < 270:
-                    lcolor = lcolor.red
-                    fcolor = '#FFCCCC'
-                else:
                     lcolor = lcolors.pink
                     fcolor = '#EEBBDD'
 
@@ -1717,11 +1706,6 @@ class S5Pplot(object):
                                              step='post', facecolor=fcolor)
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
-                #ymin = (np.nanmin(ydata)
-                #        - (np.nanmax(yerr2) - np.nanmin(yerr1)) / 10)
-                #ymax = (np.nanmax(ydata)
-                #        + (np.nanmax(yerr2) - np.nanmin(yerr1)) / 10)
-                #axarr[i_ax].set_ylim([ymin, ymax])
                 axarr[i_ax].grid(True)
                 axarr[i_ax].set_ylabel(hk_label)
                 legenda = axarr[i_ax].legend(
