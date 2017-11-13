@@ -1546,8 +1546,8 @@ class S5Pplot(object):
             hk_keys = ()
 
         # initialize matplotlib using 'subplots'
-        figsize = (10., (npanels + 1) * 2)
-        margin = 1. / (2 * (npanels + 1))
+        figsize = (10., (npanels + 1) * 1.8)
+        margin = 1. / (1.8 * (npanels + 1))
         (fig, axarr) = plt.subplots(npanels, sharex=True, figsize=figsize)
         if npanels == 1:
             axarr = [axarr]
@@ -1564,6 +1564,7 @@ class S5Pplot(object):
         # define x-axis and its label
         (xlabel,) = hk_data.coords._fields
         xdata = hk_data.coords[0][:]
+        use_steps = xdata.size <= 256
 
         # define data gaps to avoid interpolation over missing data
         xstep = np.diff(xdata).min()
@@ -1572,7 +1573,8 @@ class S5Pplot(object):
             xdata = np.insert(xdata, indx, xdata[indx]-xstep)
             xdata = np.insert(xdata, indx, xdata[indx])
             xdata = np.insert(xdata, indx, xdata[indx-1])
-        xdata = np.insert(xdata, 0, xdata[0]-xstep)
+        if use_steps:
+            xdata = np.insert(xdata, 0, xdata[0]-xstep)
 
         # Implemented 3 options
         # 1) only house-keeping data, no upper-panel with detector data
@@ -1592,10 +1594,14 @@ class S5Pplot(object):
                     ydata = np.insert(ydata, indx, ydata[indx])
                     ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, ydata[indx-1])
-                ydata = np.append(ydata, ydata[-1])
 
-                axarr[i_ax].step(xdata, ydata, where='post', lw=1.5,
-                                 color=qc_dict[key])
+                if use_steps:
+                    ydata = np.append(ydata, ydata[-1])
+                    axarr[i_ax].step(xdata, ydata, where='post', lw=1.5,
+                                     color=qc_dict[key])
+                else:
+                    axarr[i_ax].plot(xdata, ydata, lw=1.5,
+                                     color=qc_dict[key])
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
@@ -1619,10 +1625,14 @@ class S5Pplot(object):
                 ydata = np.insert(ydata, indx, ydata[indx])
                 ydata = np.insert(ydata, indx, np.nan)
                 ydata = np.insert(ydata, indx, ydata[indx-1])
-            ydata = np.append(ydata, ydata[-1])
 
-            axarr[0].step(xdata, ydata,
-                          where='post', lw=1.5, color=lcolors.blue)
+            if use_steps:
+                ydata = np.append(ydata, ydata[-1])
+                axarr[0].step(xdata, ydata,
+                              where='post', lw=1.5, color=lcolors.blue)
+            else:
+                axarr[0].plot(xdata, ydata,
+                              lw=1.5, color=lcolors.blue)
 
             if msm.error is not None:
                 yerr1 = msm.error[0].copy() / dscale
@@ -1635,10 +1645,14 @@ class S5Pplot(object):
                     yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
                     yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
 
-                yerr1 = np.append(yerr1, yerr1[-1])
-                yerr2 = np.append(yerr2, yerr2[-1])
-                axarr[0].fill_between(xdata, yerr1, yerr2,
-                                      step='post', facecolor='#BBCCEE')
+                if use_steps:
+                    yerr1 = np.append(yerr1, yerr1[-1])
+                    yerr2 = np.append(yerr2, yerr2[-1])
+                    axarr[0].fill_between(xdata, yerr1, yerr2,
+                                          step='post', facecolor='#BBCCEE')
+                else:
+                    axarr[0].fill_between(xdata, yerr1, yerr2,
+                                          facecolor='#BBCCEE')
 
             axarr[0].set_xlim([xdata[0], xdata[-1]])
             axarr[0].grid(True)
@@ -1689,16 +1703,20 @@ class S5Pplot(object):
                     ydata = np.insert(ydata, indx, ydata[indx-1])
                     yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
                     yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
-                ydata = np.append(ydata, ydata[-1])
-                yerr1 = np.append(yerr1, yerr1[-1])
-                yerr2 = np.append(yerr2, yerr2[-1])
 
                 if np.all(np.isnan(ydata)):
                     ydata[:] = 0
                     yerr1[:] = 0
                     yerr2[:] = 0
-                axarr[i_ax].step(xdata, ydata,
-                                 where='post', lw=1.5, color=lcolor)
+
+                if use_steps:
+                    ydata = np.append(ydata, ydata[-1])
+                    yerr1 = np.append(yerr1, yerr1[-1])
+                    yerr2 = np.append(yerr2, yerr2[-1])
+                    axarr[i_ax].step(xdata, ydata,
+                                     where='post', lw=1.5, color=lcolor)
+                else:
+                    axarr[i_ax].plot(xdata, ydata, lw=1.5, color=lcolor)
 
                 if not (np.array_equal(ydata, yerr1)
                         and np.array_equal(ydata, yerr2)):
@@ -1714,7 +1732,8 @@ class S5Pplot(object):
             i_ax += 1
         axarr[-1].set_xlabel(xlabel)
         if npanels > 1:
-            plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+            plt.setp([a.get_xticklabels()
+                      for a in fig.axes[:-1]], visible=False)
 
         self.add_copyright(axarr[-1])
         if placeholder:
