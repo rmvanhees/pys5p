@@ -350,7 +350,7 @@ class L1Bio(object):
         return None
 
     # ---------- class L1Bio::
-    def _get_msm_data(self, msm_path, msm_dset, icid, fill_as_nan):
+    def _get_msm_data(self, msm_path, msm_dset, icid=None, fill_as_nan=False):
         """
         Reads data from dataset "msm_dset" in group "msm_path"
 
@@ -383,30 +383,32 @@ class L1Bio(object):
                 data = np.squeeze(dset)
                 data[(data == fillvalue)] = np.nan
                 return data
-            else:
-                return np.squeeze(dset)
-        else:
-            if self.imsm is None:
-                return None
-            indx = self.imsm['index'][self.imsm['icid'] == icid]
-            buff = np.concatenate(([indx[0]-10], indx, [indx[-1]+10]))
-            kk = np.where((buff[1:] - buff[0:-1]) != 1)[0]
 
-            res = None
-            for ii in range(len(kk)-1):
-                ibgn = indx[kk[ii]]
-                iend = indx[kk[ii+1]-1]+1
-                data = dset[0, ibgn:iend, :, :]
-                if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
-                    data[(data == fillvalue)] = np.nan
-                if res is None:
-                    res = data
-                else:
-                    res = np.append(res, data, axis=0)
-            return res
+            return np.squeeze(dset)
+
+        if self.imsm is None:
+            return None
+        indx = self.imsm['index'][self.imsm['icid'] == icid]
+        buff = np.concatenate(([indx[0]-10], indx, [indx[-1]+10]))
+        kk = np.where((buff[1:] - buff[0:-1]) != 1)[0]
+
+        res = None
+        for ii in range(len(kk)-1):
+            ibgn = indx[kk[ii]]
+            iend = indx[kk[ii+1]-1]+1
+            data = dset[0, ibgn:iend, :, :]
+            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                data[(data == fillvalue)] = np.nan
+
+            if res is None:
+                res = data
+            else:
+                res = np.append(res, data, axis=0)
+
+        return res
 
     # ---------- class L1Bio::
-    def _set_msm_data(self, msm_path, msm_dset, write_data, icid):
+    def _set_msm_data(self, msm_path, msm_dset, write_data, icid=None):
         """
         Writes data from dataset "msm_dset" in group "msm_path"
 
@@ -1186,16 +1188,16 @@ class L1BioENG(L1Bio):
     # ---------- class L1BioENG::
     def get_msmtset(self):
         """
-        Returns msmtset, which includes delta_time, icid, icid_version and class
+        Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos
         """
-        return self.fid['/MSMTSET/msmtset'][:]
+        return self.fid['/SATELLITE_INFO/satellite_pos'][:]
 
     # ---------- class L1BioENG::
     def get_msmtset_db(self):
         """
-        Returns compressed msmtset
+        Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset
 
-        Note this function is used to fill the product and monitoring databases
+        Note this function is used to fill the SQLite product databases
         """
         dtype_msmt_db = np.dtype([('meta_id'          , np.int32),
                                   ('ic_id'            , np.uint16),
@@ -1205,7 +1207,7 @@ class L1BioENG(L1Bio):
                                   ('delta_time_end'   , np.int32)])
 
         # read full msmtset
-        msmtset = self.get_msmtset()
+        msmtset = self.fid['/MSMTSET/msmtset'][:]
 
         # get indices to start and end of every measurement (based in ICID)
         icid = msmtset['icid']
@@ -1233,7 +1235,8 @@ class L1BioENG(L1Bio):
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
-        Note this function is used to fill the product and monitoring databases
+        Note this function is used to fill the SQLite product datbase and
+           HDF5 monitoring database
         """
         dtype_hk_db = np.dtype([('detector_temp'       , np.float32),
                                 ('grating_temp'        , np.float32),
@@ -1283,7 +1286,7 @@ class L1BioENG(L1Bio):
         if fill_as_nan:
             for key in dtype_hk_db.names:
                 swir_hk[key][swir_hk[key] == 999.] = np.nan
-        
+
         if stats is None:
             return swir_hk
 
