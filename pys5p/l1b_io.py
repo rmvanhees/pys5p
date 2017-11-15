@@ -1277,10 +1277,10 @@ class L1BioENG(L1Bio):
         swir_hk['detector_heater'] = hk_tbl['det_htr_curr']
 
         hk_tbl = self.fid['/NOMINAL_HK/HEATERS/heater_data'][:]
-        swir_hk['obm_heater']           = hk_tbl['meas_cur_val_htr13']
-        swir_hk['obm_heater_cycle']     = hk_tbl['last_pwm_val_htr13']
-        swir_hk['fee_box_heater']       = hk_tbl['meas_cur_val_htr14']
-        swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr14']
+        swir_hk['obm_heater']           = hk_tbl['meas_cur_val_htr12']
+        swir_hk['obm_heater_cycle']     = hk_tbl['last_pwm_val_htr12']
+        swir_hk['fee_box_heater']       = hk_tbl['meas_cur_val_htr13']
+        swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr13']
 
         ## Note all elements should be floats!
         if fill_as_nan:
