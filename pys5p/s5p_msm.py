@@ -140,13 +140,16 @@ class S5Pmsm(object):
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
+
                 if len(data_sel) == h5_dset.ndim:
                     dims.append(buff[data_sel[ii]])
                 elif not isinstance(data_sel, tuple):
                     dims.append(buff[data_sel])
                 elif ii > len(data_sel):
                     dims.append(buff[data_sel[-1]])
-
+                else:
+                    dims.append(buff[data_sel[ii]])
+                    
         # add dimensions as a namedtuple
         coords_namedtuple = namedtuple('Coords', keys)
         self.coords = coords_namedtuple._make(dims)
