@@ -1589,7 +1589,7 @@ class S5Pplot(object):
 
             i_ax = 0
             for key in ['bad', 'worst']:
-                ydata = msm.value[key].copy()
+                ydata = msm.value[key].copy().astype(float)
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, ydata[indx])
                     ydata = np.insert(ydata, indx, np.nan)
