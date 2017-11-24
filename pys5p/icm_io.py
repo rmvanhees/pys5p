@@ -183,20 +183,41 @@ class ICMio(object):
         """
         Returns reference orbit number
         """
-        return int(self.fid.attrs['reference_orbit'])
+        if 'reference_orbit' in self.fid.attrs:
+            return int(self.fid.attrs['reference_orbit'])
+
+        return None
 
     def get_processor_version(self):
         """
         Returns version of the L01b processor
         """
-        return self.fid.attrs['processor_version'].decode('ascii')
+        if 'processor_version' not in self.fid.attrs:
+            return None
+
+        res = self.fid.attrs['processor_version']
+        if isinstance(res, bytes):
+            return res.decode('ascii')
+
+        return res
 
     def get_coverage_time(self):
         """
         Returns start and end of the measurement coverage time
         """
-        return (self.fid.attrs['time_coverage_start'].decode('ascii'),
-                self.fid.attrs['time_coverage_end'].decode('ascii'))
+        if 'time_coverage_start' not in self.fid.attrs \
+           or 'time_coverage_end' not in self.fid.attrs:
+            return None
+
+        res1 = self.fid.attrs['time_coverage_start']
+        if isinstance(res1, bytes):
+            res1 = res1.decode('ascii')
+
+        res2 = self.fid.attrs['time_coverage_end']
+        if isinstance(res2, bytes):
+            res2 = res2.decode('ascii')
+
+        return (res1, res2,)
 
     def get_creation_time(self):
         """
@@ -215,10 +236,14 @@ class ICMio(object):
         attr_name : string
            name of the attribute
         """
-        if attr_name in self.fid.attrs.keys():
-            return self.fid.attrs[attr_name]
+        if attr_name not in self.fid.attrs:
+            return None
 
-        return None
+        res = self.fid.attrs[attr_name]
+        if isinstance(res, bytes):
+            return res.decode('ascii')
+
+        return res
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self, band=None):
@@ -244,7 +269,7 @@ class ICMio(object):
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
@@ -254,7 +279,7 @@ class ICMio(object):
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 ref_time += timedelta(seconds=int(sgrp['time'][0]))
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+        elif msm_type in ['DPQF_MAP', 'NOISE']:
             grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
@@ -293,7 +318,7 @@ class ICMio(object):
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
@@ -303,10 +328,10 @@ class ICMio(object):
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 if res is None:
-                    res = sgrp['delta_time'][0,:].astype(int)
+                    res = sgrp['delta_time'][0, :].astype(int)
                 else:
-                    res = np.append(res, sgrp['delta_time'][0,:].astype(int))
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+                    res = np.append(res, sgrp['delta_time'][0, :].astype(int))
+        elif msm_type in ['DPQF_MAP', 'NOISE']:
             grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
@@ -317,13 +342,13 @@ class ICMio(object):
                 grp = self.fid[grp_path]
                 sgrp = grp['OBSERVATIONS']
                 if res is None:
-                    res = sgrp['delta_time'][0,:].astype(int)
+                    res = sgrp['delta_time'][0, :].astype(int)
                 else:
-                    res = np.append(res, sgrp['delta_time'][0,:].astype(int))
+                    res = np.append(res, sgrp['delta_time'][0, :].astype(int))
         else:
             grp = self.fid[msm_path]
             sgrp = grp['OBSERVATIONS']
-            res = sgrp['delta_time'][0,:].astype(int)
+            res = sgrp['delta_time'][0, :].astype(int)
 
         return res
 
@@ -349,7 +374,7 @@ class ICMio(object):
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
@@ -446,7 +471,7 @@ class ICMio(object):
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
@@ -459,7 +484,7 @@ class ICMio(object):
                     res = np.squeeze(sgrp['housekeeping_data'])
                 else:
                     res = np.append(res, np.squeeze(sgrp['housekeeping_data']))
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+        elif msm_type in ['DPQF_MAP', 'NOISE']:
             grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
@@ -511,7 +536,8 @@ class ICMio(object):
         if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             return np.squeeze(grp[msm_type.lower() + '_group_keys'])
-        elif msm_type in ['NOISE']:
+
+        if msm_type == 'NOISE':
             grp = self.fid[msm_path]
             return np.squeeze(grp[msm_type.lower() + '_msmt_keys'])
 
@@ -551,7 +577,7 @@ class ICMio(object):
             if ds_path not in self.fid:
                 continue
 
-            if attr_name in self.fid[ds_path].attrs.keys():
+            if attr_name in self.fid[ds_path].attrs:
                 attr = self.fid[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
                     return attr.decode('ascii')
@@ -591,7 +617,7 @@ class ICMio(object):
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
@@ -605,7 +631,7 @@ class ICMio(object):
                         res = np.squeeze(sgrp[key])
                     else:
                         res = np.append(res, np.squeeze(sgrp[key]))
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+        elif msm_type in ['DPQF_MAP', 'NOISE']:
             grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
             dset = grp['analog_offset_swir_group_keys']
@@ -722,8 +748,8 @@ class ICMio(object):
             return data[0]
         # return bands stacked
         if column_dim is None:
-            return np.stack(data)
-        # return band in detector lauyout
+            return data ## np.stack(data)
+        # return band in detector layout
         return np.concatenate(data, axis=column_dim)
 
     #-------------------------
@@ -750,13 +776,13 @@ class ICMio(object):
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
 
-        if msm_type == 'ANALOG_OFFSET_SWIR' or msm_type == 'LONG_TERM_SWIR':
+        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             pass
-        elif msm_type == 'DPQF_MAP' or msm_type == 'NOISE':
+        elif msm_type in ['DPQF_MAP', 'NOISE']:
             pass
         else:
             ds_path = str(Path(msm_path, 'INSTRUMENT', 'housekeeping_data'))
-            self.fid[ds_path][0,:] = data
+            self.fid[ds_path][0, :] = data
 
             self.__patched_msm.append(ds_path)
 
