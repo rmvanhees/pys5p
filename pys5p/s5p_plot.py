@@ -1567,8 +1567,8 @@ class S5Pplot(object):
         use_steps = xdata.size <= 256
 
         # define data gaps to avoid interpolation over missing data
-        xstep = np.diff(xdata).min()
-        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+        xstep = np.median(np.diff(xdata))
+        gap_list = 1 + np.where(np.diff(xdata) > 1.5 * xstep)[0]
         for indx in reversed(gap_list):
             xdata = np.insert(xdata, indx, xdata[indx]-xstep)
             xdata = np.insert(xdata, indx, xdata[indx])
