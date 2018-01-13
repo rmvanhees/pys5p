@@ -699,7 +699,7 @@ class ICMio(object):
         column_list = ['height', 'spectral_channel', 'spectral_channel_window']
 
         data = []
-        column_dim = None   # column dimension is unkown
+        column_dim = None   # column dimension is unknown
         for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
                 msm_path = str(self.__msm_path).replace('%', ii)
@@ -713,6 +713,7 @@ class ICMio(object):
                 for xx in range(dset.ndim):
                     if len(dset.dims[xx][0][:]) == 1:
                         skipped += 1
+
                     if Path(dset.dims[xx][0].name).name in time_list:
                         data_sel += (np.s_[:],)
                     elif Path(dset.dims[xx][0].name).name in row_list:
@@ -740,6 +741,7 @@ class ICMio(object):
         # Note the current implementation will not work for channels where
         # the output of its bands can have different spatial dimensions (rows)
         # or different integration times (frames/scanlines)
+        #
         # no data found
         if not data:
             return None

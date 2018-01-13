@@ -1562,6 +1562,8 @@ class S5Pplot(object):
             axarr[0].set_title(sub_title, fontsize='large')
 
         # define x-axis and its label
+        #print('hk_data.coords._fields: ', hk_data.name, hk_data.value.shape,
+        #      hk_data.coords._fields)
         (xlabel,) = hk_data.coords._fields
         xdata = hk_data.coords[0][:]
         use_steps = xdata.size <= 256

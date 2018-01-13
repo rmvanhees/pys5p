@@ -1203,6 +1203,10 @@ class L1BioENG(L1Bio):
                                   ('ic_id'            , np.uint16),
                                   ('ic_version'       , np.uint8),
                                   ('class'            , np.uint8),
+                                  ('repeats'          , np.uint16),
+                                  ('exp_per_mcp'      , np.uint16),
+                                  ('exp_time_us'      , np.uint32),
+                                  ('mcp_us'           , np.uint32),
                                   ('delta_time_start' , np.int32),
                                   ('delta_time_end'   , np.int32)])
 
@@ -1222,6 +1226,15 @@ class L1BioENG(L1Bio):
         msmt[:]['class']      = msmtset[indx[0:-1]]['class']
         msmt[:]['delta_time_start'] = msmtset[indx[0:-1]]['delta_time']
         msmt[:]['delta_time_end']   = msmtset[indx[1:]]['delta_time']
+
+        # add SWIR timing information
+        timing = self.fid['/DETECTOR4/timing'][:]
+        msmt[:]['mcp_us']      = timing[indx[0:-1]]['mcp_us']
+        msmt[:]['exp_time_us'] = timing[indx[0:-1]]['exp_time_us']
+        msmt[:]['exp_per_mcp'] = timing[indx[0:-1]]['exp_per_mcp']
+        msmt[:]['repeats']     = (
+            (msmt[:]['delta_time_end'] - msmt[:]['delta_time_start'])
+            // (msmt[:]['mcp_us'] // 1000))
 
         return msmt
 
