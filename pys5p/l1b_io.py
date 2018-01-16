@@ -1229,9 +1229,9 @@ class L1BioENG(L1Bio):
 
         # add SWIR timing information
         timing = self.fid['/DETECTOR4/timing'][:]
-        msmt[:]['mcp_us']      = timing[indx[0:-1]]['mcp_us']
-        msmt[:]['exp_time_us'] = timing[indx[0:-1]]['exp_time_us']
-        msmt[:]['exp_per_mcp'] = timing[indx[0:-1]]['exp_per_mcp']
+        msmt[:]['mcp_us']      = timing[indx[1:]-1]['mcp_us']
+        msmt[:]['exp_time_us'] = timing[indx[1:]-1]['exp_time_us']
+        msmt[:]['exp_per_mcp'] = timing[indx[1:]-1]['exp_per_mcp']
         msmt[:]['repeats']     = (
             (msmt[:]['delta_time_end'] - msmt[:]['delta_time_start'])
             // (msmt[:]['mcp_us'] // 1000))
