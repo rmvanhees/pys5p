@@ -116,11 +116,20 @@ class S5Pmsm(object):
             else:
                 self.value = np.array(h5_dset.value)
         else:
+            # we need to keep all dimensions to get the dimensions
+            # of the output data right
             if datapoint:
-                self.value = np.array(h5_dset[data_sel]['value'])
-                self.error = np.array(h5_dset[data_sel]['error'])
+                self.value = h5_dset[data_sel]['value']
+                self.error = h5_dset[data_sel]['error']
+                for ii in range(len(data_sel)):
+                    if isinstance(data_sel[ii], int):
+                        self.value = np.expand_dims(self.value, axis=ii)
+                        self.error = np.expand_dims(self.error, axis=ii)
             else:
-                self.value = np.array(h5_dset[data_sel])
+                self.value = h5_dset[data_sel]
+                for ii in range(len(data_sel)):
+                    if isinstance(data_sel[ii], int):
+                        self.value = np.expand_dims(self.value, axis=ii)
 
         # copy all dimensions with size longer then 1
         # ToDo what happens when no dimensions are assigned to dataset?
