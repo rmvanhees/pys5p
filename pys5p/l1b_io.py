@@ -663,7 +663,8 @@ class L1BioCAL(L1Bio):
                                 msm_dset, attr_name)
 
     # ---------- class L1BioCAL::
-    def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
+    def get_msm_data(self, msm_dset, band='78', msm_to_row=None,
+                     fill_as_nan=False):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -696,7 +697,7 @@ class L1BioCAL(L1Bio):
         data = ()
         for ii in band:
             data += (super()._get_msm_data(self.__msm_path.replace('%', ii),
-                                           msm_dset),)
+                                           msm_dset, fill_as_nan=fill_as_nan),)
         if len(data) == 1:
             return data[0]
 
@@ -869,7 +870,8 @@ class L1BioIRR(L1Bio):
                                 msm_dset, attr_name)
 
     # ---------- class L1BioIRR::
-    def get_msm_data(self, msm_dset, band='78', msm_to_row=None):
+    def get_msm_data(self, msm_dset, band='78', msm_to_row=None,
+                     fill_as_nan=False):
         """
         Returns data of measurement dataset "msm_dset"
 
@@ -902,7 +904,7 @@ class L1BioIRR(L1Bio):
         res = None
         for ii in band:
             data = super()._get_msm_data(self.__msm_path.replace('%', ii),
-                                         msm_dset)
+                                         msm_dset, fill_as_nan=fill_as_nan)
             if res is None:
                 res = data
             else:
@@ -1136,7 +1138,7 @@ class L1BioRAD(L1Bio):
         """
         if msm_to_row is None:
             return super()._get_msm_data(self.__msm_path, msm_dset,
-                                         icid, fill_as_nan)
+                                         icid=icid, fill_as_nan=fill_as_nan)
         return None
 
     # ---------- class L1BioRAD::
