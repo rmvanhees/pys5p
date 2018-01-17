@@ -15,6 +15,50 @@ from __future__ import division
 
 import numpy as np
 
+# ----- local functions -------------------------
+def __biweight_median(data):
+    """
+    Calculate only biweight median
+    """
+    mask = np.isfinite(data)
+    if np.all(~mask):
+        return np.nan
+
+    xx = data[mask]
+    med_xx = np.median(xx)
+    deltas = xx - med_xx
+    med_dd = np.median(np.abs(deltas))
+    if med_dd == 0:
+        return med_xx
+
+    wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
+
+    return med_xx + np.sum(wmx * deltas) / np.sum(wmx)
+
+def __biweight(data):
+    """
+    Calculate biweight median and spread
+    """
+    mask = np.isfinite(data)
+    if np.all(~mask):
+        return (np.nan, 0.)
+
+    xx = data[mask]
+    med_xx = np.median(xx)
+    deltas = xx - med_xx
+    med_dd = np.median(np.abs(deltas))
+    if med_dd == 0:
+        return (med_xx, 0.)
+
+    wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
+    xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
+    umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
+    sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
+    sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
+    sbi = np.sqrt(len(xx) * sbi)
+    return (xbi, sbi)
+
+# ----- main function -------------------------
 def biweight(data, axis=None, spread=False):
     """
     Calculate Tukey's biweight.
@@ -34,57 +78,34 @@ def biweight(data, axis=None, spread=False):
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
-    sbi = 0.
-
-    # define lambda function to return only median or (median, spread)
-    out_parms = lambda xbi, sbi, both: (xbi, sbi) if both else xbi
-
-    if np.all(np.isnan(data)):
-        if axis is None:
-            return out_parms(np.nan, 0., spread)
-    
-        shape = np.sum(data, axis=axis).shape
-        return out_parms(np.full(shape, np.nan),
-                         np.full(shape, 0.),
-                         spread)
-    
     if axis is None:
-        xx = data[np.isfinite(data)]
-        med_xx = np.median(xx)
-        deltas = xx - med_xx
-        med_dd = np.median(np.abs(deltas))
-        if med_dd == 0:
-            return out_parms(med_xx, 0., spread)
-
-        wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
-        xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
         if spread:
-            umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
-            sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
-            sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
-            sbi = np.sqrt(len(xx) * sbi)
+            return __biweight(data)
+
+        return __biweight_median(data)
+
+    # only a single axis!
+    assert isinstance(axis, int)
+    assert axis >= 0 and axis < data.ndim
+
+    res_size = data.size // data.shape[axis]
+    if spread:
+        res = np.empty(res_size, dtype=[('median', 'f8'),('spread', 'f8')])
     else:
-        med_xx = np.nanmedian(data, axis=axis)
-        xbi = med_xx
-        sbi = np.zeros_like(med_xx)
+        res = np.empty(res_size, dtype='f8')
 
-        deltas = data - np.expand_dims(med_xx, axis=axis)
-        med_dd = np.nanmedian(np.abs(deltas), axis=axis)
+    data_T = np.moveaxis(data, axis, 0)
+    shape = data_T.shape
+    buff = data_T.reshape(shape[0], res_size)
+    if spread:
+        for ii in range(res_size):
+            res[ii] = __biweight(buff[:, ii])
+    else:
+        for ii in range(res_size):
+            res[ii] = __biweight_median(buff[:, ii])
 
-        indices = ((med_dd == 0) | np.isfinite(med_dd))
-        if not np.all(indices):
-            med_dd[indices] = 1       # dummy value
-            med_dd = np.expand_dims(med_dd, axis=axis)
-            wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
-            with np.errstate(invalid='ignore'):
-                xbi[~indices] = (med_xx + np.sum(wmx * deltas, axis=axis)
-                                 / np.sum(wmx, axis=axis))[~indices]
-            if spread:
-                umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
-                len_xx = np.sum(np.isfinite(data), axis=axis)
-                buff = np.sum(deltas ** 2 * (1 - umn) ** 4, axis=axis)
-                buff /= np.sum((1 - umn) *  (1 - 5 * umn), axis=axis) ** 2
-                buff = np.sqrt(len_xx * buff)
-                sbi[~indices] = buff[~indices]
+    res = res.reshape(shape[1:])
+    if spread:
+        return (res['median'], res['spread'])
 
-    return out_parms(xbi, sbi, spread)
+    return res
