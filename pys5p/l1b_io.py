@@ -30,7 +30,9 @@ def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
     """
-    if arr2.ndim == 2:
+    if arr2.ndim == 1:
+        pass
+    elif arr2.ndim == 2:
         if arr1.shape[0] < arr2.shape[0]:
             buff = arr1.copy()
             arr1 = np.full_like(arr2, np.nan)
