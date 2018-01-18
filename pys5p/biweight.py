@@ -59,7 +59,7 @@ def __biweight(data):
     return (xbi, sbi)
 
 # ----- main function -------------------------
-def biweight(data, axis=None, spread=False):
+def biweight(data, axis=None, cpu_count=None, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
@@ -67,18 +67,24 @@ def biweight(data, axis=None, spread=False):
     Parameters
     ----------
     data   :   array_like
-       Input array.
+       input array
     axis   :   int, optional
-       Axis along which the biweight medians are computed.
-    spread :   bool
-       If True, then return the biweight spread
+       axis along which the biweight medians are computed.
+        - Note that axis will be ignored when data is a 1-D array.
+    cpu_count : int, optional
+       specify number of threads to be used.
+        - Multiprocessing is used only when axis is not None.
+    spread :   bool, optional
+       if True, then return the biweight spread.
 
     Returns
     -------
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
-    if axis is None:
+    import multiprocessing as mp
+    
+    if axis is None or data.ndim == 1:
         if spread:
             return __biweight(data)
 
@@ -88,24 +94,25 @@ def biweight(data, axis=None, spread=False):
     assert isinstance(axis, int)
     assert axis >= 0 and axis < data.ndim
 
+    if cpu_count is None:
+        pool = mp.Pool()
+    else:
+        pool = mp.Pool(cpu_count)
+
     res_size = data.size // data.shape[axis]
-    if spread:
-        res = np.empty(res_size, dtype=[('median', 'f8'),('spread', 'f8')])
-    else:
-        res = np.empty(res_size, dtype='f8')
-
-    data_T = np.moveaxis(data, axis, 0)
+    data_T = np.moveaxis(data, axis, 0)        # returns a numpy view
     shape = data_T.shape
-    buff = data_T.reshape(shape[0], res_size)
+    buff = data_T.reshape(shape[0], res_size)  # returns a numpy view
+    ins = [buff[:, ii] for ii in range(res_size)]
     if spread:
-        for ii in range(res_size):
-            res[ii] = __biweight(buff[:, ii])
+        outs = pool.map(__biweight, ins)
     else:
-        for ii in range(res_size):
-            res[ii] = __biweight_median(buff[:, ii])
+        outs = pool.map(__biweight_median, ins)
+    pool.close()
+    pool.join()
 
-    res = res.reshape(shape[1:])
     if spread:
-        return (res['median'], res['spread'])
+        res = np.array(outs).reshape(shape[1:] + (2,))
+        return (res[..., 0], res[..., 1])
 
-    return res
+    return np.array(outs).reshape(shape[1:])
