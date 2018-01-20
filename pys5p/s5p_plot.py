@@ -136,18 +136,20 @@ class S5Pplot(object):
     def __repr__(self):
         pass
 
-    def __del__(self):
+    def close(self):
         """
         Close multipage PDF document
         """
-        if self.__pdf is None:
-            return
+        from matplotlib import pyplot as plt
 
-        doc = self.__pdf.infodict()
-        doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
-        doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
-        doc['Keywords'] = 'PdfPages multipage keywords author title'
-        self.__pdf.close()
+        print('Deleting plot object...', self.__pdf is not None)
+        if self.__pdf is not None:
+            doc = self.__pdf.infodict()
+            doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
+            doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
+            doc['Keywords'] = 'PdfPages multipage keywords author title'
+            self.__pdf.close()
+            plt.close('all')
 
     # --------------------------------------------------
     @staticmethod
@@ -517,15 +519,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_quality(self, msm, ref_data=None, add_medians=True,
@@ -752,15 +753,14 @@ class S5Pplot(object):
             
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_cmp_swir(self, msm, model_in, model_label='reference',
@@ -1002,15 +1002,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_hist(self, msm, msm_err, *, vperc=None, vrange=None,
@@ -1194,15 +1193,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_qhist(self, msm_total, msm_dark, msm_noise,
@@ -1267,15 +1265,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_trend2d(self, msm_in, data_col=None, data_row=None,
@@ -1462,15 +1459,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
@@ -1751,15 +1747,14 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
 
     # --------------------------------------------------
     def draw_geolocation(self, lats, lons,
@@ -1917,12 +1912,11 @@ class S5Pplot(object):
 
             if self.__pdf is None:
                 plt.savefig(self.filename)
+                plt.close(fig)
             else:
                 self.__pdf.savefig()
         elif self.__pdf is None:
             plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
         else:
             self.__pdf.savefig(bbox_inches='tight')
-            
-        # close figure
-        plt.close()
