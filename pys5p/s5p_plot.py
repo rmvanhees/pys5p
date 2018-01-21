@@ -142,7 +142,6 @@ class S5Pplot(object):
         """
         from matplotlib import pyplot as plt
 
-        print('Deleting plot object...', self.__pdf is not None)
         if self.__pdf is not None:
             doc = self.__pdf.infodict()
             doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
