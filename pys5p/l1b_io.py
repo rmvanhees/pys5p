@@ -125,38 +125,14 @@ class L1Bio(object):
         if self.fid is not None:
             self.fid.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        return False ## any exception is raised by the with statement.
+
     # ---------- PUBLIC FUNCTIONS ----------
-    # ---------- class L1Bio::
-    def get_orbit(self):
-        """
-        Returns absolute orbit number
-        """
-        return int(self.fid.attrs['orbit'])
-
-    # ---------- class L1Bio::
-    def get_processor_version(self):
-        """
-        Returns version of the L01b processor
-        """
-        return self.fid.attrs['processor_version'].decode('ascii')
-
-    # ---------- class L1Bio::
-    def get_coverage_time(self):
-        """
-        Returns start and end of the measurement coverage time
-        """
-        return (self.fid.attrs['time_coverage_start'].decode('ascii'),
-                self.fid.attrs['time_coverage_end'].decode('ascii'))
-
-    # ---------- class L1Bio::
-    def get_creation_time(self):
-        """
-        Returns datetime when the L1b product was created
-        """
-        grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
-        dset = grp['fixed_header/source']
-        return dset.attrs['Creation_Date'].decode('ascii')
-
     # ---------- class L1Bio::
     def get_attr(self, attr_name):
         """
@@ -167,8 +143,65 @@ class L1Bio(object):
         attr_name :  string
            Name of the attribute
         """
-        if attr_name in self.fid.attrs.keys():
-            return self.fid.attrs[attr_name]
+        if attr_name not in self.fid.attrs.keys():
+            return None
+
+        attr = self.fid.attrs[attr_name]
+        if attr.shape is None:
+            return None
+
+        return attr
+
+    # ---------- class L1Bio::
+    def get_orbit(self):
+        """
+        Returns absolute orbit number
+        """
+        res = self.get_attr('orbit')
+        if res is None:
+            return None
+
+        return int(res)
+
+    # ---------- class L1Bio::
+    def get_processor_version(self):
+        """
+        Returns version of the L01b processor
+        """
+        attr = self.get_attr('processor_version')
+        if attr is None:
+            return None
+
+        return attr.decode('ascii')
+
+    # ---------- class L1Bio::
+    def get_coverage_time(self):
+        """
+        Returns start and end of the measurement coverage time
+        """
+        attr_start = self.get_attr('time_coverage_start')
+        if attr_start is None:
+            return None
+
+        attr_end = self.get_attr('time_coverage_end')
+        if attr_end is None:
+            return None
+
+        return (attr_start.decode('ascii'), attr_end.decode('ascii'))
+
+    # ---------- class L1Bio::
+    def get_creation_time(self):
+        """
+        Returns datetime when the L1b product was created
+        """
+        grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
+        dset = grp['fixed_header/source']
+        if 'Creation_Date' in self.fid.attrs.keys():
+            attr = dset.attrs['Creation_Date']
+            if isinstance(attr, bytes):
+                return attr.decode('ascii')
+
+            return attr
 
         return None
 
@@ -289,7 +322,8 @@ class L1Bio(object):
           Numpy rec-array with sequence number, ICID and delta-time
         """
         if msm_path is None:
-            return None
+            self.imsm = None
+            return
 
         grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
         icid_list = np.squeeze(grp['instrument_configuration']['ic_id'])
@@ -427,7 +461,7 @@ class L1Bio(object):
             None, then all data is read.
         """
         if msm_path is None:
-            return None
+            return
 
         # we will overwrite existing data, thus readwrite access is required
         assert self.__rw
@@ -439,12 +473,12 @@ class L1Bio(object):
         if icid is None:
             if dset.shape[1:] != write_data.shape:
                 print('*** Fatal: patch data has not same shape as original')
-                return None
+                return
 
             dset[0,...] = write_data
         else:
             if self.imsm is None:
-                return None
+                return
             indx = self.imsm['index'][self.imsm['icid'] == icid]
             buff = np.concatenate(([indx[0]-10], indx, [indx[-1]+10]))
             kk = np.where((buff[1:] - buff[0:-1]) != 1)[0]

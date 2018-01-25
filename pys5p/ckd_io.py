@@ -40,6 +40,7 @@ class CKDio(object):
         """
         # initialize private class-attributes
         self.__ckd_dir = Path(ckd_dir)
+        self.pixel_fw_flag_thresh = 0.9  ## ToDo read from CKD product
 
         assert self.__ckd_dir.is_dir(), \
             '*** Fatal, can not find CKD base-directory: {}'.format(ckd_dir)

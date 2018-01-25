@@ -142,6 +142,13 @@ class OCMio(object):
         if self.fid is not None:
             self.fid.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        return False ## any exception is raised by the with statement.
+
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self):

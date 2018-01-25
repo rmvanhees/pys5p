@@ -102,6 +102,13 @@ class ICMio(object):
         if self.fid is not None:
             self.fid.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+        return False ## any exception is raised by the with statement.
+
     # ---------- RETURN VERSION of the S/W ----------
     def find(self, msm_class):
         """
@@ -768,7 +775,7 @@ class ICMio(object):
         assert self.__rw
 
         if not self.__msm_path:
-            return None
+            return
 
         if band is None:
             band = self.bands[0]
@@ -805,7 +812,7 @@ class ICMio(object):
         """
         assert self.__rw
         if not self.__msm_path:
-            return None
+            return
 
         assert band and len(band) <= 2
         if len(band) == 2:
