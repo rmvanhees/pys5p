@@ -78,7 +78,7 @@ def test_rd_icm():
             print('biweight_value: ', res.shape)
             print(icm.get_msm_attr('biweight_value', 'units'))
             res = icm.get_msm_data('measurement_quality')
-            print('measurement_quality: ', res.shape, np.sum(res == 0))
+            print('measurement_quality: ', res[0].shape, np.sum(res == 0))
 
         if icm.select('SOLAR_IRRADIANCE_MODE_0202'):
             #print(icm.get_ref_time())
@@ -90,7 +90,7 @@ def test_rd_icm():
             print('irradiance_avg: ', res.shape)
             print(icm.get_msm_attr('irradiance_avg', 'units'))
             res = icm.get_msm_data('measurement_quality')
-            print('measurement_quality: ', res.shape, np.sum(res == 0))
+            print('measurement_quality: ', res[0].shape, np.sum(res == 0))
 
         if icm.select('EARTH_RADIANCE_MODE_0004'):
             #print(icm.get_ref_time())
@@ -102,7 +102,7 @@ def test_rd_icm():
             print('radiance_avg_row: ', res.shape)
             print(icm.get_msm_attr('radiance_avg_row', 'units'))
             res = icm.get_msm_data('measurement_quality')
-            print('measurement_quality: ', res.shape, np.sum(res == 0))
+            print('measurement_quality: ', res[0].shape, np.sum(res == 0))
 
     ## check patching of ICM product
     for flname in sorted(filelist):

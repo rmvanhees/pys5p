@@ -28,9 +28,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import (absolute_import, division, print_function)
 
 from pathlib import Path
 from collections import OrderedDict
@@ -38,8 +36,8 @@ from collections import OrderedDict
 import numpy as np
 import matplotlib as mpl
 
-from .s5p_msm  import S5Pmsm
 from .biweight import biweight
+from .s5p_msm  import S5Pmsm
 
 #- local functions --------------------------------
 # set the colormap and centre the colorbar

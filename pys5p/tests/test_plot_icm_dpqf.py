@@ -69,7 +69,7 @@ def test_icm_dpqf():
     plot.draw_quality(dpqm_noise, ref_data=dpqm_dark,
                       title=Path(icm.filename).name,
                       sub_title='dpqm_noise')
-    plot.draw_quality(dpqm_noise, show_medians=False,
+    plot.draw_quality(dpqm_noise, add_medians=False,
                       title=Path(icm.filename).name,
                       sub_title='dpqm_noise')
     del plot
