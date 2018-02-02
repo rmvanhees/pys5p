@@ -22,11 +22,11 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-from __future__ import (absolute_import, print_function)
+from __future__ import absolute_import, print_function
 
 import numpy as np
-
 from matplotlib.colors import LinearSegmentedColormap
+
 
 class SRONcmaps(object):
     """

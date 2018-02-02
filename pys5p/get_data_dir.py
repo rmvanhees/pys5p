@@ -16,6 +16,7 @@ from __future__ import absolute_import
 from os import environ
 from pathlib import Path
 
+
 def get_data_dir():
     """
     Obtain directory with test datasets

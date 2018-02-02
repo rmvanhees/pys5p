@@ -12,15 +12,15 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
-from __future__ import (absolute_import, print_function)
+from __future__ import absolute_import, print_function
 
 from pathlib import Path
 
-import numpy as np
 import h5py
+import numpy as np
 
-from .version import version as __version__
 from .biweight import biweight
+from .version import version as __version__
 
 #- global parameters ------------------------------
 
