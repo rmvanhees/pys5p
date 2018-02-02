@@ -21,7 +21,7 @@ dimensions. Initialization:
 
 Limited to 3 dimensional dataset
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -33,7 +33,6 @@ from pathlib import Path
 from collections import namedtuple
 
 import numpy as np
-import h5py
 
 #- local functions --------------------------------
 def pad_rows(arr1, arr2):
@@ -86,6 +85,8 @@ class S5Pmsm(object):
         fillvalue, coordinates, units, ...
 
         """
+        from h5py import Dataset
+
         # initialize object
         self.name = 'value'
         self.value = None
@@ -96,7 +97,7 @@ class S5Pmsm(object):
         self.long_name = ''
         self.fillvalue = None
 
-        if isinstance(dset, h5py.Dataset):
+        if isinstance(dset, Dataset):
             self.__from_h5_dset(dset, data_sel, datapoint)
         else:
             self.__from_ndarray(dset, data_sel)

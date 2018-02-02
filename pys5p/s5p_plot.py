@@ -23,7 +23,7 @@ Suggestion for the name of the report/pdf-file
  * draw_trend2d
  * draw_trend1d
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
