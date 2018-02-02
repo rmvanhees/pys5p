@@ -47,12 +47,12 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-from __future__ import (absolute_import, print_function)
+from __future__ import absolute_import, print_function
 
 from pathlib import Path
 
-import numpy as np
 import h5py
+import numpy as np
 
 CKD_DIR = Path('/nfs/Tropomi/ocal/ckd/ckd_release_swir')
 OCAL_DIR = Path('/nfs/Tropomi/ocal/proc_raw')

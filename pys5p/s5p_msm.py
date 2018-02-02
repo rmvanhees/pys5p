@@ -27,12 +27,18 @@ Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
 License:  Standard 3-clause BSD
 
 """
-from __future__ import (absolute_import, print_function)
+from __future__ import absolute_import, print_function
 
-from pathlib import Path
 from collections import namedtuple
+from pathlib import Path
 
+<<<<<<< HEAD
 import numpy as np
+=======
+import h5py
+import numpy as np
+
+>>>>>>> 5fab2e9d9e3a2f851e4a632b7942643ab2a61c5f
 
 #- local functions --------------------------------
 def pad_rows(arr1, arr2):

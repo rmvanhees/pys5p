@@ -13,6 +13,7 @@ License:  Standard 3-clause BSD
 
 import numpy as np
 
+
 def mask(region='illuminated'):
     """
     Return mask with the illuminated region has boolean value True

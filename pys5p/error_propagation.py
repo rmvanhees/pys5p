@@ -13,6 +13,7 @@ License:  Standard 3-clause BSD
 """
 import numpy as np
 
+
 def unc_sum(sigma_a, sigma_b):
     """
     absolute error for a +/- b is sqrt(sigma_a^2 + sigma_b^2)

@@ -28,16 +28,17 @@ Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
 
-from pathlib import Path
 from collections import OrderedDict
+from pathlib import Path
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from .biweight import biweight
-from .s5p_msm  import S5Pmsm
+from .s5p_msm import S5Pmsm
+
 
 #- local functions --------------------------------
 # set the colormap and centre the colorbar
