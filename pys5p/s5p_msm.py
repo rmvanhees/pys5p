@@ -32,13 +32,7 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 from pathlib import Path
 
-<<<<<<< HEAD
 import numpy as np
-=======
-import h5py
-import numpy as np
-
->>>>>>> 5fab2e9d9e3a2f851e4a632b7942643ab2a61c5f
 
 #- local functions --------------------------------
 def pad_rows(arr1, arr2):
@@ -127,14 +121,14 @@ class S5Pmsm(object):
             if datapoint:
                 self.value = h5_dset[data_sel]['value']
                 self.error = h5_dset[data_sel]['error']
-                for ii in range(len(data_sel)):
-                    if isinstance(data_sel[ii], int):
+                for ii, elmt in enumerate(data_sel):
+                    if isinstance(elmt, int):
                         self.value = np.expand_dims(self.value, axis=ii)
                         self.error = np.expand_dims(self.error, axis=ii)
             else:
                 self.value = h5_dset[data_sel]
-                for ii in range(len(data_sel)):
-                    if isinstance(data_sel[ii], int):
+                for ii, elmnt in enumerate(data_sel):
+                    if isinstance(elmnt, int):
                         self.value = np.expand_dims(self.value, axis=ii)
 
         # copy all dimensions with size longer then 1
@@ -164,7 +158,7 @@ class S5Pmsm(object):
                     dims.append(buff[data_sel[-1]])
                 else:
                     dims.append(buff[data_sel[ii]])
-                    
+
         # add dimensions as a namedtuple
         coords_namedtuple = namedtuple('Coords', keys)
         self.coords = coords_namedtuple._make(dims)
@@ -458,8 +452,8 @@ class S5Pmsm(object):
             perc = np.nanpercentile(self.value, vperc,
                                     axis=axis, keepdims=keepdims)
         else:
-            if (self.value[data_sel].size <= 1
-                or self.value[data_sel].ndim <= max(axis)):
+            if self.value[data_sel].size <= 1 \
+               or self.value[data_sel].ndim <= max(axis):
                 return self
             perc = np.nanpercentile(self.value[data_sel], vperc,
                                     axis=axis, keepdims=keepdims)
