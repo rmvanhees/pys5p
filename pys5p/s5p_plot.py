@@ -819,11 +819,12 @@ class S5Pplot(object):
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
+        if vperc is None:
+            vperc = (1., 99.)
+        else:
+            assert len(vperc) == 2
+
         if vrange is None:
-            if vperc is None:
-                vperc = (1., 99.)
-            else:
-                assert len(vperc) == 2
             (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
                                          vperc)
         else:
