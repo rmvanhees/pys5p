@@ -857,7 +857,11 @@ class S5Pplot(object):
         residual = msm.value.copy()
         residual[~mask] = np.nan
         residual[mask] -= model_in[mask]
-        (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        if 1 == 1:
+            (median, spread) = biweight(residual, spread=True)
+            (rmin, rmax) = (median - 3 * spread, median + 3 * spread)
+        else:
+            (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
         # convert units from electrons to ke, Me, ...
         (runit, rscale) = convert_units(msm.units, rmin, rmax)
         residual[mask] /= rscale
@@ -963,7 +967,7 @@ class S5Pplot(object):
             ax4.hist(value[np.isfinite(value)].reshape(-1),
                      range=[vmin / dscale, vmax / dscale],
                      bins='auto', histtype='stepfilled',
-                     normed=True, color=line_colors[0])
+                     density=True, color=line_colors[0])
             if zunit is None:
                 ax4.set_xlabel('{}'.format(msm.name))
             else:
@@ -975,7 +979,7 @@ class S5Pplot(object):
             ax5.hist(residual[np.isfinite(residual)].reshape(-1),
                      range=[rmin / rscale, rmax / rscale],
                      bins='auto', histtype='stepfilled',
-                     normed=True, color=line_colors[1])
+                     density=True, color=line_colors[1])
             if runit is None:
                 ax5.set_xlabel('residual')
             else:
