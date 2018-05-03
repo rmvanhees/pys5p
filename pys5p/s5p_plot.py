@@ -372,14 +372,14 @@ class S5Pplot(object):
         lcolor = get_line_colors()
         mid_val = (vmin + vmax) / 2
         if method == 'diff':
-            cmap = sron_cmap('diverging_BuRd')
+            cmap = sron_cmap('diverging_BuGnRd')
             if vmin < 0 and vmax > 0:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
         elif method == 'ratio':
-            cmap = sron_cmap('diverging_BuRd')
+            cmap = sron_cmap('diverging_BuGnRd')
             if vmin < 1 and vmax > 1:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
@@ -918,7 +918,7 @@ class S5Pplot(object):
 
         # create centre-panel with residuals
         if add_residual:
-            cmap = sron_cmap('diverging_BuRd')
+            cmap = sron_cmap('diverging_BuGnRd')
             mid_val = (rmin + rmax) / 2
             (rmin_c, rmax_c) = (rmin, rmax)
             if rmin < 0 and rmax > 0:
