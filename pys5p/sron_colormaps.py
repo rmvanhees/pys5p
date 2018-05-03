@@ -37,6 +37,7 @@ class SRONcmaps(object):
      'sequential_YlOrBr' :  sequential colormap
      'diverging_BuRd'    :  diverging colormap
      'diverging_PiGn'    :  diverging colormap
+     'diverging_BuRnRd'  :  diverging colormap
      'rainbow_PiRd'      :  rainbow colormap (default)
      'rainbow_PiBr'      :  rainbow colormap
      'rainbow_WhBr'      :  rainbow colormap (shows details for low values)
@@ -49,18 +50,19 @@ class SRONcmaps(object):
         self.cname = None
         self.namelist = (
             'qualitative_6', 'sequential_YlOrBr',
-            'diverging_BuRd', 'diverging_PiGn',
+            'diverging_BuRd', 'diverging_PiGn', 'diverging_BuGnRd',
             'rainbow_PiRd', 'rainbow_PiBr',
             'rainbow_WhBr', 'rainbow_WhRd')
 
         self.funcdict = dict(
             zip(self.namelist,
-                (self.__qualitative_6, self.__sequential_YlOrBr,
-                 self.__diverging_BuRd, self.__diverging_PiGn,
-                 self.__rainbow_PiRd, self.__rainbow_PiBr,
-                 self.__rainbow_WhBr, self.__rainbow_WhRd)))
+                (self._qualitative_6, self._sequential_YlOrBr,
+                 self._diverging_BuRd, self._diverging_PiGn,
+                 self._diverging_BuGnRd, self._rainbow_PiRd,
+                 self._rainbow_PiBr, self._rainbow_WhBr,
+                 self._rainbow_WhRd)))
 
-    def __qualitative_6(self):
+    def _qualitative_6(self):
         """
         Define colormap "qualitative_6"
         """
@@ -72,7 +74,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __sequential_YlOrBr(self):
+    def _sequential_YlOrBr(self):
         """
         Define colormap "sequential_YlOrBr"
         """
@@ -84,7 +86,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __diverging_BuRd(self):
+    def _diverging_BuRd(self):
         """
         Define colormap "diverging_BuRd"
         """
@@ -96,7 +98,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __diverging_PiGn(self):
+    def _diverging_PiGn(self):
         """
         Define colormap "diverging_PiGn"
         """
@@ -108,7 +110,20 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __rainbow_PiRd(self):
+    def _diverging_BuGnRd(self):
+        """
+        Define colormap "diverging_BuGnRd"
+        """
+        cmap_def = [[54, 75, 154], [74, 123, 183], [110, 166, 205],
+                    [152, 202, 225], [194, 228, 239], [234, 236, 204],
+                    [254, 218, 139], [253, 179, 102], [246, 126, 75],
+                    [221, 61, 45], [165, 0, 38]]
+        bad_def = [255, 255, 255]
+        self.cmap = LinearSegmentedColormap.from_list(self.cname,
+                                                      np.array(cmap_def) / 256.)
+        self.cmap.set_bad(np.array(bad_def) / 256., 1.)
+
+    def _rainbow_PiRd(self):
         """
         Define colormap "rainbow_PiRd"
         """
@@ -129,7 +144,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __rainbow_PiBr(self):
+    def _rainbow_PiBr(self):
         """
         Define colormap "rainbow_PiBr"
         """
@@ -150,7 +165,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __rainbow_WhBr(self):
+    def _rainbow_WhBr(self):
         """
         Define colormap "rainbow_WhBr"
         """
@@ -171,7 +186,7 @@ class SRONcmaps(object):
                                                       np.array(cmap_def) / 256.)
         self.cmap.set_bad(np.array(bad_def) / 256., 1.)
 
-    def __rainbow_WhRd(self):
+    def _rainbow_WhRd(self):
         """
         Define colormap "rainbow_WhRd"
         """
