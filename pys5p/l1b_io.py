@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
 offline level 1b products, resp. calibration, irradiance and radiance.
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -1258,20 +1258,24 @@ class L1BioENG(L1Bio):
 
         # compress data from msmtset
         msmt = np.zeros(indx.size-1, dtype=dtype_msmt_db)
-        msmt[:]['ic_id']      = msmtset[indx[0:-1]]['icid']
-        msmt[:]['ic_version'] = msmtset[indx[0:-1]]['icv']
-        msmt[:]['class']      = msmtset[indx[0:-1]]['class']
-        msmt[:]['delta_time_start'] = msmtset[indx[0:-1]]['delta_time']
-        msmt[:]['delta_time_end']   = msmtset[indx[1:]]['delta_time']
+        msmt['ic_id'][:]      = msmtset['icid'][indx[0:-1]]
+        msmt['ic_version'][:] = msmtset['icv'][indx[0:-1]]
+        msmt['class'][:]      = msmtset['class'][indx[0:-1]]
+        msmt['delta_time_start'][:] = msmtset['delta_time'][indx[0:-1]]
+        msmt['delta_time_end'][:]   = msmtset['delta_time'][indx[1:]]
 
         # add SWIR timing information
         timing = self.fid['/DETECTOR4/timing'][:]
-        msmt[:]['mcp_us']      = timing[indx[1:]-1]['mcp_us']
-        msmt[:]['exp_time_us'] = timing[indx[1:]-1]['exp_time_us']
-        msmt[:]['exp_per_mcp'] = timing[indx[1:]-1]['exp_per_mcp']
-        msmt[:]['repeats']     = (
-            (msmt[:]['delta_time_end'] - msmt[:]['delta_time_start'])
-            // (msmt[:]['mcp_us'] // 1000))
+        msmt['mcp_us'][:]      = timing['mcp_us'][indx[1:]-1]
+        msmt['exp_time_us'][:] = timing['exp_time_us'][indx[1:]-1]
+        msmt['exp_per_mcp'][:] = timing['exp_per_mcp'][indx[1:]-1]
+        # duration per ICID execution in micro-seconds
+        duration = 1000 * (msmt['delta_time_end'] - msmt['delta_time_start'])
+        # duration can be zero
+        mask = msmt['mcp_us'] > 0
+        # divide duration by measurement period in micro-seconds
+        msmt['repeats'][mask] = (duration[mask]
+                                 / (msmt['mcp_us'][mask])).astype(np.uint16)
 
         return msmt
 
