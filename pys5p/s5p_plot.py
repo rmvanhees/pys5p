@@ -763,7 +763,7 @@ class S5Pplot(object):
     # --------------------------------------------------
     def draw_cmp_swir(self, msm, model_in, model_label='reference',
                       *, vrange=None, vperc=None,
-                      add_hist=True, add_residual=True,
+                      add_hist=True, add_residual=True, add_model=True,
                       title=None, sub_title=None, fig_info=None):
         """
         Display signal vs model (or CKD) comparison in three panels.
@@ -869,36 +869,51 @@ class S5Pplot(object):
         rmax /= dscale
 
         # inititalize figure
-        if add_hist and add_residual:
+        nrow = 1
+        if add_residual:
+            nrow += 1
+        if add_model:
+            nrow += 1
+        if add_hist:
+            nrow += 1
+
+        if nrow == 4:
             fig = plt.figure(figsize=(10.8, 10))
             if title is not None:
                 fig.suptitle(title, fontsize='x-large',
                              position=(0.5, 0.96), horizontalalignment='center')
             gspec = GridSpec(4, 2)
-        elif not (add_hist or add_residual):
-            fig = plt.figure(figsize=(10.8, 5.0))
-            if title is not None:
-                fig.suptitle(title, fontsize='x-large',
-                             position=(0.5, 0.94), horizontalalignment='center')
-            gspec = GridSpec(2, 2)
-        else:
+        elif nrow == 3:
             fig = plt.figure(figsize=(10.8, 7.5))
             if title is not None:
                 fig.suptitle(title, fontsize='x-large',
                              position=(0.5, 0.94), horizontalalignment='center')
             gspec = GridSpec(3, 2)
+        elif nrow == 2:
+            fig = plt.figure(figsize=(16.2, 7.5))
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             position=(0.5, 0.94), horizontalalignment='center')
+            gspec = GridSpec(2, 2)
+        else:
+            fig = plt.figure(figsize=(10.8, 3.0))
+            if title is not None:
+                fig.suptitle(title, fontsize='x-large',
+                             position=(0.5, 0.94), horizontalalignment='center')
+            gspec = GridSpec(1, 2)
 
         # create top-panel with measurements
         iplot = 0
         ax1 = plt.subplot(gspec[iplot, :])
-        for xtl in ax1.get_xticklabels():
-            xtl.set_visible(False)
         if sub_title is not None:
             ax1.set_title('(a) ' + sub_title)
         img = ax1.imshow(value, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         self.add_copyright(ax1)
+        for xtl in ax1.get_xticklabels():
+            xtl.set_visible(False)
+        ax1.set_ylabel('row')
 
         # define ticks locations for X & Y valid for most detectors
         if (len(xdata) % 10) == 0:
@@ -929,35 +944,45 @@ class S5Pplot(object):
 
             iplot += 1
             ax2 = plt.subplot(gspec[iplot, :], sharex=ax1)
-            for xtl in ax2.get_xticklabels():
-                xtl.set_visible(False)
             if sub_title is not None:
                 ax2.set_title('(b) residual')
-            img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c, norm=norm,
-                             interpolation='none', origin='lower',
-                             aspect='equal', extent=extent, cmap=cmap)
+            img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c,
+                             aspect='equal', interpolation='none',
+                             origin='lower', extent=extent,
+                             cmap=cmap, norm=norm)
             self.add_copyright(ax2)
+            if add_model:
+                for xtl in ax2.get_xticklabels():
+                    xtl.set_visible(False)
+            else:
+                ax2.set_xlabel('column')
+            ax2.set_ylabel('row')
 
             cbar = plt.colorbar(img)
             if zunit is not None:
                 cbar.set_label(zlabel)
 
         # create lower-panel with reference (model, CKD, previous measurement)
-        iplot += 1
-        ax3 = plt.subplot(gspec[iplot, :], sharex=ax1)
-        if sub_title is not None:
-            if add_residual:
-                ax3.set_title('(c) ' + model_label)
-            else:
-                ax3.set_title('(b) ' + model_label)
-        img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
-                         aspect='equal', interpolation='none', origin='lower',
-                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
-        self.add_copyright(ax3)
+        if add_model:
+            iplot += 1
+            ax3 = plt.subplot(gspec[iplot, :], sharex=ax1)
+            if sub_title is not None:
+                if add_residual:
+                    ax3.set_title('(c) ' + model_label)
+                else:
+                    ax3.set_title('(b) ' + model_label)
+            img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
+                             aspect='equal', interpolation='none',
+                             origin='lower', extent=extent,
+                             cmap=sron_cmap('rainbow_PiRd'))
+            self.add_copyright(ax3)
+            if not add_hist:
+                ax3.set_xlabel('column')
+            ax3.set_ylabel('row')
 
-        cbar = plt.colorbar(img)
-        if runit is not None:
-            cbar.set_label('value [{}]'.format(runit))
+            cbar = plt.colorbar(img)
+            if runit is not None:
+                cbar.set_label('value [{}]'.format(runit))
 
         if add_hist:
             iplot += 1
