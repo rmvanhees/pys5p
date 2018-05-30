@@ -1303,8 +1303,7 @@ class S5Pplot(object):
             self.__pdf.savefig(bbox_inches='tight')
 
     # --------------------------------------------------
-    def draw_trend2d(self, msm_in, data_col=None, data_row=None,
-                     *, time_axis=None, vperc=None, vrange=None,
+    def draw_trend2d(self, msm_in, *, time_axis=None, vperc=None, vrange=None,
                      title=None, sub_title=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
@@ -1313,12 +1312,8 @@ class S5Pplot(object):
         ----------
         msm       :  pys5p.S5Pmsm
            Object holding measurement data and attributes
-        data_col   :  ndarray
-           Numpy array (1D) column averaged values of data
-           Default is calculated as biweight(data, axis=1)
-        data_row   :  ndarray
-           Numpy array (1D) row averaged values of data
-           Default is calculated as biweight(data, axis=0)
+           - Image data must have 2 dimensions, with regular gridded rows
+           - Data coordinates must be increasing and of type integer
         vrange     :  float in range of [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
            Note that is you pass a vrange instance then vperc will be ignored
@@ -1340,6 +1335,8 @@ class S5Pplot(object):
         """
         import warnings
 
+        from math import gcd
+
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -1359,39 +1356,6 @@ class S5Pplot(object):
         assert isinstance(msm, S5Pmsm)
         assert msm.value.ndim == 2
 
-        if isinstance(msm_in, np.ndarray):
-            (ylabel, xlabel) = msm.coords._fields
-            if time_axis == 0:
-                msm.transpose()
-                xlabel = 'time'
-            else:
-                ylabel = 'time'
-        else:
-            if time_axis is None:
-                (ylabel, xlabel) = msm.coords._fields
-                if ylabel == 'orbit' or ylabel == 'time':
-                    msm.transpose()
-            elif time_axis == 0:
-                msm.transpose()
-            (ylabel, xlabel) = msm.coords._fields
-
-        # calculate column/row medians (if required)
-        if data_col is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_col = np.nanmedian(msm.value, axis=1)
-
-        if data_row is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", r"All-NaN slice encountered")
-                data_row = np.nanmedian(msm.value, axis=0)
-
-        # set label and range of X/Y axis
-        ydata = msm.coords[0]
-        xdata = msm.coords[1]
-        xstep = np.diff(xdata).min()
-        extent = [xdata[0]-xstep, xdata[-1], 0, len(ydata)]
-
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
         if vrange is None:
@@ -1408,6 +1372,64 @@ class S5Pplot(object):
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
+        # set X/Y label
+        if isinstance(msm_in, np.ndarray):
+            (ylabel, xlabel) = msm.coords._fields
+            if time_axis == 0:
+                msm.transpose()
+                xlabel = 'time'
+            else:
+                ylabel = 'time'
+        else:
+            if time_axis is None:
+                (ylabel, xlabel) = msm.coords._fields
+                if ylabel == 'orbit' or ylabel == 'time':
+                    msm.transpose()
+            elif time_axis == 0:
+                msm.transpose()
+            (ylabel, xlabel) = msm.coords._fields
+
+        # set range of X/Y axis
+        # determine xstep as greatest common divisor (numpy v1.15+)
+        xdata = msm.coords[1]
+        assert np.issubdtype(xdata.dtype, np.integer) \
+            and np.all(xdata[1:] > xdata[:-1])
+        xsteps = np.unique(np.diff(xdata))
+        xstep = xsteps.min()
+        dx_mn = xstep
+        for xx in xsteps:
+            if gcd(dx_mn, xx) < xstep:
+                xstep = gcd(dx_mn, xx)
+
+        # determine ystep as greatest common divisor (numpy v1.15+)
+        ydata = msm.coords[0]
+        assert np.issubdtype(ydata.dtype, np.integer) \
+            and np.all(ydata[1:] > ydata[:-1])
+        ysteps = np.unique(np.diff(ydata))
+        ystep = ysteps.min()
+        dy_mn = ystep
+        for yy in ysteps:
+            print(yy, gcd(dy_mn, yy))
+            if gcd(dy_mn, yy) < ystep:
+                ystep = gcd(dy_mn, yy)
+
+        # define extent of image 
+        extent = [xdata.min(), xdata.max()+xstep,
+                  ydata.min(), ydata.max()+ystep]
+
+        # generate data_full
+        xdim = (extent[1] - extent[0]) // xstep
+        ydim = (extent[3] - extent[2]) // ystep
+        data_full = np.zeros((ydim, xdim), dtype=np.float)
+        offs = 0
+        for xx in range(msm.value.shape[1]):
+            if xx < (msm.value.shape[1] - 1):
+                ix = xdata[xx+1] - xdata[xx]
+            else:
+                ix = xstep
+            data_full[:, offs:offs+ix] = msm.value[:, [xx]]
+            offs += ix
+
         # inititalize figure
         fig = plt.figure(figsize=(10, 9))
         ax_img = fig.add_subplot(111)
@@ -1418,15 +1440,15 @@ class S5Pplot(object):
         # the image plot:
         if sub_title is not None:
             ax_img.set_title(sub_title, fontsize='large')
-        img = plt.imshow(msm.value / dscale, interpolation='none',
+        img = plt.imshow(data_full / dscale, interpolation='none',
                          vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='auto', origin='lower',
                          extent=extent, cmap=sron_cmap('rainbow_PiRd'))
         self.add_copyright(ax_img)
-        #xbins = len(ax_img.get_xticklabels())
-        ybins = len(ax_img.get_yticklabels())
+        xticks = len(ax_img.get_xticklabels())
         for xtl in ax_img.get_xticklabels():
             xtl.set_visible(False)
+        yticks = len(ax_img.get_yticklabels())
         for ytl in ax_img.get_yticklabels():
             ytl.set_visible(False)
 
@@ -1448,21 +1470,32 @@ class S5Pplot(object):
             plt.colorbar(img, cax=cax, label='{}'.format(zname))
         else:
             plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
-        #
+
+        # draw lower-panel
+        xaxis = np.arange(extent[0], extent[1]+xstep)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", r"All-NaN slice encountered")
+            xvals = np.nanmedian(data_full, axis=0)
+        xvals = np.insert(xvals, 0, xvals[0])
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
-        ax_medx.step(np.insert(xdata, 0, xdata[0] - xstep),
-                     np.append(data_row / dscale, data_row[-1] / dscale),
-                     where='post', lw=0.75, color=line_colors[0])
+        ax_medx.step(xaxis, xvals, where='pre',
+                     lw=0.75, color=line_colors[0])
         ax_medx.set_xlim([extent[0], extent[1]])
+        ax_medx.locator_params(axis='x', nbins=xticks)
         ax_medx.grid(True)
         ax_medx.set_xlabel(xlabel)
-        #
+
+        # draw left-panel
+        yaxis = np.arange(extent[2], extent[3]+ystep)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", r"All-NaN slice encountered")
+            yvals = np.nanmedian(data_full, axis=1)
+        yvals = np.insert(yvals, 0, yvals[0])
         ax_medy = divider.append_axes("left", 1.1, pad=0.25)
-        ax_medy.step(data_col / dscale, ydata,
+        ax_medy.step(yvals, yaxis, where='pre',
                      lw=0.75, color=line_colors[0])
-        ystep = (ydata[-1] - ydata[0]) // (ydata.size - 1)
-        ax_medy.set_ylim([ydata[0], ydata[-1] + ystep])
-        ax_medy.locator_params(axis='y', nbins=ybins)
+        ax_medy.set_ylim([extent[2], extent[3]])
+        ax_medy.locator_params(axis='y', nbins=yticks)
         ax_medy.grid(True)
         ax_medy.set_ylabel(ylabel)
 
@@ -1623,11 +1656,11 @@ class S5Pplot(object):
 
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
-                    axarr[i_ax].step(xdata, ydata, where='post', lw=1.5,
-                                     color=qc_dict[key])
+                    axarr[i_ax].step(xdata, ydata, where='pre',
+                                      lw=1.5, color=qc_dict[key])
                 else:
-                    axarr[i_ax].plot(xdata, ydata, lw=1.5,
-                                     color=qc_dict[key])
+                    axarr[i_ax].plot(xdata, ydata, 
+                                     lw=1.5, color=qc_dict[key])
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
@@ -1654,8 +1687,8 @@ class S5Pplot(object):
 
             if use_steps:
                 ydata = np.append(ydata, ydata[-1])
-                axarr[0].step(xdata, ydata,
-                              where='post', lw=1.5, color=lcolors.blue)
+                axarr[0].step(xdata, ydata, where='pre',
+                              lw=1.5, color=lcolors.blue)
             else:
                 axarr[0].plot(xdata, ydata,
                               lw=1.5, color=lcolors.blue)
@@ -1739,8 +1772,8 @@ class S5Pplot(object):
                     ydata = np.append(ydata, ydata[-1])
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].step(xdata, ydata,
-                                     where='post', lw=1.5, color=lcolor)
+                    axarr[i_ax].step(xdata, ydata, where='post',
+                                     lw=1.5, color=lcolor)
                 else:
                     axarr[i_ax].plot(xdata, ydata, lw=1.5, color=lcolor)
 
