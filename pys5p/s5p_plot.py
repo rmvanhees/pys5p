@@ -1641,8 +1641,8 @@ class S5Pplot(object):
         gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
         for indx in reversed(gap_list):
             xdata = np.insert(xdata, indx, xdata[indx])
-            xdata = np.insert(xdata, indx, xdata[indx]-xstep)
-            xdata = np.insert(xdata, indx, xdata[indx])
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
         if use_steps:
             xdata = np.append(xdata, xdata[-1]+xstep)
 
@@ -1667,7 +1667,7 @@ class S5Pplot(object):
 
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
-                    axarr[i_ax].step(xdata, ydata, where='pre',
+                    axarr[i_ax].step(xdata, ydata, where='post',
                                       lw=1.5, color=qc_dict[key])
                 else:
                     axarr[i_ax].plot(xdata, ydata, 
@@ -1698,7 +1698,7 @@ class S5Pplot(object):
 
             if use_steps:
                 ydata = np.append(ydata, ydata[-1])
-                axarr[0].step(xdata, ydata, where='pre',
+                axarr[0].step(xdata, ydata, where='post',
                               lw=1.5, color=lcolors.blue)
             else:
                 axarr[0].plot(xdata, ydata,
@@ -1719,7 +1719,7 @@ class S5Pplot(object):
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
                     axarr[0].fill_between(xdata, yerr1, yerr2,
-                                          step='pre', facecolor='#BBCCEE')
+                                          step='post', facecolor='#BBCCEE')
                 else:
                     axarr[0].fill_between(xdata, yerr1, yerr2,
                                           facecolor='#BBCCEE')
@@ -1783,7 +1783,7 @@ class S5Pplot(object):
                     ydata = np.append(ydata, ydata[-1])
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].step(xdata, ydata, where='pre',
+                    axarr[i_ax].step(xdata, ydata, where='post',
                                      lw=1.5, color=lcolor)
                 else:
                     axarr[i_ax].plot(xdata, ydata, lw=1.5, color=lcolor)
@@ -1791,7 +1791,7 @@ class S5Pplot(object):
                 if not (np.array_equal(ydata, yerr1)
                         and np.array_equal(ydata, yerr2)):
                     axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                             step='pre', facecolor=fcolor)
+                                             step='post', facecolor=fcolor)
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
