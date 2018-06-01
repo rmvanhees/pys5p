@@ -1335,6 +1335,7 @@ class S5Pplot(object):
         """
         import warnings
 
+        # should be replaced by the numpy function (requires numpy v1.15+)
         from math import gcd
 
         from matplotlib import pyplot as plt
@@ -1409,7 +1410,6 @@ class S5Pplot(object):
         ystep = ysteps.min()
         dy_mn = ystep
         for yy in ysteps:
-            print(yy, gcd(dy_mn, yy))
             if gcd(dy_mn, yy) < ystep:
                 ystep = gcd(dy_mn, yy)
 
@@ -1424,9 +1424,9 @@ class S5Pplot(object):
         offs = 0
         for xx in range(msm.value.shape[1]):
             if xx < (msm.value.shape[1] - 1):
-                ix = xdata[xx+1] - xdata[xx]
+                ix = (xdata[xx+1] - xdata[xx]) // xstep
             else:
-                ix = xstep
+                ix = 1
             data_full[:, offs:offs+ix] = msm.value[:, [xx]]
             offs += ix
 
@@ -1472,7 +1472,7 @@ class S5Pplot(object):
             plt.colorbar(img, cax=cax, label=r'{} [{}]'.format(zname, zunit))
 
         # draw lower-panel
-        xaxis = np.arange(extent[0], extent[1]+xstep)
+        xaxis = np.arange(extent[0], extent[1]+xstep, xstep)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", r"All-NaN slice encountered")
             xvals = np.nanmedian(data_full, axis=0)
@@ -1486,7 +1486,7 @@ class S5Pplot(object):
         ax_medx.set_xlabel(xlabel)
 
         # draw left-panel
-        yaxis = np.arange(extent[2], extent[3]+ystep)
+        yaxis = np.arange(extent[2], extent[3]+ystep, ystep)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", r"All-NaN slice encountered")
             yvals = np.nanmedian(data_full, axis=1)
@@ -1557,6 +1557,9 @@ class S5Pplot(object):
         in a small box. In addition, we display the creation date and the data
         median & spread.
         """
+        # should be replaced by the numpy function (requires numpy v1.15+)
+        from math import gcd
+
         from matplotlib import pyplot as plt
 
         from .sron_colormaps import get_qfour_colors, get_line_colors
@@ -1626,14 +1629,22 @@ class S5Pplot(object):
         use_steps = xdata.size <= 256
 
         # define data gaps to avoid interpolation over missing data
-        xstep = np.median(np.diff(xdata))
-        gap_list = 1 + np.where(np.diff(xdata) > 1.5 * xstep)[0]
+        assert np.issubdtype(xdata.dtype, np.integer) \
+            and np.all(xdata[1:] > xdata[:-1])
+        xsteps = np.unique(np.diff(xdata))
+        xstep = xsteps.min()
+        dx_mn = xstep
+        for xx in xsteps:
+            if gcd(dx_mn, xx) < xstep:
+                xstep = gcd(dx_mn, xx)
+
+        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
         for indx in reversed(gap_list):
+            xdata = np.insert(xdata, indx, xdata[indx])
             xdata = np.insert(xdata, indx, xdata[indx]-xstep)
             xdata = np.insert(xdata, indx, xdata[indx])
-            xdata = np.insert(xdata, indx, xdata[indx-1])
         if use_steps:
-            xdata = np.insert(xdata, 0, xdata[0]-xstep)
+            xdata = np.append(xdata, xdata[-1]+xstep)
 
         # Implemented 3 options
         # 1) only house-keeping data, no upper-panel with detector data
@@ -1650,7 +1661,7 @@ class S5Pplot(object):
             for key in ['bad', 'worst']:
                 ydata = msm.value[key].copy().astype(float)
                 for indx in reversed(gap_list):
-                    ydata = np.insert(ydata, indx, ydata[indx])
+                    ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, ydata[indx-1])
 
@@ -1681,7 +1692,7 @@ class S5Pplot(object):
 
             ydata = msm.value.copy() / dscale
             for indx in reversed(gap_list):
-                ydata = np.insert(ydata, indx, ydata[indx])
+                ydata = np.insert(ydata, indx, np.nan)
                 ydata = np.insert(ydata, indx, np.nan)
                 ydata = np.insert(ydata, indx, ydata[indx-1])
 
@@ -1697,8 +1708,8 @@ class S5Pplot(object):
                 yerr1 = msm.error[0].copy() / dscale
                 yerr2 = msm.error[1].copy() / dscale
                 for indx in reversed(gap_list):
-                    yerr1 = np.insert(yerr1, indx, yerr1[indx])
-                    yerr2 = np.insert(yerr2, indx, yerr2[indx])
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
                     yerr1 = np.insert(yerr1, indx, np.nan)
                     yerr2 = np.insert(yerr2, indx, np.nan)
                     yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
@@ -1708,7 +1719,7 @@ class S5Pplot(object):
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
                     axarr[0].fill_between(xdata, yerr1, yerr2,
-                                          step='post', facecolor='#BBCCEE')
+                                          step='pre', facecolor='#BBCCEE')
                 else:
                     axarr[0].fill_between(xdata, yerr1, yerr2,
                                           facecolor='#BBCCEE')
@@ -1753,9 +1764,9 @@ class S5Pplot(object):
                 yerr1 = hk_data.error[key][:, 0].copy()
                 yerr2 = hk_data.error[key][:, 1].copy()
                 for indx in reversed(gap_list):
-                    ydata = np.insert(ydata, indx, ydata[indx])
-                    yerr1 = np.insert(yerr1, indx, yerr1[indx])
-                    yerr2 = np.insert(yerr2, indx, yerr2[indx])
+                    ydata = np.insert(ydata, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
                     ydata = np.insert(ydata, indx, np.nan)
                     yerr1 = np.insert(yerr1, indx, np.nan)
                     yerr2 = np.insert(yerr2, indx, np.nan)
@@ -1772,7 +1783,7 @@ class S5Pplot(object):
                     ydata = np.append(ydata, ydata[-1])
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].step(xdata, ydata, where='post',
+                    axarr[i_ax].step(xdata, ydata, where='pre',
                                      lw=1.5, color=lcolor)
                 else:
                     axarr[i_ax].plot(xdata, ydata, lw=1.5, color=lcolor)
@@ -1780,7 +1791,7 @@ class S5Pplot(object):
                 if not (np.array_equal(ydata, yerr1)
                         and np.array_equal(ydata, yerr2)):
                     axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                             step='post', facecolor=fcolor)
+                                             step='pre', facecolor=fcolor)
                 axarr[i_ax].locator_params(axis='y', nbins=4)
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
