@@ -1622,34 +1622,34 @@ class S5Pplot(object):
             axarr[0].set_title(sub_title, fontsize='large')
 
         # define x-axis and its label
-        #print('hk_data.coords._fields: ', hk_data.name, hk_data.value.shape,
-        #      hk_data.coords._fields)
-        (xlabel,) = hk_data.coords._fields
-        xdata = hk_data.coords[0][:]
-        use_steps = xdata.size <= 256
+        if plot_mode == 'quality' or plot_mode == 'data':
+            (xlabel,) = msm.coords._fields
+            xdata = msm.coords[0][:].copy()
+            use_steps = xdata.size <= 256
 
-        # define data gaps to avoid interpolation over missing data
-        assert np.issubdtype(xdata.dtype, np.integer) \
-            and np.all(xdata[1:] > xdata[:-1])
-        xsteps = np.unique(np.diff(xdata))
-        xstep = xsteps.min()
-        dx_mn = xstep
-        for xx in xsteps:
-            if gcd(dx_mn, xx) < xstep:
-                xstep = gcd(dx_mn, xx)
+            # define data gaps to avoid interpolation over missing data
+            assert np.issubdtype(xdata.dtype, np.integer) \
+                and np.all(xdata[1:] > xdata[:-1])
+            xsteps = np.unique(np.diff(xdata))
+            xstep = xsteps.min()
+            dx_mn = xstep
+            for xx in xsteps:
+                if gcd(dx_mn, xx) < xstep:
+                    xstep = gcd(dx_mn, xx)
 
-        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-        for indx in reversed(gap_list):
-            xdata = np.insert(xdata, indx, xdata[indx])
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-        if use_steps:
-            xdata = np.append(xdata, xdata[-1]+xstep)
+            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+            for indx in reversed(gap_list):
+                xdata = np.insert(xdata, indx, xdata[indx])
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            if use_steps:
+                xdata = np.append(xdata, xdata[-1]+xstep)
 
         # Implemented 3 options
         # 1) only house-keeping data, no upper-panel with detector data
         # 2) draw pixel-quality data, displayed in the upper-panel
         # 3) draw measurement data, displayed in the upper-panel
+        i_ax = 0
         if plot_mode == 'quality':
             qcolors = get_qfour_colors()
             qc_dict = {'bad'   : qcolors.bad,
@@ -1657,7 +1657,6 @@ class S5Pplot(object):
             ql_dict = {'bad'   : 'bad (quality < 0.8)',
                        'worst' : 'worst (quality < 0.1)'}
 
-            i_ax = 0
             for key in ['bad', 'worst']:
                 ydata = msm.value[key].copy().astype(float)
                 for indx in reversed(gap_list):
@@ -1698,11 +1697,11 @@ class S5Pplot(object):
 
             if use_steps:
                 ydata = np.append(ydata, ydata[-1])
-                axarr[0].step(xdata, ydata, where='post',
-                              lw=1.5, color=lcolors.blue)
+                axarr[i_ax].step(xdata, ydata, where='post',
+                                 lw=1.5, color=lcolors.blue)
             else:
-                axarr[0].plot(xdata, ydata,
-                              lw=1.5, color=lcolors.blue)
+                axarr[i_ax].plot(xdata, ydata,
+                                 lw=1.5, color=lcolors.blue)
 
             if msm.error is not None:
                 yerr1 = msm.error[0].copy() / dscale
@@ -1718,22 +1717,47 @@ class S5Pplot(object):
                 if use_steps:
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[0].fill_between(xdata, yerr1, yerr2,
-                                          step='post', facecolor='#BBCCEE')
+                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                             step='post', facecolor='#BBCCEE')
                 else:
-                    axarr[0].fill_between(xdata, yerr1, yerr2,
-                                          facecolor='#BBCCEE')
+                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                             facecolor='#BBCCEE')
 
-            axarr[0].set_xlim([xdata[0], xdata[-1]])
-            axarr[0].grid(True)
+            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+            axarr[i_ax].grid(True)
             if zunit is None:
-                axarr[0].set_ylabel('detector value')
+                axarr[i_ax].set_ylabel('detector value')
             else:
-                axarr[0].set_ylabel(r'detector value [{}]'.format(zunit))
-            i_ax = 1
-        else:
-            i_ax = 0
+                axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
+            i_ax += 1
 
+        # add figures with house-keeping data
+        (xlabel,) = hk_data.coords._fields
+        xdata = hk_data.coords[0][:].copy()
+        use_steps = xdata.size <= 256
+
+        # define data gaps to avoid interpolation over missing data
+        assert np.issubdtype(xdata.dtype, np.integer) \
+            and np.all(xdata[1:] > xdata[:-1])
+        xsteps = np.unique(np.diff(xdata))
+        xstep = xsteps.min()
+        dx_mn = xstep
+        for xx in xsteps:
+            if gcd(dx_mn, xx) < xstep:
+                xstep = gcd(dx_mn, xx)
+
+        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+        for indx in reversed(gap_list):
+            xdata = np.insert(xdata, indx, xdata[indx])
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+        if use_steps:
+            xdata = np.append(xdata, xdata[-1]+xstep)
+
+        if xlabel == 'time':
+            xdata = xdata.astype(np.float) / 3600
+            xlabel += ' [hours]'
+            
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
                 indx = hk_data.value.dtype.names.index(key)
@@ -1783,10 +1807,11 @@ class S5Pplot(object):
                     ydata = np.append(ydata, ydata[-1])
                     yerr1 = np.append(yerr1, yerr1[-1])
                     yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].step(xdata, ydata, where='post',
-                                     lw=1.5, color=lcolor)
+                    axarr[i_ax].step(xdata, ydata,
+                                     where='post', lw=1.5, color=lcolor)
                 else:
-                    axarr[i_ax].plot(xdata, ydata, lw=1.5, color=lcolor)
+                    axarr[i_ax].plot(xdata, ydata,
+                                     lw=1.5, color=lcolor)
 
                 if not (np.array_equal(ydata, yerr1)
                         and np.array_equal(ydata, yerr2)):
