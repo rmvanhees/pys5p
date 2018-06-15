@@ -748,7 +748,7 @@ class S5Pplot(object):
 
         if self.add_info:
             self.__fig_info(fig, fig_info)
-            
+
             if self.__pdf is None:
                 plt.savefig(self.filename)
                 plt.close(fig)
@@ -1413,7 +1413,7 @@ class S5Pplot(object):
             if gcd(dy_mn, yy) < ystep:
                 ystep = gcd(dy_mn, yy)
 
-        # define extent of image 
+        # define extent of image
         extent = [xdata.min(), xdata.max()+xstep,
                   ydata.min(), ydata.max()+ystep]
 
@@ -1667,9 +1667,9 @@ class S5Pplot(object):
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
                     axarr[i_ax].step(xdata, ydata, where='post',
-                                      lw=1.5, color=qc_dict[key])
+                                     lw=1.5, color=qc_dict[key])
                 else:
-                    axarr[i_ax].plot(xdata, ydata, 
+                    axarr[i_ax].plot(xdata, ydata,
                                      lw=1.5, color=qc_dict[key])
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
@@ -1757,7 +1757,7 @@ class S5Pplot(object):
         if xlabel == 'time':
             xdata = xdata.astype(np.float) / 3600
             xlabel += ' [hours]'
-            
+
         for key in hk_keys:
             if key in hk_data.value.dtype.names:
                 indx = hk_data.value.dtype.names.index(key)
