@@ -268,6 +268,29 @@ class S5Pmsm(object):
             if self.error is not None:
                 self.error[(self.error == self.fillvalue)] = np.nan
 
+    def sort(self, axis=0):
+        """
+        """
+        assert self.value.ndim > axis
+        
+        indx = np.argsort(self.coords[axis][:]) 
+        self.coords[axis][:] = self.coords[axis][indx]
+       
+        if axis == 0:
+            self.value = self.value[indx, ...]
+            if self.error is not None:
+                self.error = self.error[indx, ...]
+        elif axis == 1:
+            self.value = self.value[:, indx, ...]
+            if self.error is not None:
+                self.error = self.error[:, indx, ...]
+        elif axis == 2:
+            self.value = self.value[:, :, indx]
+            if self.error is not None:
+                self.error = self.error[:, :, indx]
+        else:
+            raise ValueError("S5Pmsm: implemented for ndim <= 3")
+            
     def concatenate(self, msm, axis=0):
         """
         Concatenate two measurement datasets, the current with another.
