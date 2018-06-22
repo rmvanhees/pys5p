@@ -1732,102 +1732,105 @@ class S5Pplot(object):
             i_ax += 1
 
         # add figures with house-keeping data
-        (xlabel,) = hk_data.coords._fields
-        xdata = hk_data.coords[0][:].copy()
-        use_steps = xdata.size <= 256
+        if hk_data is not None:
+            (xlabel,) = hk_data.coords._fields
+            xdata = hk_data.coords[0][:].copy()
+            use_steps = xdata.size <= 256
 
-        # define data gaps to avoid interpolation over missing data
-        assert np.issubdtype(xdata.dtype, np.integer),\
-            "xdata must be of integer type"
-        assert np.all(xdata[1:] > xdata[:-1]),\
-            "xdata not increasing at {}".format(
-                np.where(xdata[1:] <= xdata[:-1]))
-        xsteps = np.unique(np.diff(xdata))
-        xstep = xsteps.min()
-        dx_mn = xstep
-        for xx in xsteps:
-            if gcd(dx_mn, xx) < xstep:
-                xstep = gcd(dx_mn, xx)
+            # define data gaps to avoid interpolation over missing data
+            assert np.issubdtype(xdata.dtype, np.integer),\
+                "xdata must be of integer type"
+            assert np.all(xdata[1:] > xdata[:-1]),\
+                "xdata not increasing at {}".format(
+                    np.where(xdata[1:] <= xdata[:-1]))
+            xsteps = np.unique(np.diff(xdata))
+            xstep = xsteps.min()
+            dx_mn = xstep
+            for xx in xsteps:
+                if gcd(dx_mn, xx) < xstep:
+                    xstep = gcd(dx_mn, xx)
 
-        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-        for indx in reversed(gap_list):
-            xdata = np.insert(xdata, indx, xdata[indx])
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-        if use_steps:
-            xdata = np.append(xdata, xdata[-1]+xstep)
+            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+            for indx in reversed(gap_list):
+                xdata = np.insert(xdata, indx, xdata[indx])
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            if use_steps:
+                xdata = np.append(xdata, xdata[-1]+xstep)
 
-        if xlabel == 'time':
-            xdata = xdata.astype(np.float) / 3600
-            xlabel += ' [hours]'
+            if xlabel == 'time':
+                xdata = xdata.astype(np.float) / 3600
+                xlabel += ' [hours]'
 
-        for key in hk_keys:
-            if key in hk_data.value.dtype.names:
-                indx = hk_data.value.dtype.names.index(key)
-                hk_unit = hk_data.units[indx].decode('ascii')
-                full_string = hk_data.long_name[indx].decode('ascii')
-                if hk_unit == 'K':
-                    hk_name = full_string.rsplit(' ', 1)[0]
-                    hk_label = 'temperature [{}]'.format(hk_unit)
-                    lcolor = lcolors.blue
-                    fcolor = '#BBCCEE'
-                elif hk_unit == 'A' or hk_unit == 'mA':
-                    hk_name = full_string.rsplit(' ', 1)[0]
-                    hk_label = 'current [{}]'.format(hk_unit)
-                    lcolor = lcolors.green
-                    fcolor = '#CCDDAA'
-                elif hk_unit == '%':
-                    hk_name = full_string.rsplit(' ', 2)[0]
-                    hk_label = 'duty cycle [{}]'.format(hk_unit)
-                    lcolor = lcolors.red
-                    fcolor = '#FFCCCC'
-                else:
-                    hk_name = full_string
-                    hk_label = 'value [{}]'.format(hk_unit)
-                    lcolor = lcolors.pink
-                    fcolor = '#EEBBDD'
+            for key in hk_keys:
+                if key in hk_data.value.dtype.names:
+                    indx = hk_data.value.dtype.names.index(key)
+                    hk_unit = hk_data.units[indx].decode('ascii')
+                    full_string = hk_data.long_name[indx].decode('ascii')
+                    if hk_unit == 'K':
+                        hk_name = full_string.rsplit(' ', 1)[0]
+                        hk_label = 'temperature [{}]'.format(hk_unit)
+                        lcolor = lcolors.blue
+                        fcolor = '#BBCCEE'
+                    elif hk_unit == 'A' or hk_unit == 'mA':
+                        hk_name = full_string.rsplit(' ', 1)[0]
+                        hk_label = 'current [{}]'.format(hk_unit)
+                        lcolor = lcolors.green
+                        fcolor = '#CCDDAA'
+                    elif hk_unit == '%':
+                        hk_name = full_string.rsplit(' ', 2)[0]
+                        hk_label = 'duty cycle [{}]'.format(hk_unit)
+                        lcolor = lcolors.red
+                        fcolor = '#FFCCCC'
+                    else:
+                        hk_name = full_string
+                        hk_label = 'value [{}]'.format(hk_unit)
+                        lcolor = lcolors.pink
+                        fcolor = '#EEBBDD'
 
-                ydata = hk_data.value[key].copy()
-                yerr1 = hk_data.error[key][:, 0].copy()
-                yerr2 = hk_data.error[key][:, 1].copy()
-                for indx in reversed(gap_list):
-                    ydata = np.insert(ydata, indx, np.nan)
-                    yerr1 = np.insert(yerr1, indx, np.nan)
-                    yerr2 = np.insert(yerr2, indx, np.nan)
-                    ydata = np.insert(ydata, indx, np.nan)
-                    yerr1 = np.insert(yerr1, indx, np.nan)
-                    yerr2 = np.insert(yerr2, indx, np.nan)
-                    ydata = np.insert(ydata, indx, ydata[indx-1])
-                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
-                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+                    ydata = hk_data.value[key].copy()
+                    yerr1 = hk_data.error[key][:, 0].copy()
+                    yerr2 = hk_data.error[key][:, 1].copy()
+                    for indx in reversed(gap_list):
+                        ydata = np.insert(ydata, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        ydata = np.insert(ydata, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        ydata = np.insert(ydata, indx, ydata[indx-1])
+                        yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                        yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
 
-                if np.all(np.isnan(ydata)):
-                    ydata[:] = 0
-                    yerr1[:] = 0
-                    yerr2[:] = 0
+                    if np.all(np.isnan(ydata)):
+                        ydata[:] = 0
+                        yerr1[:] = 0
+                        yerr2[:] = 0
 
-                if use_steps:
-                    ydata = np.append(ydata, ydata[-1])
-                    yerr1 = np.append(yerr1, yerr1[-1])
-                    yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].step(xdata, ydata,
-                                     where='post', lw=1.5, color=lcolor)
-                else:
-                    axarr[i_ax].plot(xdata, ydata,
-                                     lw=1.5, color=lcolor)
+                    if use_steps:
+                        ydata = np.append(ydata, ydata[-1])
+                        yerr1 = np.append(yerr1, yerr1[-1])
+                        yerr2 = np.append(yerr2, yerr2[-1])
+                        axarr[i_ax].step(xdata, ydata,
+                                         where='post', lw=1.5, color=lcolor)
+                    else:
+                        axarr[i_ax].plot(xdata, ydata,
+                                         lw=1.5, color=lcolor)
 
-                if not (np.array_equal(ydata, yerr1)
-                        and np.array_equal(ydata, yerr2)):
-                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                             step='post', facecolor=fcolor)
-                axarr[i_ax].locator_params(axis='y', nbins=4)
-                axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
-                axarr[i_ax].grid(True)
-                axarr[i_ax].set_ylabel(hk_label)
-                legenda = axarr[i_ax].legend(
-                    [blank_legend_key()], [hk_name], loc='upper left')
-                legenda.draw_frame(False)
-            i_ax += 1
+                    if not (np.array_equal(ydata, yerr1)
+                            and np.array_equal(ydata, yerr2)):
+                        axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                                 step='post', facecolor=fcolor)
+                    axarr[i_ax].locator_params(axis='y', nbins=4)
+                    axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+                    axarr[i_ax].grid(True)
+                    axarr[i_ax].set_ylabel(hk_label)
+                    legenda = axarr[i_ax].legend(
+                        [blank_legend_key()], [hk_name], loc='upper left')
+                    legenda.draw_frame(False)
+
+                i_ax += 1
+
         axarr[-1].set_xlabel(xlabel)
         if npanels > 1:
             plt.setp([a.get_xticklabels()
