@@ -279,15 +279,27 @@ class S5Pmsm(object):
         if axis == 0:
             self.value = self.value[indx, ...]
             if self.error is not None:
-                self.error = self.error[indx, ...]
+                if isinstance(self.error, tuple):
+                    self.error = (self.error[0][indx, ...],
+                                  self.error[1][indx, ...])
+                else:
+                    self.error = self.error[indx, ...]
         elif axis == 1:
             self.value = self.value[:, indx, ...]
             if self.error is not None:
-                self.error = self.error[:, indx, ...]
+                if isinstance(self.error, tuple):
+                    self.error = (self.error[0][:, indx, :],
+                                  self.error[1][:, indx, :])
+                else:
+                    self.error = self.error[:, indx, :]
         elif axis == 2:
             self.value = self.value[:, :, indx]
             if self.error is not None:
-                self.error = self.error[:, :, indx]
+                if isinstance(self.error, tuple):
+                    self.error = (self.error[0][:, :, indx],
+                                  self.error[1][:, :, indx])
+                else:
+                    self.error = self.error[:, :, indx]
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
             
@@ -483,8 +495,7 @@ class S5Pmsm(object):
         if len(vperc) == 3:
             vperc = tuple(sorted(vperc))
             self.value = perc[1, ...]
-            self.error = [perc[0, ...],
-                          perc[2, ...]]
+            self.error = (perc[0, ...], perc[2, ...],)
         else:
             self.value = perc[0, ...]
 
