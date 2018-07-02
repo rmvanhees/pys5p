@@ -1628,8 +1628,11 @@ class S5Pplot(object):
             use_steps = xdata.size <= 256
 
             # define data gaps to avoid interpolation over missing data
-            assert np.issubdtype(xdata.dtype, np.integer) \
-                and np.all(xdata[1:] > xdata[:-1])
+            assert np.issubdtype(xdata.dtype, np.integer),\
+                "xdata must be of integer type"
+            assert np.all(xdata[1:] > xdata[:-1]),\
+                "xdata not increasing at {}".format(
+                    np.where(xdata[1:] <= xdata[:-1]))
             xsteps = np.unique(np.diff(xdata))
             xstep = xsteps.min()
             dx_mn = xstep
