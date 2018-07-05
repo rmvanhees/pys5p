@@ -24,11 +24,12 @@ def unc_sum(sigma_a, sigma_b):
 
     if np.sum(mask) == sigma_a.size:
         return np.sqrt(sigma_a ** 2 + sigma_b ** 2)
-    
+
     res = np.full(sigma_a.shape, np.nan)
     res[mask] = np.sqrt(sigma_a[mask] ** 2 + sigma_b[mask] ** 2)
 
     return res
+
 
 def unc_div(value_a, sigma_a, value_b, sigma_b):
     """

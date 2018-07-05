@@ -19,9 +19,10 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-#- global parameters ------------------------------
+# - global parameters ------------------------------
 
-#- local functions --------------------------------
+
+# - local functions --------------------------------
 def band2channel(dict_a, dict_b, mode=None):
     """
     Store data from a dictionary as returned by get_msm_data to a ndarray
@@ -98,8 +99,9 @@ def band2channel(dict_a, dict_b, mode=None):
 
     return (data_a, data_b)
 
-#- class definition -------------------------------
-class OCMio(object):
+
+# - class definition -------------------------------
+class OCMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
@@ -119,7 +121,7 @@ class OCMio(object):
         self.__msm_path = None
         self.__patched_msm = []
         self.band = None
-        self.fid  = None
+        self.fid = None
 
         assert Path(ocm_product).is_file(), \
             '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
@@ -146,7 +148,7 @@ class OCMio(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__del__()
-        return False ## any exception is raised by the with statement.
+        return False    # any exception is raised by the with statement.
 
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
@@ -191,7 +193,7 @@ class OCMio(object):
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(Path(msm, 'GEODATA'))]
-            res[msm] = datetime(2010,1,1,0,0,0)
+            res[msm] = datetime(2010, 1, 1, 0, 0, 0)
             res[msm] += timedelta(seconds=int(sgrp['time'][0]))
 
         return res
@@ -234,7 +236,7 @@ class OCMio(object):
             return None
 
         grp = self.fid['BAND{}'.format(self.band)]
-        msm = self.__msm_path[0] ## all measurement sets have the same ICID
+        msm = self.__msm_path[0]  # all measurement sets have the same ICID
         sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
         instr = np.squeeze(sgrp['instrument_settings'])
 
@@ -258,7 +260,7 @@ class OCMio(object):
 
         return res
 
-    #-------------------------
+    # -------------------------
     def select(self, ic_id=None, *, msm_grp=None):
         """
         Select a measurement as BAND%/ICID_<ic_id>_GROUP_%
@@ -302,7 +304,7 @@ class OCMio(object):
 
         return len(self.__msm_path)
 
-    #-------------------------
+    # -------------------------
     def get_msm_attr(self, msm_dset, attr_name):
         """
         Returns attribute of measurement dataset "msm_dset"

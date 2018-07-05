@@ -33,6 +33,7 @@ def mask(region='illuminated'):
 
     return res
 
+
 def coords(region='illuminated'):
     """
     Return slice defining the illuminated region

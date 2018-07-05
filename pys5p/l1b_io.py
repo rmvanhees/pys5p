@@ -22,9 +22,10 @@ import numpy as np
 from .biweight import biweight
 from .version import version as __version__
 
-#- global parameters ------------------------------
+# - global parameters ------------------------------
 
-#- local functions --------------------------------
+
+# - local functions --------------------------------
 def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
@@ -52,14 +53,16 @@ def pad_rows(arr1, arr2):
 
     return (arr1, arr2)
 
+
 def swir_exp_time(int_delay, int_hold):
     """
     Returns the exact pixel exposure time of the measurements
     """
     return 1.25e-6 * (65540 - int_delay + int_hold)
 
-#- class definition -------------------------------
-class L1Bio(object):
+
+# - class definition -------------------------------
+class L1Bio():
     """
     super class with general function to access Tropomi offline L1b products
 
@@ -129,7 +132,7 @@ class L1Bio(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__del__()
-        return False ## any exception is raised by the with statement.
+        return False    # any exception is raised by the with statement.
 
     # ---------- PUBLIC FUNCTIONS ----------
     # ---------- class L1Bio::
@@ -220,7 +223,8 @@ class L1Bio(object):
             return None
 
         grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
-        return datetime(2010,1,1,0,0,0) + timedelta(seconds=int(grp['time'][0]))
+        return datetime(2010, 1, 1, 0, 0, 0) \
+            + timedelta(seconds=int(grp['time'][0]))
 
     # ---------- class L1Bio::
     def delta_time(self, msm_path):
@@ -236,7 +240,7 @@ class L1Bio(object):
             return None
 
         grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
-        return grp['delta_time'][0,:].astype(int)
+        return grp['delta_time'][0, :].astype(int)
 
     # ---------- class L1Bio::
     def instrument_settings(self, msm_path):
@@ -260,8 +264,8 @@ class L1Bio(object):
         instr = np.empty(grp['instrument_settings'].shape,
                          dtype=grp['instrument_settings'].dtype)
         grp['instrument_settings'].read_direct(instr)
-        #for name in grp['instrument_settings'].dtype.names:
-        #    instr[name][:] = grp['instrument_settings'][name]
+        # for name in grp['instrument_settings'].dtype.names:
+        #     instr[name][:] = grp['instrument_settings'][name]
 
         return instr
 
@@ -331,10 +335,10 @@ class L1Bio(object):
         grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
         delta_time = np.squeeze(grp['delta_time'])
         length = delta_time.size
-        self.imsm = np.empty((length,), dtype=[('icid','u2'),
-                                               ('sequence','u2'),
-                                               ('index','u4'),
-                                               ('delta_time','u4')])
+        self.imsm = np.empty((length,), dtype=[('icid', 'u2'),
+                                               ('sequence', 'u2'),
+                                               ('index', 'u4'),
+                                               ('delta_time', 'u4')])
         self.imsm['icid'] = icid_list
         self.imsm['index'] = np.arange(length, dtype=np.uint32)
         self.imsm['delta_time'] = delta_time
@@ -474,7 +478,7 @@ class L1Bio(object):
                 print('*** Fatal: patch data has not same shape as original')
                 return
 
-            dset[0,...] = write_data
+            dset[0, ...] = write_data
         else:
             if self.imsm is None:
                 return
@@ -490,7 +494,8 @@ class L1Bio(object):
         # update patch logging
         self.__patched_msm.append(ds_path)
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 class L1BioCAL(L1Bio):
     """
     class with function to access Tropomi offline L1b calibration products
@@ -526,8 +531,7 @@ class L1BioCAL(L1Bio):
         """
         self.bands = ''
         self.imsm = None
-        grp_list = [ 'CALIBRATION', 'IRRADIANCE', 'RADIANCE' ]
-        for name in grp_list:
+        for name in ('CALIBRATION', 'IRRADIANCE', 'RADIANCE'):
             for ii in '12345678':
                 grp_path = str(Path('BAND{}_{}'.format(ii, name), msm_type))
                 if grp_path in self.fid:
@@ -635,7 +639,7 @@ class L1BioCAL(L1Bio):
         return super().housekeeping_data(self.__msm_path.replace('%', band))
 
     # ---------- class L1BioCAL::
-    def get_geo_data(self,  band=None,
+    def get_geo_data(self, band=None,
                      geo_dset='satellite_latitude,satellite_longitude'):
         """
         Returns data of selected datasets from the GEODATA group
@@ -659,7 +663,7 @@ class L1BioCAL(L1Bio):
 
         nscans = self.fid[self.__msm_path.replace('%', band)]['scanline'].size
 
-        dtype = [('sequence','u2')]
+        dtype = [('sequence', 'u2')]
         for name in geo_dset.split(','):
             dtype.append((name, 'f4'))
         res = np.empty((nscans,), dtype=dtype)
@@ -724,7 +728,7 @@ class L1BioCAL(L1Bio):
         """
         assert band and len(band) <= 2
         if len(band) == 2:
-            assert band == '12' or band == '34' or band == '56' or band == '78'
+            assert band in ('12', '34', '56', '78')
             if msm_to_row is None:
                 msm_to_row = 'padding'
         assert self.bands.find(band) >= 0
@@ -762,10 +766,11 @@ class L1BioCAL(L1Bio):
         for ii in band:
             dim = super().msm_dims(self.__msm_path.replace('%', ii), msm_dset)
             super()._set_msm_data(self.__msm_path.replace('%', ii), msm_dset,
-                                  data[...,col:col+dim[-1]])
+                                  data[..., col:col+dim[-1]])
             col += dim[-1]
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 class L1BioIRR(L1Bio):
     """
     class with function to access Tropomi offline L1b irradiance products
@@ -931,7 +936,7 @@ class L1BioIRR(L1Bio):
         """
         assert band and len(band) <= 2
         if len(band) == 2:
-            assert band == '12' or band == '34' or band == '56' or band == '78'
+            assert band in ('12', '34', '56', '78')
             if msm_to_row is None:
                 msm_to_row = 'padding'
         assert self.bands.find(band) >= 0
@@ -971,10 +976,11 @@ class L1BioIRR(L1Bio):
         for ii in band:
             dim = super().msm_dims(self.__msm_path.replace('%', ii), msm_dset)
             super()._set_msm_data(self.__msm_path.replace('%', ii), msm_dset,
-                                  data[...,col:col+dim[-1]])
+                                  data[..., col:col+dim[-1]])
             col += dim[-1]
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 class L1BioRAD(L1Bio):
     """
     class with function to access Tropomi offline L1b radiance products
@@ -1104,7 +1110,7 @@ class L1BioRAD(L1Bio):
         if icid is None:
             nscans = self.fid[self.__msm_path]['scanline'].size
 
-            dtype = [('sequence','u2')]
+            dtype = [('sequence', 'u2')]
             for name in geo_dset.split(','):
                 dtype.append((name, 'f4'))
             res = np.empty((nscans, nrows), dtype=dtype)
@@ -1121,8 +1127,9 @@ class L1BioRAD(L1Bio):
             for name in geo_dset.split(','):
                 dtype.append((name, 'f4'))
             res = np.empty((nscans, nrows), dtype=dtype)
-            res['sequence'][:, :] = np.repeat(self.imsm['sequence'][indx],
-                                              nrows, axis=0).reshape(nscans, nrows)
+            res['sequence'][:, :] = np.repeat(
+                self.imsm['sequence'][indx],
+                nrows, axis=0).reshape(nscans, nrows)
 
             for name in geo_dset.split(','):
                 res[name][:, :] = grp[name][0, indx, :]
@@ -1192,7 +1199,8 @@ class L1BioRAD(L1Bio):
         """
         return super()._set_msm_data(self.__msm_path, msm_dset, data, icid=icid)
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 class L1BioENG(L1Bio):
     """
     class with function to access Tropomi offline L1b engineering products
@@ -1236,16 +1244,16 @@ class L1BioENG(L1Bio):
 
         Note this function is used to fill the SQLite product databases
         """
-        dtype_msmt_db = np.dtype([('meta_id'          , np.int32),
-                                  ('ic_id'            , np.uint16),
-                                  ('ic_version'       , np.uint8),
-                                  ('class'            , np.uint8),
-                                  ('repeats'          , np.uint16),
-                                  ('exp_per_mcp'      , np.uint16),
-                                  ('exp_time_us'      , np.uint32),
-                                  ('mcp_us'           , np.uint32),
-                                  ('delta_time_start' , np.int32),
-                                  ('delta_time_end'   , np.int32)])
+        dtype_msmt_db = np.dtype([('meta_id', np.int32),
+                                  ('ic_id', np.uint16),
+                                  ('ic_version', np.uint8),
+                                  ('class', np.uint8),
+                                  ('repeats', np.uint16),
+                                  ('exp_per_mcp', np.uint16),
+                                  ('exp_time_us', np.uint32),
+                                  ('mcp_us', np.uint32),
+                                  ('delta_time_start', np.int32),
+                                  ('delta_time_end', np.int32)])
 
         # read full msmtset
         msmtset = self.fid['/MSMTSET/msmtset'][:]
@@ -1258,15 +1266,15 @@ class L1BioENG(L1Bio):
 
         # compress data from msmtset
         msmt = np.zeros(indx.size-1, dtype=dtype_msmt_db)
-        msmt['ic_id'][:]      = msmtset['icid'][indx[0:-1]]
+        msmt['ic_id'][:] = msmtset['icid'][indx[0:-1]]
         msmt['ic_version'][:] = msmtset['icv'][indx[0:-1]]
-        msmt['class'][:]      = msmtset['class'][indx[0:-1]]
+        msmt['class'][:] = msmtset['class'][indx[0:-1]]
         msmt['delta_time_start'][:] = msmtset['delta_time'][indx[0:-1]]
-        msmt['delta_time_end'][:]   = msmtset['delta_time'][indx[1:]]
+        msmt['delta_time_end'][:] = msmtset['delta_time'][indx[1:]]
 
         # add SWIR timing information
         timing = self.fid['/DETECTOR4/timing'][:]
-        msmt['mcp_us'][:]      = timing['mcp_us'][indx[1:]-1]
+        msmt['mcp_us'][:] = timing['mcp_us'][indx[1:]-1]
         msmt['exp_time_us'][:] = timing['exp_time_us'][indx[1:]-1]
         msmt['exp_per_mcp'][:] = timing['exp_per_mcp'][indx[1:]-1]
         # duration per ICID execution in micro-seconds
@@ -1292,30 +1300,30 @@ class L1BioENG(L1Bio):
         Note this function is used to fill the SQLite product datbase and
            HDF5 monitoring database
         """
-        dtype_hk_db = np.dtype([('detector_temp'       , np.float32),
-                                ('grating_temp'        , np.float32),
-                                ('imager_temp'         , np.float32),
-                                ('obm_temp'            , np.float32),
-                                ('calib_unit_temp'     , np.float32),
-                                ('fee_inner_temp'      , np.float32),
-                                ('fee_board_temp'      , np.float32),
-                                ('fee_ref_volt_temp'   , np.float32),
-                                ('fee_video_amp_temp'  , np.float32),
-                                ('fee_video_adc_temp'  , np.float32),
-                                ('detector_heater'     , np.float32),
-                                ('obm_heater_cycle'    , np.float32),
+        dtype_hk_db = np.dtype([('detector_temp', np.float32),
+                                ('grating_temp', np.float32),
+                                ('imager_temp', np.float32),
+                                ('obm_temp', np.float32),
+                                ('calib_unit_temp', np.float32),
+                                ('fee_inner_temp', np.float32),
+                                ('fee_board_temp', np.float32),
+                                ('fee_ref_volt_temp', np.float32),
+                                ('fee_video_amp_temp', np.float32),
+                                ('fee_video_adc_temp', np.float32),
+                                ('detector_heater', np.float32),
+                                ('obm_heater_cycle', np.float32),
                                 ('fee_box_heater_cycle', np.float32),
-                                ('obm_heater'          , np.float32),
-                                ('fee_box_heater'      , np.float32)])
+                                ('obm_heater', np.float32),
+                                ('fee_box_heater', np.float32)])
 
         num_eng_pkts = self.fid['nr_of_engdat_pkts'].size
         swir_hk = np.empty(num_eng_pkts, dtype=dtype_hk_db)
 
         hk_tbl = self.fid['/DETECTOR4/DETECTOR_HK/temperature_info'][:]
-        swir_hk['detector_temp']      = hk_tbl['temp_det_ts2']
-        swir_hk['fee_inner_temp']     = hk_tbl['temp_d1_box']
-        swir_hk['fee_board_temp']     = hk_tbl['temp_d5_cold']
-        swir_hk['fee_ref_volt_temp']  = hk_tbl['temp_a3_vref']
+        swir_hk['detector_temp'] = hk_tbl['temp_det_ts2']
+        swir_hk['fee_inner_temp'] = hk_tbl['temp_d1_box']
+        swir_hk['fee_board_temp'] = hk_tbl['temp_d5_cold']
+        swir_hk['fee_ref_volt_temp'] = hk_tbl['temp_a3_vref']
         swir_hk['fee_video_amp_temp'] = hk_tbl['temp_d6_vamp']
         swir_hk['fee_video_adc_temp'] = hk_tbl['temp_d4_vadc']
 
@@ -1323,20 +1331,20 @@ class L1BioENG(L1Bio):
         swir_hk['grating_temp'] = hk_tbl['hires_temp_1']
 
         hk_tbl = self.fid['/NOMINAL_HK/TEMPERATURES/instr_temperatures'][:]
-        swir_hk['imager_temp']     = hk_tbl['instr_temp_29']
-        swir_hk['obm_temp']        = hk_tbl['instr_temp_28']
+        swir_hk['imager_temp'] = hk_tbl['instr_temp_29']
+        swir_hk['obm_temp'] = hk_tbl['instr_temp_28']
         swir_hk['calib_unit_temp'] = hk_tbl['instr_temp_25']
 
         hk_tbl = self.fid['/DETECTOR4/DETECTOR_HK/heater_data'][:]
         swir_hk['detector_heater'] = hk_tbl['det_htr_curr']
 
         hk_tbl = self.fid['/NOMINAL_HK/HEATERS/heater_data'][:]
-        swir_hk['obm_heater']           = hk_tbl['meas_cur_val_htr12']
-        swir_hk['obm_heater_cycle']     = hk_tbl['last_pwm_val_htr12']
-        swir_hk['fee_box_heater']       = hk_tbl['meas_cur_val_htr13']
+        swir_hk['obm_heater'] = hk_tbl['meas_cur_val_htr12']
+        swir_hk['obm_heater_cycle'] = hk_tbl['last_pwm_val_htr12']
+        swir_hk['fee_box_heater'] = hk_tbl['meas_cur_val_htr13']
         swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr13']
 
-        ## Note all elements should be floats!
+        # Note all elements should be floats!
         if fill_as_nan:
             for key in dtype_hk_db.names:
                 swir_hk[key][swir_hk[key] == 999.] = np.nan
@@ -1356,8 +1364,8 @@ class L1BioENG(L1Bio):
             return hk_median
 
         if stats == 'range':
-            hk_min =  np.empty(1, dtype=dtype_hk_db)
-            hk_max =  np.empty(1, dtype=dtype_hk_db)
+            hk_min = np.empty(1, dtype=dtype_hk_db)
+            hk_max = np.empty(1, dtype=dtype_hk_db)
             for key in dtype_hk_db.names:
                 if np.all(np.isnan(swir_hk[key])):
                     hk_min[key][0] = np.nan

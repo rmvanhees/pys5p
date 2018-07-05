@@ -20,10 +20,11 @@ import numpy as np
 
 from .s5p_msm import S5Pmsm
 
-#- global parameters ------------------------------
+# - global parameters ------------------------------
 
-#- class definition -------------------------------
-class CKDio(object):
+
+# - class definition -------------------------------
+class CKDio():
     """
     This class should offer all the necessary functionality to read Tropomi
     CKD's
@@ -39,7 +40,7 @@ class CKDio(object):
         """
         # initialize private class-attributes
         self.__ckd_dir = Path(ckd_dir)
-        self.pixel_fw_flag_thresh = 0.9  ## ToDo read from CKD product
+        self.pixel_fw_flag_thresh = 0.9  # ToDo read from CKD product
 
         assert self.__ckd_dir.is_dir(), \
             '*** Fatal, can not find CKD base-directory: {}'.format(ckd_dir)
@@ -135,7 +136,7 @@ class CKDio(object):
         assert ckd_file.is_file(), \
             '# *** Fatal, no DPQF CKD found on the system'
 
-        with h5py.File(str(ckd_file), 'r' ) as fid:
+        with h5py.File(str(ckd_file), 'r') as fid:
             if threshold is None:
                 threshold = fid['/BAND7/dpqf_threshold'][:]
 
@@ -163,7 +164,7 @@ class CKDio(object):
         assert ckd_file.is_file(), \
             '# *** Fatal, no DPQM CKD found on the system'
 
-        with h5py.File(str(ckd_file), 'r' ) as fid:
+        with h5py.File(str(ckd_file), 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/' + ds_name], data_sel=np.s_[:-1, :])
             ckd_b8 = S5Pmsm(fid['/BAND8/' + ds_name], data_sel=np.s_[:-1, :])
 
@@ -339,7 +340,7 @@ class CKDio(object):
         assert ckd_file.is_file(), \
             '*** Fatal, no V2C CKD found on the system'
 
-        with h5py.File(str(ckd_file), 'r' ) as fid:
+        with h5py.File(str(ckd_file), 'r') as fid:
             ckd = S5Pmsm(fid['/BAND7/v2c_factor_swir'], datapoint=True)
 
         ckd.set_long_name('SWIR voltage to charge CKD')

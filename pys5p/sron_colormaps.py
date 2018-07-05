@@ -28,7 +28,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 
-class SRONcmaps(object):
+class SRONcmaps():
     """
     Class SRONcmaps definition
 
@@ -127,9 +127,9 @@ class SRONcmaps(object):
         """
         Define colormap "rainbow_PiRd"
         """
-        #part_1 = [[232, 236, 251], [221, 216, 239], [209, 193, 225],
-        #          [195, 168, 209], [181, 143, 194], [167, 120, 180],
-        #          [155, 98, 167], [140, 78, 153]]
+        # part_1 = [[232, 236, 251], [221, 216, 239], [209, 193, 225],
+        #           [195, 168, 209], [181, 143, 194], [167, 120, 180],
+        #           [155, 98, 167], [140, 78, 153]]
         part_2 = [[111, 76, 155], [96, 89, 169], [85, 104, 184], [78, 121, 197],
                   [77, 138, 198], [78, 150, 188], [84, 158, 179],
                   [89, 165, 169], [96, 171, 158], [105, 177, 144],
@@ -137,7 +137,7 @@ class SRONcmaps(object):
                   [190, 188, 72], [209, 181, 65], [221, 170, 60],
                   [228, 156, 57], [231, 140, 53], [230, 121, 50],
                   [228, 99, 45], [223, 72, 40], [218, 34, 34]]
-        #part_3 = [[184, 34, 30], [149, 33, 27], [114, 30, 23], [82, 26, 19]]
+        # part_3 = [[184, 34, 30], [149, 33, 27], [114, 30, 23], [82, 26, 19]]
         cmap_def = part_2
         bad_def = [255, 255, 255]
         self.cmap = LinearSegmentedColormap.from_list(self.cname,
@@ -148,9 +148,9 @@ class SRONcmaps(object):
         """
         Define colormap "rainbow_PiBr"
         """
-        #part_1 = [[232, 236, 251], [221, 216, 239], [209, 193, 225],
-        #          [195, 168, 209], [181, 143, 194], [167, 120, 180],
-        #          [155, 98, 167], [140, 78, 153]]
+        # part_1 = [[232, 236, 251], [221, 216, 239], [209, 193, 225],
+        #           [195, 168, 209], [181, 143, 194], [167, 120, 180],
+        #           [155, 98, 167], [140, 78, 153]]
         part_2 = [[111, 76, 155], [96, 89, 169], [85, 104, 184],
                   [78, 121, 197], [77, 138, 198], [78, 150, 188],
                   [84, 158, 179], [89, 165, 169], [96, 171, 158],
@@ -200,7 +200,7 @@ class SRONcmaps(object):
                   [166, 190, 84], [190, 188, 72], [209, 181, 65],
                   [221, 170, 60], [228, 156, 57], [231, 140, 53],
                   [230, 121, 50], [228, 99, 45], [223, 72, 40], [218, 34, 34]]
-        #part_3 = [[184, 34, 30], [149, 33, 27], [114, 30, 23], [82, 26, 19]]
+        # part_3 = [[184, 34, 30], [149, 33, 27], [114, 30, 23], [82, 26, 19]]
         cmap_def = part_1 + part_2
         bad_def = [119, 119, 119]
         self.cmap = LinearSegmentedColormap.from_list(self.cname,
@@ -223,6 +223,7 @@ class SRONcmaps(object):
         self.funcdict[cname]()
         return self.cmap
 
+
 def sron_cmap(colormap):
     """
     Defines the public function which returns a SRON Matplotlib color-map
@@ -235,6 +236,7 @@ def sron_cmap(colormap):
               'Using as default {}'.format(colormap))
 
     return obj.get(colormap)
+
 
 def get_line_colors():
     """
@@ -253,6 +255,7 @@ def get_line_colors():
     return lcolor('#4477AA', '#66CCEE', '#228833', '#CCBB44',
                   '#EE6677', '#AA3377', '#BBBBBB', '#000000')
 
+
 def get_qfive_colors():
     """
     Alternative color scheme for qualitative data
@@ -264,6 +267,7 @@ def get_qfive_colors():
     qfive = namedtuple('Qfive', 'unusable worst bad good unchanged')
 
     return qfive('#BBBBBB', '#EE6677', '#CCBB44', '#228833', '#FFFFFF')
+
 
 def get_qfour_colors():
     """

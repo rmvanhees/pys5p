@@ -14,9 +14,8 @@ License:  Standard 3-clause BSD
 """
 from __future__ import print_function
 
-#import numpy as np
 
-#--------------------------------------------------
+# --------------------------------------------------
 def offset():
     """
     Patch SWIR offset correction.
@@ -45,6 +44,7 @@ def offset():
     """
     pass
 
+
 def darkflux():
     """
     Patch SWIR dark-flux correction.
@@ -70,6 +70,7 @@ def darkflux():
     Nothing
     """
     pass
+
 
 def prnu(array, prnu_orig, prnu_patch):
     """
@@ -108,6 +109,7 @@ def prnu(array, prnu_orig, prnu_patch):
     """
     return prnu_patch * array / prnu_orig
 
+
 def radiance():
     """
     Patch radiance calibration.
@@ -125,6 +127,7 @@ def radiance():
     Nothing
     """
     pass
+
 
 def irradiance():
     """
@@ -144,7 +147,8 @@ def irradiance():
     """
     pass
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 def _main():
     """
     Let the user test the software!!!
@@ -215,8 +219,9 @@ def _main():
         # update meta-data of product and flush all changes to disk
         del l1b
     else:
-        print( 'Warning: only implemented for Tropomi offline L1b radiance')
+        print('Warning: only implemented for Tropomi offline L1b radiance')
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 if __name__ == '__main__':
     _main()

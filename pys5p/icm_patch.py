@@ -60,11 +60,18 @@ DLED_DIR = Path('/data/richardh/Tropomi')
 
 DB_NAME = '/nfs/Tropomi/ical/share/db/sron_s5p_icm.db'
 
-#--------------------------------------------------
-class ICMpatch(object):
+TEST_DATA_DIR = '/nfs/Tropomi/ocal/proc_raw/2015_02_27T14_56_27_LaserDiodes_LD3_100/proc_raw'
+
+
+# --------------------------------------------------
+class ICMpatch():
     """
+    Apply patch to measurement data in ICM product
     """
     def background(self, exposure_time, coadding_factor):
+        """
+        obtain background signal from CKD
+        """
         # read v2c CKD
         ckd_file = str(CKD_DIR / 'v2c' / 'ckd.v2c_factor.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
@@ -77,9 +84,9 @@ class ICMpatch(object):
         ckd_file = str(CKD_DIR / 'offset' / 'ckd.offset.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
             dset = fid['/BAND7/analog_offset_swir']
-            offs_b7 = dset[:,:]
+            offs_b7 = dset[:, :]
             dset = fid['/BAND8/analog_offset_swir']
-            offs_b8 = dset[:,:]
+            offs_b8 = dset[:, :]
 
         offset_swir = np.hstack((offs_b7, offs_b8))
 
@@ -87,9 +94,9 @@ class ICMpatch(object):
         ckd_file = str(CKD_DIR / 'darkflux' / 'ckd.dark.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
             dset = fid['/BAND7/long_term_swir']
-            dark_b7 = dset[:,:]
+            dark_b7 = dset[:, :]
             dset = fid['/BAND8/long_term_swir']
-            dark_b8 = dset[:,:]
+            dark_b8 = dset[:, :]
 
         dark_swir = np.hstack((dark_b7, dark_b8))
 
@@ -115,7 +122,7 @@ class ICMpatch(object):
         dled_file = str(DLED_DIR / 'DledlinSw_signalcurrent_approx.h5')
         with h5py.File(dled_file, 'r') as fid:
             dset = fid['dled_signalcurrent_epers']
-            dled_current = dset[:,:]
+            dled_current = dset[:, :]
 
         signal += dled_current * exposure_time
         signal *= coadding_factor
@@ -145,7 +152,7 @@ class ICMpatch(object):
         """
         from pys5p.biweight import biweight
 
-        assert ld_id > 0 and ld_id < 6
+        assert 0 < ld_id < 6
 
         light_icid = 32096
         if ld_id == 1:
@@ -186,7 +193,7 @@ class ICMpatch(object):
 
         # obtain start and end of measurement from engineering data
         data = {}
-        with h5py.File(str(data_dir  / 'engDat.nc'), 'r') as fid:
+        with h5py.File(str(data_dir / 'engDat.nc'), 'r') as fid:
             gid = fid['/NOMINAL_HK/HEATERS']
             dset = gid['peltier_info']
             data['delta_time'] = dset[:, 'delta_time']
@@ -216,13 +223,14 @@ class ICMpatch(object):
             framelist = np.where((delta_time >= delta_time_mn)
                                  & (delta_time <= delta_time_mx))[0]
             dset = fid[path + '/OBSERVATIONS/signal']
-            signal = dset[framelist[0]:framelist[-1]+1,:,columns[0]:columns[1]]
+            signal = dset[framelist[0]:framelist[-1]+1,
+                          :, columns[0]:columns[1]]
 
         # read background measurements
         with h5py.File(str(data_dir / data_fl), 'r') as fid:
             path = 'BAND{}/ICID_{}_GROUP_00000'.format(band, light_icid-1)
             dset = fid[path + '/OBSERVATIONS/signal']
-            (background, background_std) = biweight(dset[1:,:,:],
+            (background, background_std) = biweight(dset[1:, :, :],
                                                     axis=0, spread=True)
 
         # need to read background data of other band!!
@@ -233,7 +241,7 @@ class ICMpatch(object):
 
     def wls(self, exposure_time, coadding_factor):
         """
-        The WLS signal is appriximated as the DLED signal, therefore,
+        The WLS signal is approximated as the DLED signal, therefore,
         it can be aproximated by the background signal and the
         signal-current of the DLED. Kindly provided by Paul Tol
         """
@@ -242,7 +250,7 @@ class ICMpatch(object):
         dled_file = str(DLED_DIR / 'DledlinSw_signalcurrent_approx.h5')
         with h5py.File(dled_file, 'r') as fid:
             dset = fid['dled_signalcurrent_epers']
-            dled_current = dset[:,:]
+            dled_current = dset[:, :]
 
         signal += dled_current * exposure_time
         signal *= coadding_factor
@@ -255,12 +263,12 @@ class ICMpatch(object):
     def radiance(self, parms):
         pass
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 def test():
     """
     Perform some simple test to check the ICMpatch class
     """
-    import sys
     import shutil
 
     from pys5p.icm_io import ICMio
@@ -268,8 +276,7 @@ def test():
     from pyS5pMon.algorithms.swir_isrf import ISRFio
 
     # read OCAL ISRF measurements
-    data_dir = '/nfs/Tropomi/ocal/proc_raw/2015_02_27T14_56_27_LaserDiodes_LD3_100/proc_raw'
-    isrf_io = ISRFio(data_dir)
+    isrf_io = ISRFio(None, TEST_DATA_DIR)
     obj_dict = isrf_io.__dict__
     for key in obj_dict:
         print(key, obj_dict[key])
@@ -287,8 +294,6 @@ def test():
     icm_file = res[0][1]
     patch_file = icm_file.replace('_01_', '_02_')
     print(data_dir / icm_file)
-
-    sys.exit(0)
 
     # create initialize output file
     shutil.copy(data_dir / icm_file, temp_dir / patch_file)
@@ -309,13 +314,14 @@ def test():
     print('SLS errors:     ', res_sls[2].shape)
     delta_time = icm.get_delta_time()
     icm.set_msm_data('det_lit_area_signal',
-                     res_sls[0][:delta_time.shape[0],:,:])
+                     res_sls[0][:delta_time.shape[0], :, :])
 
     icm.select('BACKGROUND_MODE_0609')
     icm.set_msm_data('signal_avg', np.split(res_sls[1], 2, axis=1))
     icm.set_msm_data('signal_avg_std', np.split(res_sls[2], 2, axis=1))
     del icm
     del patch
+
 
 if __name__ == '__main__':
     test()

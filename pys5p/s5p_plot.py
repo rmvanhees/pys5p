@@ -40,7 +40,7 @@ from .biweight import biweight
 from .s5p_msm import S5Pmsm
 
 
-#- local functions --------------------------------
+# - local functions --------------------------------
 # set the colormap and centre the colorbar
 class MidpointNormalize(mpl.colors.Normalize):
     """
@@ -60,7 +60,8 @@ class MidpointNormalize(mpl.colors.Normalize):
         xx, yy = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(value, xx, yy), np.isnan(value))
 
-#-------------------------
+
+# -------------------------
 def convert_units(units, vmin, vmax):
     """
     Convert units electron or Volt to resp. 'e' and 'V'
@@ -101,9 +102,10 @@ def convert_units(units, vmin, vmax):
 
     return (zunit, dscale)
 
-#- main function __--------------------------------
+
+# - main function __--------------------------------
 # pylint: disable=too-many-arguments, too-many-locals
-class S5Pplot(object):
+class S5Pplot():
     """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports
 
@@ -128,7 +130,7 @@ class S5Pplot(object):
         if Path(figname).suffix.lower() == '.pdf':
             from matplotlib.backends.backend_pdf import PdfPages
 
-            self.__pdf  = PdfPages(figname)
+            self.__pdf = PdfPages(figname)
         else:
             self.__pdf = None
 
@@ -203,9 +205,9 @@ class S5Pplot(object):
                  verticalalignment='top',
                  horizontalalignment='right',
                  multialignment='left',
-                 bbox={'facecolor':'white', 'pad':5})
+                 bbox={'facecolor': 'white', 'pad': 5})
 
-    #-------------------------
+    # -------------------------
     def __fig_size(self):
         dims = self.data.shape
         self.aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
@@ -224,7 +226,7 @@ class S5Pplot(object):
 
         return figsize
 
-    #-------------------------
+    # -------------------------
     def __data_img(self, msm, ref_img):
         from . import swir_region
         from . import error_propagation
@@ -249,15 +251,15 @@ class S5Pplot(object):
                 # flag new good pixels
                 self.data[(ref_data != 10) & (new_data == 10)] = 10
                 # flag new bad pixels
-                self.data[(ref_data == 10) & (new_data == 8)]  = 8
+                self.data[(ref_data == 10) & (new_data == 8)] = 8
                 # new worst pixels
-                self.data[(ref_data != 1)  & (new_data == 1)] = 1
+                self.data[(ref_data != 1) & (new_data == 1)] = 1
                 #
             self.data[~swir_region.mask()] = 0
         elif self.method == 'ratio_unc':
             assert ref_img is not None
 
-            #mask = swir_region.mask() & (ref_img.value != 0.)
+            # mask = swir_region.mask() & (ref_img.value != 0.)
             mask = ref_img.value != 0.
 
             self.data = np.full_like(msm.value, np.nan)
@@ -328,7 +330,7 @@ class S5Pplot(object):
 
         from .sron_colormaps import sron_cmap, get_line_colors
 
-        #++++++++++ assert that we have some data to show
+        # ++++++++++ assert that we have some data to show
         if isinstance(msm, np.ndarray):
             msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
@@ -345,7 +347,7 @@ class S5Pplot(object):
             else:
                 raise TypeError
 
-        #++++++++++ set object attributes
+        # ++++++++++ set object attributes
         self.method = method
 
         # set data to be displayed (based chosen method)
@@ -459,7 +461,7 @@ class S5Pplot(object):
             else:
                 zlabel = r'difference [{}]'.format(zunit)
         elif method == 'ratio':
-            zunit  = None
+            zunit = None
             zlabel = 'ratio'
         elif method == 'ratio_unc':
             zunit = None
@@ -509,10 +511,10 @@ class S5Pplot(object):
                 spread_str = r'{:.5g} {}'.format(spread, zunit)
 
             if fig_info is None:
-                fig_info = OrderedDict({'median' : median_str})
+                fig_info = OrderedDict({'median': median_str})
             else:
-                fig_info.update({'median' : median_str})
-            fig_info.update({'spread' : spread_str})
+                fig_info.update({'median': median_str})
+            fig_info.update({'spread': spread_str})
             self.__fig_info(fig, fig_info)
 
             if self.__pdf is None:
@@ -582,7 +584,7 @@ class S5Pplot(object):
 
         from .sron_colormaps import get_qfour_colors, get_qfive_colors
 
-        #++++++++++ assert that we have some data to show
+        # ++++++++++ assert that we have some data to show
         if isinstance(msm, np.ndarray):
             msm = S5Pmsm(msm)
         assert isinstance(msm, S5Pmsm)
@@ -593,7 +595,7 @@ class S5Pplot(object):
             assert msm.value.shape == ref_data.shape
             assert not np.all(np.isnan(ref_data))
 
-        #++++++++++ set object attributes
+        # ++++++++++ set object attributes
         self.method = 'quality'
 
         # set data-values of central image
@@ -601,7 +603,7 @@ class S5Pplot(object):
 
         # define colors, data-range
         thres_worst = int(10 * thres_worst)
-        thres_bad   = int(10 * thres_bad)
+        thres_bad = int(10 * thres_bad)
         if ref_data is None:
             if qlabels is None:
                 qlabels = ["unusable", "worst", "bad", "good"]
@@ -700,26 +702,26 @@ class S5Pplot(object):
         if add_medians:
             ax_medx = divider.append_axes("bottom", 1.2, pad=0.25,
                                           sharex=ax_img)
-            data_row = np.sum(((self.data == thres_worst)             ## bad
+            data_row = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=0)
             ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.bad)
-            data_row = np.sum((self.data == thres_worst), axis=0)     ## worst
+            data_row = np.sum((self.data == thres_worst), axis=0)     # worst
             ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.worst)
             if ref_data is not None:
-                data_row    = np.sum((self.data == 10), axis=0)       ## good
+                data_row = np.sum((self.data == 10), axis=0)          # good
                 ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.good)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
 
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
-            data_col = np.sum(((self.data == thres_worst)             ## bad
+            data_col = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=1)
             ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.bad)
-            data_col = np.sum((self.data == thres_worst), axis=1)     ## worst
+            data_col = np.sum((self.data == thres_worst), axis=1)     # worst
             ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.worst)
             if ref_data is not None:
-                data_col = np.sum((self.data == 10), axis=1)          ## good
+                data_col = np.sum((self.data == 10), axis=1)          # good
                 ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.good)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
@@ -731,20 +733,20 @@ class S5Pplot(object):
                            | (self.data == thres_bad))
             info_str = '{} (quality < {})'.format(qlabels[2], thres_bad/10)
             if fig_info is None:
-                fig_info = OrderedDict({info_str : count})
+                fig_info = OrderedDict({info_str: count})
             else:
-                fig_info.update({info_str : count})
+                fig_info.update({info_str: count})
 
             count = np.sum(self.data == thres_worst)
             info_str = '{} (quality < {})'.format(qlabels[1], thres_worst/10)
-            fig_info.update({info_str : count})
+            fig_info.update({info_str: count})
         else:
             if fig_info is None:
-                fig_info = OrderedDict({'to good' : np.sum(self.data == 10)})
+                fig_info = OrderedDict({'to good': np.sum(self.data == 10)})
             else:
-                fig_info.update({'to good' : np.sum(self.data == 10)})
-            fig_info.update({'good to bad' : np.sum(self.data == 8)})
-            fig_info.update({'to worst' : np.sum(self.data == 1)})
+                fig_info.update({'to good': np.sum(self.data == 10)})
+            fig_info.update({'good to bad': np.sum(self.data == 8)})
+            fig_info.update({'to worst': np.sum(self.data == 1)})
 
         if self.add_info:
             self.__fig_info(fig, fig_info)
@@ -834,12 +836,12 @@ class S5Pplot(object):
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
         if zunit is None:
-            zlabel = None ##'{}'.format(msm.name)
+            zlabel = None        # '{}'.format(msm.name)
         else:
             zlabel = r'{} [{}]'.format(msm.name, zunit)
 
         # set label and range of X/Y axis
-        #(ylabel, xlabel) = msm.coords._fields
+        # (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
         extent = [0, len(xdata), 0, len(ydata)]
@@ -857,11 +859,12 @@ class S5Pplot(object):
         residual = msm.value.copy()
         residual[~mask] = np.nan
         residual[mask] -= model_in[mask]
-        if 1 == 1:
-            (median, spread) = biweight(residual, spread=True)
-            (rmin, rmax) = (median - 3 * spread, median + 3 * spread)
-        else:
-            (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        # previous implementation
+        # (rmin, rmax) = np.percentile(residual[np.isfinite(residual)], vperc)
+        # improved implementation
+        (median, spread) = biweight(residual, spread=True)
+        (rmin, rmax) = (median - 3 * spread, median + 3 * spread)
+
         # convert units from electrons to ke, Me, ...
         (runit, rscale) = convert_units(msm.units, rmin, rmax)
         residual[mask] /= rscale
@@ -996,7 +999,7 @@ class S5Pplot(object):
             if zunit is None:
                 ax4.set_xlabel('{}'.format(msm.name))
             else:
-                ax4.set_xlabel( r'{} [{}]'.format(msm.name, zunit))
+                ax4.set_xlabel(r'{} [{}]'.format(msm.name, zunit))
             ax4.set_ylabel('probability density')
             ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
 
@@ -1022,10 +1025,10 @@ class S5Pplot(object):
                 spread_str = r'{:.5g} {}'.format(spread, zunit)
 
             if fig_info is None:
-                fig_info = OrderedDict({'median' : median_str})
+                fig_info = OrderedDict({'median': median_str})
             else:
-                fig_info.update({'median' : median_str})
-            fig_info.update({'spread' : spread_str})
+                fig_info.update({'median': median_str})
+            fig_info.update({'spread': spread_str})
             self.__fig_info(fig, fig_info)
 
             if self.__pdf is None:
@@ -1102,16 +1105,16 @@ class S5Pplot(object):
                     & (msm.value >= vmin) & (msm.value <= vmax))
             (umin, umax) = (msm_err.value[indx].min(),
                             msm_err.value[indx].max())
-            #print('vrange: ', umin, umax)
+            # print('vrange: ', umin, umax)
 
         line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 7))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.45, 0.925), horizontalalignment='center')
-        gspec = gridspec.GridSpec(11,1)
+        gspec = gridspec.GridSpec(11, 1)
 
-        #---------- create first histogram ----------
+        # ---------- create first histogram ----------
         # convert units from electrons to ke, Me, ...
         (zunit, zscale) = convert_units(msm.units, vmin, vmax)
 
@@ -1160,12 +1163,12 @@ class S5Pplot(object):
                     spread_str = '{:.5g}'.format(spread)
 
                 if fig_info is None:
-                    fig_info = OrderedDict({'val_median' : median_str})
+                    fig_info = OrderedDict({'val_median': median_str})
                 else:
-                    fig_info.update({'val_median' : median_str})
-                fig_info.update({'val_spread' : spread_str})
+                    fig_info.update({'val_median': median_str})
+                fig_info.update({'val_spread': spread_str})
 
-        #---------- create second histogram ----------
+        # ---------- create second histogram ----------
         # convert units from electrons to ke, Me, ...
         (uunit, uscale) = convert_units(msm_err.units, umin, umax)
 
@@ -1212,8 +1215,8 @@ class S5Pplot(object):
                     median_str = '{:.5g}'.format(median)
                     spread_str = '{:.5g}'.format(spread)
 
-                fig_info.update({'unc_median' : median_str})
-                fig_info.update({'unc_spread' : spread_str})
+                fig_info.update({'unc_median': median_str})
+                fig_info.update({'unc_spread': spread_str})
 
         # add annotation and save figure
         if self.add_info:
@@ -1265,7 +1268,7 @@ class S5Pplot(object):
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
-        gspec = gridspec.GridSpec(15,1)
+        gspec = gridspec.GridSpec(15, 1)
 
         # draw histograms
         ipos = 1
@@ -1384,7 +1387,7 @@ class S5Pplot(object):
         else:
             if time_axis is None:
                 (ylabel, xlabel) = msm.coords._fields
-                if ylabel == 'orbit' or ylabel == 'time':
+                if ylabel in ('orbit', 'time'):
                     msm.transpose()
             elif time_axis == 0:
                 msm.transpose()
@@ -1510,12 +1513,12 @@ class S5Pplot(object):
                 spread_str = '{:.5g}'.format(spread)
 
             if fig_info is None:
-                fig_info = OrderedDict({'median' : median_str})
+                fig_info = OrderedDict({'median': median_str})
             else:
                 if 'orbit' in fig_info:
-                    fig_info.update({'orbit' : [extent[0], extent[1]]})
-                fig_info.update({'median' : median_str})
-            fig_info.update({'spread' : spread_str})
+                    fig_info.update({'orbit': [extent[0], extent[1]]})
+                fig_info.update({'median': median_str})
+            fig_info.update({'spread': spread_str})
             self.__fig_info(fig, fig_info)
 
             if self.__pdf is None:
@@ -1574,7 +1577,7 @@ class S5Pplot(object):
             """
             from matplotlib.patches import Rectangle
 
-            return Rectangle((0,0), 0, 0, fill=False,
+            return Rectangle((0, 0), 0, 0, fill=False,
                              edgecolor='none', visible=False)
 
         # make sure that we use 'large' fonts in the small plots
@@ -1622,7 +1625,7 @@ class S5Pplot(object):
             axarr[0].set_title(sub_title, fontsize='large')
 
         # define x-axis and its label
-        if plot_mode == 'quality' or plot_mode == 'data':
+        if plot_mode in ('quality', 'data'):
             (xlabel,) = msm.coords._fields
             xdata = msm.coords[0][:].copy()
             use_steps = xdata.size <= 256
@@ -1655,10 +1658,10 @@ class S5Pplot(object):
         i_ax = 0
         if plot_mode == 'quality':
             qcolors = get_qfour_colors()
-            qc_dict = {'bad'   : qcolors.bad,
-                       'worst' : qcolors.worst}
-            ql_dict = {'bad'   : 'bad (quality < 0.8)',
-                       'worst' : 'worst (quality < 0.1)'}
+            qc_dict = {'bad': qcolors.bad,
+                       'worst': qcolors.worst}
+            ql_dict = {'bad': 'bad (quality < 0.8)',
+                       'worst': 'worst (quality < 0.1)'}
 
             for key in ['bad', 'worst']:
                 ydata = msm.value[key].copy().astype(float)
@@ -1775,7 +1778,7 @@ class S5Pplot(object):
                         hk_label = 'temperature [{}]'.format(hk_unit)
                         lcolor = lcolors.blue
                         fcolor = '#BBCCEE'
-                    elif hk_unit == 'A' or hk_unit == 'mA':
+                    elif hk_unit in ('A', 'mA'):
                         hk_name = full_string.rsplit(' ', 1)[0]
                         hk_label = 'current [{}]'.format(hk_unit)
                         lcolor = lcolors.green
@@ -1893,7 +1896,8 @@ class S5Pplot(object):
 
         import cartopy.crs as ccrs
         import cartopy.feature as cfeature
-        from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+        from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
+                                           LATITUDE_FORMATTER)
         import shapely.geometry as sgeom
 
         # define aspect for the location of fig_info
@@ -1901,9 +1905,9 @@ class S5Pplot(object):
 
         # define colors
         watercolor = '#ddeeff'
-        landcolor  = '#e1c999'
-        gridcolor  = '#bbbbbb'
-        s5p_color  = '#ee6677'
+        landcolor = '#e1c999'
+        gridcolor = '#bbbbbb'
+        s5p_color = '#ee6677'
 
         class BetterTransverseMercator(ccrs.Projection):
             """
@@ -1934,8 +1938,8 @@ class S5Pplot(object):
                 xx0, xx1 = self.x_limits
                 yy0, yy1 = self.y_limits
                 return sgeom.LineString([(xx0, yy0), (xx0, yy1),
-                                         (xx1, yy1), (xx1, yy0),
-                                         (xx0, yy0)])
+                                         (xx1, yy1), (xx1, yy0), (xx0, yy0)])
+
             @property
             def x_limits(self):
                 return (-2e7, 2e7)
@@ -1961,9 +1965,9 @@ class S5Pplot(object):
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
         # draw worldmap
-        axx = plt.axes(projection=BetterTransverseMercator(central_longitude=lon_0,
-                                                           orientation=1,
-                                                           globe=ccrs.Globe(ellipse='sphere')))
+        axx = plt.axes(projection=BetterTransverseMercator(
+            central_longitude=lon_0, orientation=1,
+            globe=ccrs.Globe(ellipse='sphere')))
         axx.set_xlim(-meridian_half, meridian_half)
         axx.set_ylim(-parallel_half, parallel_half)
         axx.outline_patch.set_visible(False)

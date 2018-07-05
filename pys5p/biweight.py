@@ -36,6 +36,7 @@ def __biweight_median(data):
 
     return med_xx + np.sum(wmx * deltas) / np.sum(wmx)
 
+
 def __biweight(data):
     """
     Calculate biweight median and spread
@@ -55,9 +56,10 @@ def __biweight(data):
     xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
     umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
     sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
-    sbi /= np.sum((1 - umn) *  (1 - 5 * umn)) ** 2
+    sbi /= np.sum((1 - umn) * (1 - 5 * umn)) ** 2
     sbi = np.sqrt(len(xx) * sbi)
     return (xbi, sbi)
+
 
 # ----- main function -------------------------
 def biweight(data, axis=None, cpu_count=None, spread=False):
@@ -84,7 +86,7 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
        biweight median and biweight spread if function argument "spread" is True
     """
     import multiprocessing as mp
-    
+
     if axis is None or data.ndim == 1:
         if spread:
             return __biweight(data)
@@ -93,7 +95,7 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
 
     # only a single axis!
     assert isinstance(axis, int)
-    assert axis >= 0 and axis < data.ndim
+    assert 0 <= axis < data.ndim
 
     if cpu_count is None:
         pool = mp.Pool()
@@ -101,9 +103,9 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
         pool = mp.Pool(cpu_count)
 
     res_size = data.size // data.shape[axis]
-    data_T = np.moveaxis(data, axis, 0)        # returns a numpy view
-    shape = data_T.shape
-    buff = data_T.reshape(shape[0], res_size)  # returns a numpy view
+    tmp = np.moveaxis(data, axis, 0)        # returns a numpy view
+    shape = tmp.shape
+    buff = tmp.reshape(shape[0], res_size)  # returns a numpy view
     ins = [buff[:, ii] for ii in range(res_size)]
     if spread:
         outs = pool.map(__biweight, ins)

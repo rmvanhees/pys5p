@@ -34,7 +34,8 @@ from pathlib import Path
 
 import numpy as np
 
-#- local functions --------------------------------
+
+# - local functions --------------------------------
 def pad_rows(arr1, arr2):
     """
     Pad the array with the least numer of rows with NaN's
@@ -60,8 +61,9 @@ def pad_rows(arr1, arr2):
 
     return (arr1, arr2)
 
-#- class definition -------------------------------
-class S5Pmsm(object):
+
+# - class definition -------------------------------
+class S5Pmsm():
     """
     Definition of class S5Pmsm
     """
@@ -272,10 +274,10 @@ class S5Pmsm(object):
         """
         """
         assert self.value.ndim > axis
-        
-        indx = np.argsort(self.coords[axis][:]) 
+
+        indx = np.argsort(self.coords[axis][:])
         self.coords[axis][:] = self.coords[axis][indx]
-       
+
         if axis == 0:
             self.value = self.value[indx, ...]
             if self.error is not None:
@@ -302,7 +304,7 @@ class S5Pmsm(object):
                     self.error = self.error[:, :, indx]
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
-            
+
     def concatenate(self, msm, axis=0):
         """
         Concatenate two measurement datasets, the current with another.
@@ -328,7 +330,7 @@ class S5Pmsm(object):
 
         if self.error is None and msm.error is None:
             datapoint = False
-        elif  self.error is not None and msm.error is not None:
+        elif self.error is not None and msm.error is not None:
             datapoint = True
         else:
             raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
@@ -375,7 +377,7 @@ class S5Pmsm(object):
                                    len(self.coords[axis]) + msm.coords[axis]))
         else:
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
-        self.coords = self.coords._replace(**{key : dims})
+        self.coords = self.coords._replace(**{key: dims})
         return self
 
     def nanmedian(self, data_sel=None, axis=0, keepdims=False):
@@ -424,7 +426,7 @@ class S5Pmsm(object):
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key : dims})
+            self.coords = self.coords._replace(**{key: dims})
         else:
             keys = []
             dims = []
@@ -506,7 +508,7 @@ class S5Pmsm(object):
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key : dims})
+            self.coords = self.coords._replace(**{key: dims})
         else:
             keys = []
             dims = []
@@ -567,7 +569,7 @@ class S5Pmsm(object):
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key : dims})
+            self.coords = self.coords._replace(**{key: dims})
         else:
             keys = []
             dims = []

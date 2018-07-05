@@ -20,12 +20,13 @@ import numpy as np
 
 from .version import version as __version__
 
-#- global parameters ------------------------------
+# - global parameters ------------------------------
 
-#- local functions --------------------------------
+# - local functions --------------------------------
 
-#- class definition -------------------------------
-class ICMio(object):
+
+# - class definition -------------------------------
+class ICMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
@@ -106,7 +107,7 @@ class ICMio(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__del__()
-        return False ## any exception is raised by the with statement.
+        return False   # any exception is raised by the with statement.
 
     # ---------- RETURN VERSION of the S/W ----------
     def find(self, msm_class):
@@ -135,7 +136,7 @@ class ICMio(object):
 
         return list(set(res))
 
-    #-------------------------
+    # -------------------------
     def select(self, msm_type, msm_path=None):
         """
         Select a measurement as <processing class>_<ic_id>
@@ -230,7 +231,7 @@ class ICMio(object):
         Returns version of the L01b processor
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
-        dset  = grp['fixed_header/source']
+        dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
 
     def get_attr(self, attr_name):
@@ -510,7 +511,7 @@ class ICMio(object):
 
         return res
 
-    #-------------------------
+    # -------------------------
     def get_msmt_keys(self, band=None):
         """
         Read msmt_keys from the analysis groups
@@ -549,7 +550,7 @@ class ICMio(object):
 
         return None
 
-    #-------------------------
+    # -------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
         """
         Returns attribute of measurement dataset "msm_dset"
@@ -691,7 +692,7 @@ class ICMio(object):
 
         assert band and len(band) <= 2
         if len(band) == 2:
-            assert band == '12' or band == '34' or band == '56' or band == '78'
+            assert band in ('12', '34', '56', '78')
         assert self.bands.find(band) >= 0
 
         # skip row257 from the SWIR detector
@@ -756,11 +757,11 @@ class ICMio(object):
             return data[0]
         # return bands stacked
         if column_dim is None:
-            return data ## np.stack(data)
+            return data        # np.stack(data)
         # return band in detector layout
         return np.concatenate(data, axis=column_dim)
 
-    #-------------------------
+    # -------------------------
     def set_housekeeping_data(self, data, band=None):
         """
         Returns housekeeping data of measurements
@@ -815,7 +816,7 @@ class ICMio(object):
 
         assert band and len(band) <= 2
         if len(band) == 2:
-            assert band == '12' or band == '34' or band == '56' or band == '78'
+            assert band in ('12', '34', '56', '78')
         assert self.bands.find(band) >= 0
 
         fillvalue = float.fromhex('0x1.ep+122')
@@ -860,8 +861,8 @@ class ICMio(object):
 
                 if len(band) == 2:
                     if dset.attrs['_FillValue'] == fillvalue:
-                        data[indx, np.isnan(data[indx,...])] = fillvalue
-                    dset[data_sel] = data[indx,...]
+                        data[indx, np.isnan(data[indx, ...])] = fillvalue
+                    dset[data_sel] = data[indx, ...]
                     indx += 1
                 else:
                     if dset.attrs['_FillValue'] == fillvalue:
