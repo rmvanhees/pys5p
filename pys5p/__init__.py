@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ['biweight', 'ckd_io', 'error_propagation', 'get_data_dir',
             'icm_io', 'l1b_io', 'ocm_io', 's5p_msm', 's5p_plot',
            'sron_colormaps', 'swir_region', 'version']

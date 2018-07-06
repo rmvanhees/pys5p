@@ -9,10 +9,7 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
-
 """
-from __future__ import absolute_import
-
 from os import environ
 from pathlib import Path
 

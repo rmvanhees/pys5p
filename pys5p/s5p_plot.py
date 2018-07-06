@@ -28,8 +28,6 @@ Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-from __future__ import absolute_import, division, print_function
-
 from collections import OrderedDict
 from pathlib import Path
 

@@ -10,10 +10,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
-
 """
-from __future__ import absolute_import, print_function
-
 from pathlib import Path
 
 import h5py

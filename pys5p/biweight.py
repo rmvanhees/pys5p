@@ -9,10 +9,7 @@ Copyright (c) 2016--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
-
 """
-from __future__ import division
-
 import numpy as np
 
 
