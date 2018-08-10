@@ -476,8 +476,11 @@ class S5Pmsm():
 
         if isinstance(vperc, int):
             vperc = (vperc,)
-        elif len(vperc) == 2:
-            vperc += (50,)
+        else:
+            if len(vperc) == 2:
+                vperc += (50,)
+            vperc = tuple(sorted(vperc)) # make sure that the values are sorted
+
         assert len(vperc) == 1 or len(vperc) == 3
 
         if data_sel is None:
@@ -492,9 +495,8 @@ class S5Pmsm():
             perc = np.nanpercentile(self.value[data_sel], vperc,
                                     axis=axis, keepdims=keepdims)
         if len(vperc) == 3:
-            vperc = tuple(sorted(vperc))
             self.value = perc[1, ...]
-            self.error = (perc[0, ...], perc[2, ...],)
+            self.error = [perc[0, ...], perc[2, ...]]
         else:
             self.value = perc[0, ...]
 
