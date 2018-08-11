@@ -278,7 +278,7 @@ class S5Pmsm():
         if axis == 0:
             self.value = self.value[indx, ...]
             if self.error is not None:
-                if isinstance(self.error, tuple):
+                if isinstance(self.error, list):
                     self.error = (self.error[0][indx, ...],
                                   self.error[1][indx, ...])
                 else:
@@ -286,7 +286,7 @@ class S5Pmsm():
         elif axis == 1:
             self.value = self.value[:, indx, ...]
             if self.error is not None:
-                if isinstance(self.error, tuple):
+                if isinstance(self.error, list):
                     self.error = (self.error[0][:, indx, :],
                                   self.error[1][:, indx, :])
                 else:
@@ -294,7 +294,7 @@ class S5Pmsm():
         elif axis == 2:
             self.value = self.value[:, :, indx]
             if self.error is not None:
-                if isinstance(self.error, tuple):
+                if isinstance(self.error, list):
                     self.error = (self.error[0][:, :, indx],
                                   self.error[1][:, :, indx])
                 else:
