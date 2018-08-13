@@ -29,7 +29,7 @@ def test_ckd_dpqf():
 
     # read pixel-quality CKD
     ckd = CKDio()
-    dpqm = ckd.get_swir_dpqm()
+    dpqm = ckd.pixel_quality()
 
     # generate figure
     plot = S5Pplot('test_plot_ckd_dpqm.pdf')

@@ -3,9 +3,13 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-Provides acces to the Tropomi SWIR CKD's
+Provides access to the S5P Static CKD product, type AUX_L1_CKD
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+ToDo:
+ - access to UVN CKD, still incomplete
+ - identify latest Static CKD product, e.g. using the validity period
+
+Copyright (c) 2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -19,121 +23,508 @@ from .s5p_msm import S5Pmsm
 
 # - global parameters ------------------------------
 
+# - local functions --------------------------------
 
 # - class definition -------------------------------
 class CKDio():
     """
-    This class should offer all the necessary functionality to read Tropomi
-    CKD's
+    Read Tropomi CKD from the Static CKD product or from dynamic CKD products
+
+    Not all CKD are defined or derived for all bands.
+    You can request a CKD for one band or for a channel (bands: '12', '34',
+    '56', '78'). Do not mix bands from UVN and SWIR!
     """
-    def __init__(self, ckd_dir='/nfs/Tropomi/ocal/ckd'):
+    def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd/current'):
         """
-        Initialize access to a Tropomi offline L1b product
+        Initialize access to a Tropomi Static CKD product
+        """
+        # initialize private class-attributes
+        self.ckd_file = None
+        self.fid = None
+        self.__header = Path('/METADATA/earth_exploirer_header/fixed_header')
+
+        self.ckd_dir = Path(ckd_dir)
+        if not ckd_dir.is_dir():
+            raise FileNotFoundError('directory {} not found'.format(ckd_dir))
+
+        res = sorted(self.ckd_dir.glob('*_AUX_L1_CKD_*'))
+        if not res:
+            raise FileNotFoundError('Static CKD product not found')
+        self.ckd_file = res[-1]
+        self.fid = h5py.File(self.ckd_file, "r")
+
+    def __del__(self):
+        """
+        Make sure that we close all resources
+        """
+        if self.fid is not None:
+            self.fid.close()
+
+    def creation_time(self):
+        """
+        Returns datetime when the L1b product was created
+        """
+        attr = self.fid[self.__header / 'source'].attrs['Creator_Date'][0]
+        if attr is None:
+            return None
+
+        return attr.decode('ascii')
+
+    def processor_version(self):
+        """
+        Returns version of the CKD product
+        """
+        attr = self.fid[self.__header / 'source'].attrs['Creator_Verion'][0]
+        if attr is None:
+            return None
+
+        return attr.decode('ascii')
+
+    def validity_period(self):
+        """
+        Return validity period of CKD product as a tuple of 2 datetime objects
+        """
+        from datetime import datetime
+
+        attr = self.fid[self.__header / 'validity_period'].attrs['Validity_Start']
+        if attr is None:
+            return None
+        attr_bgn = attr.decode('ascii')
+
+        attr = self.fid[self.__header / 'validity_period'].attrs['Validity_Stop']
+        if attr is None:
+            return None
+        attr_end = attr.decode('ascii')
+
+        return (datetime.strptime(attr_bgn, '%Y%m%dT%H%M%S'),
+                datetime.strptime(attr_end, '%Y%m%dT%H%M%S'))
+
+    # ---------- static CKD's ----------
+    def get_param(self, ds_name, band='7'):
+        """
+        Returns value(s) of a CKD parameter from the Static CKD product.
+        Datasets of size=1 are return as scalar
 
         Parameters
         ----------
-        ckd_dir  :  string
-           path to directory with subdirectories per CKD
+        ds_name  :  string
+           Name of the HDF5 dataset
+        band     : string
+           Band identifier '1', '2', ..., '8'
+
+        Handy function for scalar HDF5 datasets, such as:
+         - dc_reference_temp
+         - dpqf_threshold
+         - pixel_full_well
+         - pixel_fw_flag_thresh
         """
-        # initialize private class-attributes
-        self.__ckd_dir = Path(ckd_dir)
-        self.pixel_fw_flag_thresh = 0.9  # ToDo read from CKD product
+        if not 1 <= int(band) <= 8:
+            raise ValueError('band must be between and 1 and 8')
 
-        assert self.__ckd_dir.is_dir(), \
-            '*** Fatal, can not find CKD base-directory: {}'.format(ckd_dir)
-        assert (self.__ckd_dir / 'ckd_release').is_dir(), \
-            '*** Fatal, can not find UVN CKD subdirectory: {}'.format(ckd_dir)
-        assert (self.__ckd_dir / 'ckd_release_swir').is_dir(), \
-            '*** Fatal, can not find SWIR CKD subdirectory: {}'.format(ckd_dir)
+        if ds_name not in self.fid['/BAND{}'.format(band)]:
+            raise ValueError('dataset not available')
 
-    def get_swir_absirr(self, qvd=1):
+        full_name = '/BAND{}/{}'.format(band, ds_name)
+        if self.fid[full_name].size == 1:
+            return self.fid[full_name][0]
+
+        return self.fid[full_name][:]
+
+    def memory(self, bands='78'):
         """
-        returns absolute irradiance responsivity for SWIR, except row 257
+        Returns memory CKD, SWIR only
+
+        Note SWIR row 257 is excluded
         """
-        ckd_dir = self.__ckd_dir / 'ckd_release' / 'abs_irr_uvn'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find absirr directory: {}'.format(ckd_dir)
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('Voltage to Charge only available for SWIR')
 
-        file_b7 = ckd_dir / 'irrad_conv_factors.band7.ckd.nc'
-        file_b8 = ckd_dir / 'irrad_conv_factors.band8.ckd.nc'
-        assert file_b7.is_file() and file_b8.is_file(), \
-            '*** Fatal, no ABSIRR CKD found on the system'
+        long_name = 'SWIR memory CKD'
+        ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
+                     'mem_qua_neg_swir', 'mem_qua_pos_swir',
+                     'mem_res_var_swir']
+        ckd = {}
+        for key in ckd_parms:
+            for band in bands:
+                if key not in ckd:
+                    ckd[key] = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
+                                      datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd[key].set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
+                                  datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd[key].concatenate(buff, axis=1)
 
-        dname = '/BAND7/abs_irr_conv_factor_qvd{}'.format(qvd)
-        with h5py.File(str(file_b7), 'r') as fid:
-            ckd = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
+            ckd[key].set_fillvalue()
+            ckd[key].fill_as_nan()
 
-        dname = '/BAND8/abs_irr_conv_factor_qvd{}'.format(qvd)
-        with h5py.File(str(file_b8), 'r') as fid:
-            ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR absolute irradiance CKD')
         return ckd
 
-    def get_swir_absrad(self):
+    def dn2v(self, bands='78'):
         """
-        returns absolute radiance responsivity for SWIR, except row 257
+        Returns digital number to Volt CKD, SWIR only
+
+        Note: the DN2V factor has no error attached to it
         """
-        ckd_dir = self.__ckd_dir / 'ckd_release' / 'abs_rad_uvn'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find absrad directory: {}'.format(ckd_dir)
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('DN2V factor is only available for SWIR')
 
-        file_b7 = ckd_dir / 'abs_rad.band7.ckd.nc'
-        file_b8 = ckd_dir / 'abs_rad.band8.ckd.nc'
-        assert file_b7.is_file() and file_b8.is_file(), \
-            '*** Fatal, no ABSRAD CKD found on the system'
-
-        dname = '/BAND7/abs_rad_conv_factor'
-        with h5py.File(str(file_b7), 'r') as fid:
-            ckd = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
-
-        dname = '/BAND8/abs_rad_conv_factor'
-        with h5py.File(str(file_b8), 'r') as fid:
-            ckd_b8 = S5Pmsm(fid[dname], datapoint=True, data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR absolute radiance CKD')
+        ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
+        ckd.set_long_name('SWIR DN2V factor')
         return ckd
 
-    def get_swir_darkflux(self):
+    # def non_linearity(self, bands='12'):
+    #    """
+    #    Returns non-linearity CKD, UVN only
+    #    """
+    #    if len(bands) > 2:
+    #        raise ValueError('read per band or channel, only')
+    #    if '7' in bands or '8' in bands:
+    #        raise ValueError('non-linearity only available for UVN')
+    #    else:
+    #        raise NotImplementedError('not implemented, yet')
+
+    def voltage_to_charge(self, bands='78'):
         """
-        returns darkflux CKD for SWIR, except row 257
+        Returns Voltage to Charge CKD, SWIR only
+
+        Note: the V2C CKD has no error attached to it
         """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'darkflux'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find dark-flux directory: {}'.format(ckd_dir)
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('Voltage to Charge only available for SWIR')
 
-        file_ch4 = ckd_dir / 'ckd.dark.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no dark-flux CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/long_term_swir'], datapoint=True,
-                         data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/long_term_swir'], datapoint=True,
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR dark-flux CKD')
+        ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
+        ckd.set_long_name('SWIR voltage to charge CKD')
         return ckd
 
-    def get_swir_dpqf(self, threshold=None):
+    def prnu(self, bands='78'):
         """
-        returns Detector Pixel Quality Flags for SWIR, except row 257
+        Returns Pixel Response Non-Uniformity (PRNU)
+
+        Note1 SWIR row 257 is excluded
+        Note2 the PRNU-CKD has no error attached to it (always zero)
         """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'dpqf'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find dpqf directory: {}'.format(ckd_dir)
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' in bands or '8' in bands:
+            data_sel = np.s_[:-1, :]
+            long_name = 'SWIR PRNU CKD'
+        else:
+            data_sel = None
+            long_name = 'UVN PRNU CKD'
 
-        ckd_file = ckd_dir / 'ckd.dpqf.detector4.nc'
-        assert ckd_file.is_file(), \
-            '# *** Fatal, no DPQF CKD found on the system'
+        ckd = None
+        for band in bands:
+            if not ckd:
+                ckd = S5Pmsm(self.fid['/BAND{}/PRNU'.format(band)],
+                             datapoint=True, data_sel=data_sel)
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid['/BAND{}/PRNU'.format(band)],
+                              datapoint=True, data_sel=data_sel)
+                ckd.concatenate(buff, axis=1)
 
-        with h5py.File(str(ckd_file), 'r') as fid:
+            ckd.set_fillvalue()
+
+        return ckd
+
+    def absirr(self, qvd=1, bands='78'):
+        """
+        Returns absolute irradiance responsivity
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' in bands or '8' in bands:
+            data_sel = np.s_[:-1, :]
+            long_name = 'SWIR absolute irradiance CKD'
+        else:
+            data_sel = None
+            long_name = 'UVN absolute irradiance CKD'
+
+        ckd = None
+        for band in bands:
+            dsname = '/BAND{}/abs_irr_conv_factor_qvd{}'.format(band, qvd)
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=data_sel)
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=data_sel)
+                ckd.concatenate(buff, axis=1)
+
+            ckd.set_fillvalue()
+
+        return ckd
+
+    def absrad(self, bands='78'):
+        """
+        Returns absolute radiance responsivity
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' in bands or '8' in bands:
+            data_sel = np.s_[:-1, :]
+            long_name = 'SWIR absolute radiance CKD'
+        else:
+            data_sel = None
+            long_name = 'UVN absolute radiance CKD'
+
+        ckd = None
+        for band in bands:
+            dsname = '/BAND{}/abs_rad_conv_factor'.format(band)
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=data_sel)
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=data_sel)
+                ckd.concatenate(buff, axis=1)
+
+            ckd.set_fillvalue()
+
+        return ckd
+
+    def wavelength(self, bands='78'):
+        """
+        Returns wavelength CKD
+
+        Note1 SWIR row 257 is excluded
+        Note2 the wavelength CKD has no error attached to it
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' in bands or '8' in bands:
+            data_sel = np.s_[:-1, :]
+            long_name = 'SWIR wavelength CKD'
+        else:
+            data_sel = None
+            long_name = 'UVN wavelength CKD'
+
+        ckd = None
+        for band in bands:
+            dsname = '/BAND{}/wavelength_map'.format(band)
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=data_sel)
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=data_sel)
+                ckd.concatenate(buff, axis=1)
+
+            ckd.set_fillvalue()
+
+        return ckd
+
+    # ---------- external CKD's ----------
+    def offset(self, bands='78'):
+        """
+        Returns offset CKD, SWIR only
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('Offset CKD is only available for SWIR')
+
+        ckd = None
+        long_name = 'SWIR offset CKD'
+
+        # try the Static CKD product, first
+        for band in bands:
+            dsname = '/BAND{}/analog_offset_swir'.format(band)
+            if dsname not in self.fid:
+                continue
+
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.concatenate(buff, axis=1)
+
+        if ckd is not None:
+            ckd.set_fillvalue()
+            return ckd
+
+        # try the dynamic CKD products
+        ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.offset.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/analog_offset_swir'.format(band)
+
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname],
+                                 datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname],
+                                  datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
+
+        ckd.set_fillvalue()
+        return ckd
+
+    def darkflux(self, bands='78'):
+        """
+        Returns dark-flux CKD, SWIR only
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('Dark-flux CKD is only available for SWIR')
+
+        ckd = None
+        long_name = 'SWIR dark-flux CKD'
+
+        # try the Static CKD product, first
+        for band in bands:
+            dsname = '/BAND{}/long_term_swir'.format(band)
+            if dsname not in self.fid:
+                continue
+
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.concatenate(buff, axis=1)
+
+        if ckd is not None:
+            ckd.set_fillvalue()
+            return ckd
+
+        # try the dynamic CKD products
+        ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.dark.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/long_term_swir'.format(band)
+
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname],
+                                 datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname],
+                                  datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
+
+        ckd.set_fillvalue()
+        return ckd
+
+    def noise(self, bands='78'):
+        """
+        Returns noise CKD, SWIR only
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('noise CKD is only available for SWIR')
+
+        ckd = None
+        long_name = 'SWIR noise CKD'
+
+        # try the Static CKD product, first
+        for band in bands:
+            dsname = '/BAND{}/readout_noise_swir'.format(band)
+            if dsname not in self.fid:
+                continue
+
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname],
+                             datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname],
+                              datapoint=True, data_sel=np.s_[:-1, :])
+                ckd.concatenate(buff, axis=1)
+
+        if ckd is not None:
+            ckd.set_fillvalue()
+            return ckd
+
+        # try the dynamic CKD products
+        ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.readnoise.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/readout_noise_swir'.format(band)
+
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname],
+                                 datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname],
+                                  datapoint=True, data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
+
+        ckd.set_fillvalue()
+        return ckd
+
+    def saturation(self, bands='78'):
+        """
+        Returns saturation values (pre-offset), SWIR only
+
+        Note1 SWIR row 257 is excluded
+        Note2 the saturation CKD has no error attached to it (always zero)
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('saturation CKD is only available for SWIR')
+
+        ckd = None
+        long_name = 'SWIR saturation(pre-offset) CKD'
+        ckd_file = self.ckd_dir.parent / 'dynamic'
+        ckd_file /= 'ckd.saturation_preoffset.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/saturation_preoffset'.format(band)
+
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
+
+        ckd.set_fillvalue()
+        return ckd
+
+    def dpqf(self, threshold=None, bands='78'):
+        """
+        Returns Detector Pixel Quality Mask (boolean), SWIR only
+
+        Note1 SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('pixel quality CKD is only available for SWIR')
+
+        ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.dpqf.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
             if threshold is None:
                 threshold = fid['/BAND7/dpqf_threshold'][:]
 
@@ -144,225 +535,29 @@ class CKDio():
 
         return np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
-    def get_swir_dpqm(self, ds_name='dpqf_map'):
+    def pixel_quality(self, bands='78'):
         """
-        returns Detector Pixel Quality Mask for SWIR, except row 257
+        Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only
 
-        Parameters
-        ----------
-         ds_name  :  string
-           name of the pixel-quality map. Default: dpqf_map
+        Note1 SWIR row 257 is excluded
         """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'dpqf'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find dpqf directory: {}'.format(ckd_dir)
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if bands != '78':
+            raise ValueError('pixel quality CKD is only available for SWIR')
 
-        ckd_file = ckd_dir / 'ckd.dpqf.detector4.nc'
-        assert ckd_file.is_file(), \
-            '# *** Fatal, no DPQM CKD found on the system'
+        ckd = None
+        long_name = 'SWIR pixel-quality CKD'
+        ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.dpqf.detector4.nc'
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/dpqf_map'.format(band)
 
-        with h5py.File(str(ckd_file), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/' + ds_name], data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/' + ds_name], data_sel=np.s_[:-1, :])
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
 
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_long_name('SWIR quality CKD')
-        return ckd
-
-    def get_swir_memory(self):
-        """
-        returns memory CKD for SWIR, except row 257
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'memory'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find memory directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.memory.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no memory CKD found on the system'
-
-        ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
-                     'mem_qua_neg_swir', 'mem_qua_pos_swir']
-        ckd = {}
-        with h5py.File(str(file_ch4), 'r') as fid:
-            for key in ckd_parms:
-                ckd[key] = S5Pmsm(fid['/BAND7/{}'.format(key)],
-                                  datapoint=True, data_sel=np.s_[:-1, :])
-                ckd_b8 = S5Pmsm(fid['/BAND8/{}'.format(key)],
-                                datapoint=True, data_sel=np.s_[:-1, :])
-
-                ckd[key].concatenate(ckd_b8, axis=1)
-                ckd[key].set_fillvalue()
-                ckd[key].set_long_name(
-                    fid['/BAND7/{}'.format(key)].attrs['comment'])
-                ckd[key].fill_as_nan()
-
-        return ckd
-
-    def get_swir_noise(self):
-        """
-        returns noise CKD for SWIR, except row 257
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'readnoise_external'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find noise directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.readnoise.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no noise CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/readout_noise_swir'], datapoint=False,
-                         data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/readout_noise_swir'], datapoint=False,
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR noise CKD')
-        return ckd
-
-    def get_swir_offset(self):
-        """
-        returns offset CKD for SWIR, except row 257
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'offset'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find offset directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.offset.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no offset CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/analog_offset_swir'], datapoint=True,
-                         data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/analog_offset_swir'], datapoint=True,
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR offset CKD')
-        return ckd
-
-    def get_swir_prnu(self):
-        """
-        returns Pixel Response Non-Uniformity (PRNU) for SWIR, except row 257
-
-        Note the PRNU-CKD has no error attached to it (always zero)
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release' / 'prnu_uvn'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find prnu directory: {}'.format(ckd_dir)
-
-        file_b7 = ckd_dir / 'stitch.band7.ckd.nc'
-        file_b8 = ckd_dir / 'stitch.band8.ckd.nc'
-        assert file_b7.is_file() and file_b8.is_file(), \
-            '*** Fatal, no PRNU CKD found on the system'
-
-        with h5py.File(str(file_b7), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/PRNU'], datapoint=True,
-                         data_sel=np.s_[:-1, :])
-
-        with h5py.File(str(file_b8), 'r') as fid:
-            ckd_b8 = S5Pmsm(fid['/BAND8/PRNU'], datapoint=True,
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR PRNU CKD')
-        return ckd
-
-    def get_swir_saturation(self):
-        """
-        returns saturation values (pre-offset) for SWIR, except row 257
-
-        Note the saturation-CKD has no error attached to it (always zero)
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'saturation_preoffset'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find saturation directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.saturation_preoffset.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no saturation CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/saturation_preoffset'],
-                         data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/saturation_preoffset'],
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR saturation(pre-offset) CKD')
-        return ckd
-
-    def get_swir_saturation_ext(self):
-        """
-        returns saturation values (external) for SWIR, except row 257
-
-        Note the saturation-CKD has no error attached to it (always zero)
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'saturation_external'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find saturation directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.saturation_external.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no saturation CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(np.full((256, 500),
-                                 fid['/BAND7/pixel_full_well'][:]))
-            ckd_b8 = S5Pmsm(np.full((256, 500),
-                                    fid['/BAND8/pixel_full_well'][:]))
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_fillvalue()
-        ckd.set_long_name('SWIR saturation(pre-external) CKD')
-        return ckd
-
-    def get_swir_v2c(self):
-        """
-        returns Voltage to Charge CKD for SWIR
-
-        Note: the V2C CKD has no error attached to it
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'v2c_external'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find v2c directory: {}'.format(ckd_dir)
-
-        ckd_file = ckd_dir / 'ckd.v2c_factor.detector4.nc'
-        assert ckd_file.is_file(), \
-            '*** Fatal, no V2C CKD found on the system'
-
-        with h5py.File(str(ckd_file), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/v2c_factor_swir'], datapoint=True)
-
-        ckd.set_long_name('SWIR voltage to charge CKD')
-        return ckd
-
-    def get_swir_wavelength(self):
-        """
-        returns wavelength CKD for SWIR, except row 257
-
-        Note: the wavelength CKD has no error attached to it
-        """
-        ckd_dir = self.__ckd_dir / 'ckd_release_swir' / 'wavelength'
-        assert ckd_dir.is_dir(), \
-            '*** Fatal, can not find wavelength directory: {}'.format(ckd_dir)
-
-        file_ch4 = ckd_dir / 'ckd.wavelength.detector4.nc'
-        assert file_ch4.is_file(), \
-            '*** Fatal, no wavelength CKD found on the system'
-
-        with h5py.File(str(file_ch4), 'r') as fid:
-            ckd = S5Pmsm(fid['/BAND7/wavelength_map'],
-                         data_sel=np.s_[:-1, :])
-            ckd_b8 = S5Pmsm(fid['/BAND8/wavelength_map'],
-                            data_sel=np.s_[:-1, :])
-
-        ckd.concatenate(ckd_b8, axis=1)
-        ckd.set_long_name('SWIR wavelength CKD')
         return ckd
