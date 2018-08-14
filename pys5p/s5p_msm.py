@@ -130,13 +130,25 @@ class S5Pmsm():
                     if isinstance(elmnt, int):
                         self.value = np.expand_dims(self.value, axis=ii)
 
+        # set default dimension names
+        if h5_dset.ndim == 1:
+            keys_default = ['column']
+        elif h5_dset.ndim == 2:
+            keys_default = ['row', 'column']
+        elif data.ndim == 3:
+            keys_default = ['time', 'row', 'column']
+        else:
+            raise ValueError('not implemented for ndim > 3')
+
         # copy all dimensions with size longer then 1
-        # ToDo what happens when no dimensions are assigned to dataset?
         keys = []
         dims = []
         for ii in range(h5_dset.ndim):
             if self.value.shape[ii] == 1:
                 continue
+            elif len(h5_dset.dims[ii]) != 1:   # bug in some KMNI HDF5 files
+                keys.append(keys_default[ii])
+                dims.append(np.arange(self.value.shape[ii]))
             elif self.value.shape[ii] == h5_dset.shape[ii]:
                 keys.append(Path(h5_dset.dims[ii][0].name).name)
                 buff = h5_dset.dims[ii][0][:]
@@ -175,10 +187,13 @@ class S5Pmsm():
 
         # copy its units
         if 'units' in h5_dset.attrs:
-            if isinstance(h5_dset.attrs['units'], bytes):
-                self.units = h5_dset.attrs['units'].decode('ascii')
+            if isinstance(h5_dset.attrs['units'], np.ndarray):
+                self.units = h5_dset.attrs['units'][0]
             else:
                 self.units = h5_dset.attrs['units']
+
+            if isinstance(self.units, bytes):
+                self.units = self.units.decode('ascii')
 
         # copy its long_name
         if 'long_name' in h5_dset.attrs:

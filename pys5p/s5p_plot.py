@@ -68,6 +68,8 @@ def convert_units(units, vmin, vmax):
     dscale = 1.0
     if units is None:
         zunit = None
+    elif units == '1':
+        zunit = None
     elif units.find('electron') >= 0:
         max_value = max(abs(vmin), abs(vmax))
 
@@ -84,7 +86,7 @@ def convert_units(units, vmin, vmax):
             zunit = units.replace('electron', 'e')
         if zunit.find('.s-1') >= 0:
             zunit = zunit.replace('.s-1', ' s$^{-1}$')
-    elif units >= 'V':
+    elif units[0] == 'V':
         max_value = max(abs(vmin), abs(vmax))
 
         if max_value <= 2e-4:
@@ -94,7 +96,7 @@ def convert_units(units, vmin, vmax):
             dscale = 1e-3
             zunit = units.replace('V', 'mV')
         else:
-            zunit = units
+            zunit = 'V'
     else:
         zunit = units
 
@@ -192,8 +194,8 @@ class S5Pplot():
             xpos = 1.
             ypos = 1.
         elif self.aspect == 1:
-            xpos = 0.3
-            ypos = 0.225
+            xpos = 0.91
+            ypos = 0.98
         else:
             xpos = 0.9
             ypos = 0.925
@@ -468,7 +470,7 @@ class S5Pplot():
             if zunit is None:
                 zlabel = 'uncertainty'
             else:
-                zlabel = r'uncertainty [{}]'.format(zunit)
+                zlabel = r'uncertainty [${}$]'.format(zunit)
         else:
             if zunit is None:
                 zlabel = 'value'

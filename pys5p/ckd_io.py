@@ -138,7 +138,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('Voltage to Charge only available for SWIR')
 
         long_name = 'SWIR memory CKD'
@@ -170,7 +170,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('DN2V factor is only available for SWIR')
 
         ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
@@ -196,7 +196,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('Voltage to Charge only available for SWIR')
 
         ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
@@ -212,12 +212,17 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
+
+        data_sel = None
         if '7' in bands or '8' in bands:
             data_sel = np.s_[:-1, :]
             long_name = 'SWIR PRNU CKD'
+        elif '5' in bands or '6' in bands:
+            long_name = 'NIR PRNU CKD'
+        elif '3' in bands or '4' in bands:
+            long_name = 'VIS PRNU CKD'
         else:
-            data_sel = None
-            long_name = 'UVN PRNU CKD'
+            long_name = 'UV PRNU CKD'
 
         ckd = None
         for band in bands:
@@ -231,7 +236,6 @@ class CKDio():
                 ckd.concatenate(buff, axis=1)
 
             ckd.set_fillvalue()
-
         return ckd
 
     def absirr(self, qvd=1, bands='78'):
@@ -242,12 +246,17 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
+
+        data_sel = None
         if '7' in bands or '8' in bands:
             data_sel = np.s_[:-1, :]
-            long_name = 'SWIR absolute irradiance CKD'
+            long_name = 'SWIR absolute irradiance CKD (QVD={})'.format(qvd)
+        elif '5' in bands or '6' in bands:
+            long_name = 'NIR absolute irradiance CKD (QVD={})'.format(qvd)
+        elif '3' in bands or '4' in bands:
+            long_name = 'VIS absolute irradiance CKD (QVD={})'.format(qvd)
         else:
-            data_sel = None
-            long_name = 'UVN absolute irradiance CKD'
+            long_name = 'UV absolute irradiance CKD (QVD={})'.format(qvd)
 
         ckd = None
         for band in bands:
@@ -273,12 +282,17 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
+
+        data_sel = None
         if '7' in bands or '8' in bands:
             data_sel = np.s_[:-1, :]
             long_name = 'SWIR absolute radiance CKD'
+        elif '5' in bands or '6' in bands:
+            long_name = 'NIR absolute radiance CKD'
+        elif '3' in bands or '4' in bands:
+            long_name = 'VIS absolute radiance CKD'
         else:
-            data_sel = None
-            long_name = 'UVN absolute radiance CKD'
+            long_name = 'UV absolute radiance CKD'
 
         ckd = None
         for band in bands:
@@ -305,12 +319,17 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
+
+        data_sel = None
         if '7' in bands or '8' in bands:
             data_sel = np.s_[:-1, :]
             long_name = 'SWIR wavelength CKD'
+        elif '5' in bands or '6' in bands:
+            long_name = 'NIR wavelength CKD'
+        elif '3' in bands or '4' in bands:
+            long_name = 'VIS wavelength CKD'
         else:
-            data_sel = None
-            long_name = 'UVN wavelength CKD'
+            long_name = 'UV wavelength CKD'
 
         ckd = None
         for band in bands:
@@ -337,7 +356,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('Offset CKD is only available for SWIR')
 
         ckd = None
@@ -388,7 +407,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('Dark-flux CKD is only available for SWIR')
 
         ckd = None
@@ -435,11 +454,12 @@ class CKDio():
         """
         Returns noise CKD, SWIR only
 
-        Note SWIR row 257 is excluded
+        Note1 SWIR row 257 is excluded
+        Note2 the noise CKD has no error attached to it
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('noise CKD is only available for SWIR')
 
         ckd = None
@@ -452,12 +472,10 @@ class CKDio():
                 continue
 
             if not ckd:
-                ckd = S5Pmsm(self.fid[dsname],
-                             datapoint=True, data_sel=np.s_[:-1, :])
+                ckd = S5Pmsm(self.fid[dsname], data_sel=np.s_[:-1, :])
                 ckd.set_long_name(long_name)
             else:
-                buff = S5Pmsm(self.fid[dsname],
-                              datapoint=True, data_sel=np.s_[:-1, :])
+                buff = S5Pmsm(self.fid[dsname], data_sel=np.s_[:-1, :])
                 ckd.concatenate(buff, axis=1)
 
         if ckd is not None:
@@ -491,7 +509,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('saturation CKD is only available for SWIR')
 
         ckd = None
@@ -520,7 +538,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('pixel quality CKD is only available for SWIR')
 
         ckd_file = self.ckd_dir.parent / 'dynamic' / 'ckd.dpqf.detector4.nc'
@@ -543,7 +561,7 @@ class CKDio():
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
-        if bands != '78':
+        if '7' not in bands and '8' not in bands:
             raise ValueError('pixel quality CKD is only available for SWIR')
 
         ckd = None
