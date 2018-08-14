@@ -135,7 +135,7 @@ class S5Pmsm():
             keys_default = ['column']
         elif h5_dset.ndim == 2:
             keys_default = ['row', 'column']
-        elif data.ndim == 3:
+        elif h5_dset.ndim == 3:
             keys_default = ['time', 'row', 'column']
         else:
             raise ValueError('not implemented for ndim > 3')
@@ -285,7 +285,10 @@ class S5Pmsm():
     def sort(self, axis=0):
         """
         """
-        assert self.value.ndim > axis
+        if not isinstance(axis, int):
+            raise TypeError('axis not an integer')
+        if not 0 <= axis < self.value.ndim:
+            raise ValueError('axis out-of-range')
 
         indx = np.argsort(self.coords[axis][:])
         self.coords[axis][:] = self.coords[axis][indx]
@@ -337,8 +340,8 @@ class S5Pmsm():
          - The arrays must have the same shape, except in the dimension
         corresponding to axis (the first, by default).
         """
-        assert self.name == Path(msm.name).name, \
-            '*** Fatal, only combine the same dataset from different bands'
+        if self.name != Path(msm.name).name:
+            raise TypeError('combining dataset with different name')
 
         if self.error is None and msm.error is None:
             datapoint = False
@@ -348,7 +351,8 @@ class S5Pmsm():
             raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
 
         # all but the last 2 dimensions have to be equal
-        assert self.value.shape[:-2] == msm.value.shape[:-2]
+        if self.value.shape[:-2] != msm.value.shape[:-2]:
+            raise TypeError('all but the last 2 dimensions should be equal')
 
         if axis == 0:
             self.value = np.concatenate((self.value, msm.value), axis=axis)
@@ -496,7 +500,8 @@ class S5Pmsm():
                 vperc += (50,)
             vperc = tuple(sorted(vperc)) # make sure that the values are sorted
 
-        assert len(vperc) == 1 or len(vperc) == 3
+        if len(vperc) != 1 and len(vperc) != 3:
+            raise TypeError('dimension vperc must be 1 or 3')
 
         if data_sel is None:
             if self.value.size <= 1 or self.value.ndim <= max(axis):

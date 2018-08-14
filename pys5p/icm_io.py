@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 The class ICMio provides read access to S5p Tropomi ICM_CA_SIR products
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -47,8 +47,8 @@ class ICMio():
         self.bands = None
         self.fid = None
 
-        assert Path(icm_product).is_file(), \
-            '*** Fatal, can not find ICM_CA_SIR file: {}'.format(icm_product)
+        if not Path(icm_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(icm_product))
 
         # open ICM product as HDF5 file
         if readwrite:
@@ -143,7 +143,7 @@ class ICMio():
         msm_type :  string
           name of measurement group
         msm_path : {'BAND%_ANALYSIS', 'BAND%_CALIBRATION',
-                   'BAND%_IRRADIANCE', 'BAND%_RADIANCE'}
+                    'BAND%_IRRADIANCE', 'BAND%_RADIANCE'}
           name of path in HDF5 file to measurement group
 
         Returns
@@ -160,8 +160,8 @@ class ICMio():
         # if path is given, then only determine avaialble spectral bands
         # else determine path and avaialble spectral bands
         if msm_path is not None:
-            assert msm_path.startswith('BAND%') > 0, \
-                '*** Fatal: msm_path should start with BAND%'
+            if not msm_path.startswith('BAND%'):
+                raise ValueError('msm_path should start with BAND%')
 
             for ii in '12345678':
                 grp_path = str(Path(msm_path.replace('%', ii), msm_type))
@@ -268,8 +268,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -315,8 +315,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -371,8 +371,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -439,8 +439,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         # calculate exact exposure time
         res = []
@@ -468,8 +468,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -531,8 +531,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -572,8 +572,8 @@ class ICMio():
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
             ds_path = str(Path(str(self.__msm_path).replace('%', band),
@@ -614,8 +614,8 @@ class ICMio():
 
         if band is None:
             band = str(self.bands[0])
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -687,10 +687,11 @@ class ICMio():
         if not self.__msm_path:
             return None
 
-        assert band and len(band) <= 2
-        if len(band) == 2:
-            assert band in ('12', '34', '56', '78')
-        assert self.bands.find(band) >= 0
+        if not isinstance(band, str):
+            raise TypeError('band must be a string')
+
+        if band not in self.bands:
+            raise ValueError('band not found in product')
 
         # skip row257 from the SWIR detector
         rows = None
@@ -769,15 +770,16 @@ class ICMio():
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
-        assert self.__rw
+        if not self.__rw:
+            raise PermissionError('read/write access required')
 
         if not self.__msm_path:
             return
 
         if band is None:
             band = self.bands[0]
-        else:
-            assert self.bands.find(band) >= 0
+        elif band not in self.bands:
+            raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -807,16 +809,19 @@ class ICMio():
             data to be written with same dimensions as dataset "msm_dset"
 
         """
-        assert self.__rw
+        fillvalue = float.fromhex('0x1.ep+122')
+
+        if not self.__rw:
+            raise PermissionError('read/write access required')
+
         if not self.__msm_path:
             return
 
-        assert band and len(band) <= 2
-        if len(band) == 2:
-            assert band in ('12', '34', '56', '78')
-        assert self.bands.find(band) >= 0
+        if not isinstance(band, str):
+            raise TypeError('band must be a string')
 
-        fillvalue = float.fromhex('0x1.ep+122')
+        if band not in self.bands:
+            raise ValueError('band not found in product')
 
         # skip row257 from the SWIR detector
         rows = None

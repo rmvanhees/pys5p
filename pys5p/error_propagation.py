@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 Implement some function for error propagation
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -18,7 +18,8 @@ def unc_sum(sigma_a, sigma_b):
     """
     absolute error for a +/- b is sqrt(sigma_a^2 + sigma_b^2)
     """
-    assert sigma_a.shape == sigma_b.shape
+    if sigma_a.shape != sigma_b.shape:
+        raise TypeError('dimensions of sigma_a and sigma are not the same')
 
     mask = np.isfinite(sigma_a) & np.isfinite(sigma_b)
 
@@ -35,7 +36,8 @@ def unc_div(value_a, sigma_a, value_b, sigma_b):
     """
     absolute error for a / b is sqrt((sigma_a/a)^2 + (sigma_b/b)^2) * a/b
     """
-    assert value_a.shape == value_b.shape == sigma_a.shape == sigma_b.shape
+    if not value_a.shape == value_b.shape == sigma_a.shape == sigma_b.shape:
+        raise TypeError('dimensions of input arrays are not the same')
 
     mask = (np.isfinite(value_a) & np.isfinite(sigma_a)
             & np.isfinite(value_b) & np.isfinite(sigma_b))

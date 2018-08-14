@@ -42,7 +42,7 @@ are like to be available, however, the may lead to more realistic data and
 errors.
  - Data is not always correctly calibrated...
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2016--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD

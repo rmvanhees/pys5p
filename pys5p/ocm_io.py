@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classe OCMio provide read access to Tropomi on-ground calibration products
 (Lx)
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
@@ -120,8 +120,8 @@ class OCMio():
         self.band = None
         self.fid = None
 
-        assert Path(ocm_product).is_file(), \
-            '*** Fatal, can not find OCAL Lx product: {}'.format(ocm_product)
+        if not Path(ocm_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(ocm_product))
 
         # open OCM product as HDF5 file
         self.fid = h5py.File(ocm_product, "r")

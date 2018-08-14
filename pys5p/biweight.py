@@ -91,8 +91,10 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
         return __biweight_median(data)
 
     # only a single axis!
-    assert isinstance(axis, int)
-    assert 0 <= axis < data.ndim
+    if not isinstance(axis, int):
+        raise TypeError('axis not an integer')
+    if not 0 <= axis < data.ndim:
+        raise ValueError('axis out-of-range')
 
     if cpu_count is None:
         pool = mp.Pool()

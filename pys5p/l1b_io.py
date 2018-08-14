@@ -77,8 +77,8 @@ class L1Bio():
         self.imsm = None
 
         # open L1b product as HDF5 file
-        assert Path(l1b_product).is_file(), \
-            '*** Fatal, can not find S5p L1b product: {}'.format(l1b_product)
+        if not Path(l1b_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(l1b_product))
 
         if readwrite:
             self.fid = h5py.File(l1b_product, "r+")
@@ -464,7 +464,8 @@ class L1Bio():
             return
 
         # we will overwrite existing data, thus readwrite access is required
-        assert self.__rw
+        if not self.__rw:
+            raise PermissionError('read/write access required')
 
         ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
         dset = self.fid[ds_path]
@@ -723,12 +724,14 @@ class L1BioCAL(L1Bio):
         out   :    array-like
            Data of measurement dataset "msm_dset"
         """
-        assert band and len(band) <= 2
-        if len(band) == 2:
-            assert band in ('12', '34', '56', '78')
-            if msm_to_row is None:
-                msm_to_row = 'padding'
-        assert self.bands.find(band) >= 0
+        if not isinstance(band, str):
+            raise TypeError('band must be a string')
+
+        if band not in self.bands:
+            raise ValueError('band not found in product')
+
+        if len(band) == 2 and msm_to_row is None:
+            msm_to_row = 'padding'
 
         data = ()
         for ii in band:
@@ -757,7 +760,8 @@ class L1BioCAL(L1Bio):
             Write data to one spectral band or a channel
             Default is '78' which combines band 7/8 to SWIR detector layout
         """
-        assert self.bands.find(band) >= 0
+        if band not in self.bands:
+            raise ValueError('band not found in product')
 
         col = 0
         for ii in band:
@@ -931,12 +935,14 @@ class L1BioIRR(L1Bio):
         out   :    array-like
             Data of measurement dataset "msm_dset"
         """
-        assert band and len(band) <= 2
-        if len(band) == 2:
-            assert band in ('12', '34', '56', '78')
-            if msm_to_row is None:
-                msm_to_row = 'padding'
-        assert self.bands.find(band) >= 0
+        if not isinstance(band, str):
+            raise TypeError('band must be a string')
+
+        if band not in self.bands:
+            raise ValueError('band not found in product')
+
+        if len(band) == 2 and msm_to_row is None:
+            msm_to_row = 'padding'
 
         res = None
         for ii in band:
@@ -967,7 +973,11 @@ class L1BioIRR(L1Bio):
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
         """
-        assert self.bands.find(band) >= 0
+        if not isinstance(band, str):
+            raise TypeError('band must be a string')
+
+        if band not in self.bands:
+            raise ValueError('band not found in product')
 
         col = 0
         for ii in band:

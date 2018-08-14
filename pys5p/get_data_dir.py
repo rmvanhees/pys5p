@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 Implement function to obtain path to test-data
 
-Copyright (c) 2016 SRON - Netherlands Institute for Space Research
+Copyright (c) 2016--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  Standard 3-clause BSD
