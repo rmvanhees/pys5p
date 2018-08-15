@@ -150,8 +150,6 @@ class ICMpatch():
         """
         from pys5p.biweight import biweight
 
-        assert 0 < ld_id < 6
-
         light_icid = 32096
         if ld_id == 1:
             band = 7
@@ -188,6 +186,8 @@ class ICMpatch():
                         / '2015_02_28T12_02_01_LaserDiodes_LD5_100'
                         / 'proc_raw')
             data_fl = 'trl1brb7g.lx.nc'
+        else:
+            raise ValueError('index to diode-laser invalid')
 
         # obtain start and end of measurement from engineering data
         data = {}
@@ -203,7 +203,6 @@ class ICMpatch():
                     data['last_cmd_curr'] = buff
                     sls_id = ii+1
                     break
-            assert sls_id == ld_id
 
             pcurr_min = np.unique(data['last_cmd_curr'])[1]
             i_mn = np.min(np.where((data['icid'] == light_icid)
@@ -283,8 +282,9 @@ def test():
 
     # lookup an ICM product with ISRF measurements
     res = ICMdb.get_product_by_icid([605, 606], dbname=DB_NAME)
-    assert res
-    print(res)
+    if not res:
+        print('no ICM data found, exit')
+        return
 
     # create temproary file to patch
     data_dir = Path(res[0][0])

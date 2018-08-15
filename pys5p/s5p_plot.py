@@ -39,6 +39,10 @@ from .s5p_msm import S5Pmsm
 
 
 # - local functions --------------------------------
+def __integer_and_increasing(data):
+    return (np.issubdtype(data.dtype, np.integer)
+            and np.all(data[1:] > data[:-1]))
+
 # set the colormap and centre the colorbar
 class MidpointNormalize(mpl.colors.Normalize):
     """
@@ -236,14 +240,16 @@ class S5Pplot():
                                   dtype=np.int8)
 
             iarr = (msm.value * 10).astype(np.int8)
-            assert (iarr >= 0).all() and (iarr <= 10).all()
+            if not ((iarr >= 0) & (iarr <= 10)).all():
+                raise ValueError('pixel quality data out of rainge')
 
             self.data = scale_dpqm[iarr+1]
             if ref_img is not None:
                 new_data = self.data.copy()
 
                 iarr = (ref_img * 10).astype(np.int8)
-                assert (iarr >= 0).all() and (iarr <= 10).all()
+                if not ((iarr >= 0) & (iarr <= 10)).all():
+                    raise ValueError('pixel quality data out of rainge')
                 ref_data = scale_dpqm[iarr+1]
 
                 # all pixels are initialy unchanged
@@ -256,34 +262,35 @@ class S5Pplot():
                 self.data[(ref_data != 1) & (new_data == 1)] = 1
                 #
             self.data[~swir_region.mask()] = 0
-        elif self.method == 'ratio_unc':
-            assert ref_img is not None
+            return
 
-            # mask = swir_region.mask() & (ref_img.value != 0.)
+        # we need a reference dataset for all other methods
+        if ref_img is None:
+            raise ValueError(
+                'a reference dataset is needed by {}'.format(self.method))
+
+        if self.method == 'ratio_unc':
             mask = ref_img.value != 0.
-
             self.data = np.full_like(msm.value, np.nan)
             self.data[mask] = error_propagation.unc_div(
                 msm.value[mask], msm.error[mask],
                 ref_img.value[mask], ref_img.error[mask])
-        else:
+        elif self.method == 'diff':
+            mask = np.isfinite(msm.value) & np.isfinite(ref_img)
             self.data = msm.value.copy()
-            if self.method == 'diff':
-                assert ref_img is not None
-
-                mask = np.isfinite(msm.value) & np.isfinite(ref_img)
-                self.data[~mask] = np.nan
-                self.data[mask] -= ref_img[mask]
-            elif self.method == 'ratio':
-                assert ref_img is not None
-
-                mask = (np.isfinite(msm.value) & np.isfinite(ref_img)
-                        & (ref_img != 0.))
-                self.data[~mask] = np.nan
-                self.data[mask] /= ref_img[mask]
+            self.data[~mask] = np.nan
+            self.data[mask] -= ref_img[mask]
+        elif self.method == 'ratio':
+            mask = (np.isfinite(msm.value) & np.isfinite(ref_img)
+                    & (ref_img != 0.))
+            self.data = msm.value.copy()
+            self.data[~mask] = np.nan
+            self.data[mask] /= ref_img[mask]
+        else:
+            raise RuntimeError('unknown method: {}'.format(self.method))
 
     # --------------------------------------------------
-    def draw_signal(self, msm, ref_data=None, method='data',
+    def draw_signal(self, msm_in, ref_data=None, method='data',
                     add_medians=True, *, vperc=None, vrange=None,
                     title=None, sub_title=None, fig_info=None):
         """
@@ -291,12 +298,14 @@ class S5Pplot():
 
         Parameters
         ----------
-        msm       :  pys5p.S5Pmsm
+        msm       :  numpy.ndarray or pys5p.S5Pmsm
            Object holding measurement data and attributes
-        ref_data  :  ndarray, optional
+        ref_data  :  numpy.ndarray, optional
            Numpy array holding reference data. Required for method equals
             'ratio' where measurement data is divided by the reference
             'diff'  where reference is subtracted from the measurement data
+           S5Pmsm object holding the reference data as value/error required
+            by the method 'ratio_unc'
         method    : string
            Method of plot to be generated, default is 'data', optional are
             'diff', 'ratio', 'ratio_unc'
@@ -330,22 +339,33 @@ class S5Pplot():
 
         from .sron_colormaps import sron_cmap, get_line_colors
 
-        # ++++++++++ assert that we have some data to show
-        if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(msm)
-        assert isinstance(msm, S5Pmsm)
-        assert msm.value.ndim == 2
-        assert not np.all(np.isnan(msm.value))
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
 
         if ref_data is not None:
             if isinstance(ref_data, np.ndarray):
-                assert msm.value.shape == ref_data.shape
-                assert not np.all(np.isnan(ref_data))
-            elif method == 'ratio_unc':
-                assert msm.value.shape == ref_data.value.shape
-                assert not np.all(np.isnan(ref_data.value))
+                if ref_data.ndim != 2:
+                    raise ValueError('reference data must be two dimensional')
+                if np.all(np.isnan(ref_data)):
+                    raise ValueError('reference data must contain valid data')
+            elif method == 'ratio_unc' and isinstance(ref_data, S5Pmsm):
+                if ref_data.value.ndim != 2 or ref_data.error.ndim != 2:
+                    raise ValueError('reference data must be two dimensional')
+                if np.all(np.isnan(ref_data.value)) \
+                   or np.all(np.isnan(ref_data.error)):
+                    raise ValueError('reference data must contain valid data')
             else:
-                raise TypeError
+                raise TypeError('ref_data not an numpy.ndarray or pys5p.S5Pmsm')
 
         # ++++++++++ set object attributes
         self.method = method
@@ -358,10 +378,12 @@ class S5Pplot():
             if vperc is None:
                 vperc = (1., 99.)
             else:
-                assert len(vperc) == 2
+                if len(vperc) != 2:
+                    raise TypeError('keyword vperc requires two values')
             (vmin, vmax) = np.nanpercentile(self.data, vperc)
         else:
-            assert len(vrange) == 2
+            if len(vrange) != 2:
+                raise TypeError('keyword vrange requires two values')
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
@@ -529,7 +551,7 @@ class S5Pplot():
             self.__pdf.savefig(bbox_inches='tight')
 
     # --------------------------------------------------
-    def draw_quality(self, msm, ref_data=None, add_medians=True,
+    def draw_quality(self, msm_in, ref_data=None, add_medians=True,
                      *, thres_worst=0.1, thres_bad=0.8, qlabels=None,
                      title=None, sub_title=None, fig_info=None):
         """
@@ -537,9 +559,9 @@ class S5Pplot():
 
         Parameters
         ----------
-        msm       :  pys5p.S5Pmsm
+        msm       :  numpy.ndarray or pys5p.S5Pmsm
            Object holding measurement data and attributes
-        ref_data  :  ndarray, optional
+        ref_data  :  numpy.ndarray, optional
            Numpy array holding reference data, for example pixel quality
            reference map taken from the CKD. Shown are the changes with
            respect to the reference data. Default is None
@@ -584,16 +606,27 @@ class S5Pplot():
 
         from .sron_colormaps import get_qfour_colors, get_qfive_colors
 
-        # ++++++++++ assert that we have some data to show
-        if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(msm)
-        assert isinstance(msm, S5Pmsm)
-        assert msm.value.ndim == 2
-        assert not np.all(np.isnan(msm.value))
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
 
         if ref_data is not None:
-            assert msm.value.shape == ref_data.shape
-            assert not np.all(np.isnan(ref_data))
+            if isinstance(ref_data, np.ndarray):
+                if ref_data.ndim != 2:
+                    raise ValueError('reference data must be two dimensional')
+                if np.all(np.isnan(ref_data)):
+                    raise ValueError('reference data must contain valid data')
+            else:
+                raise TypeError('ref_data not an numpy.ndarray')
 
         # ++++++++++ set object attributes
         self.method = 'quality'
@@ -606,9 +639,10 @@ class S5Pplot():
         thres_bad = int(10 * thres_bad)
         if ref_data is None:
             if qlabels is None:
-                qlabels = ["unusable", "worst", "bad", "good"]
+                qlabels = ("unusable", "worst", "bad", "good")
             else:
-                assert len(qlabels) == 4, "*** Fatal, requires 4 labels"
+                if len(qlabels) != 4:
+                    raise TypeError('keyword qlabels requires four labels')
 
             lcolor = get_qfour_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -623,7 +657,8 @@ class S5Pplot():
                 qlabels = ["unusable", "to worst", "good to bad ", "to good",
                            "unchanged"]
             else:
-                assert len(qlabels) == 5, "*** Fatal, requires 5 labels"
+                if len(qlabels) != 5:
+                    raise TypeError('keyword qlabels requires five labels')
 
             lcolor = get_qfive_colors()
             cmap = mpl.colors.ListedColormap(lcolor)
@@ -763,7 +798,7 @@ class S5Pplot():
             self.__pdf.savefig(bbox_inches='tight')
 
     # --------------------------------------------------
-    def draw_cmp_swir(self, msm, model_in, model_label='reference',
+    def draw_cmp_swir(self, msm_in, model_in, model_label='reference',
                       *, vrange=None, vperc=None,
                       add_hist=True, add_residual=True, add_model=True,
                       title=None, sub_title=None, fig_info=None):
@@ -815,22 +850,39 @@ class S5Pplot():
         line_colors = get_line_colors()
 
         # assert that we have some data to show
-        if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(msm)
-        assert isinstance(msm, S5Pmsm)
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
+
+        if not isinstance(model_in, np.ndarray):
+            raise TypeError('model not an numpy.ndarray')
+        if model_in.ndim != 2:
+            raise ValueError('model must be two dimensional image')
+        if np.all(np.isnan(model_in)):
+            raise ValueError('model must contain valid data')
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
         if vperc is None:
             vperc = (1., 99.)
         else:
-            assert len(vperc) == 2
+            if len(vperc) != 2:
+                raise TypeError('keyword vperc requires two values')
 
         if vrange is None:
             (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
                                          vperc)
         else:
-            assert len(vrange) == 2
+            if len(vrange) != 2:
+                raise TypeError('keyword vrange requires two values')
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
@@ -1043,7 +1095,7 @@ class S5Pplot():
             self.__pdf.savefig(bbox_inches='tight')
 
     # --------------------------------------------------
-    def draw_hist(self, msm, msm_err, *, vperc=None, vrange=None,
+    def draw_hist(self, msm_in, msm_err_in, *, vperc=None, vrange=None,
                   clip=True, title=None, fig_info=None):
         """
         Display signal & its errors as histograms
@@ -1075,17 +1127,33 @@ class S5Pplot():
 
         from .sron_colormaps import get_line_colors
 
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
+
+        if isinstance(msm_err_in, np.ndarray):
+            msm_err = S5Pmsm(msm_err_in)
+        else:
+            if not isinstance(msm_err_in, S5Pmsm):
+                raise TypeError('msm_err not an numpy.ndarray or pys5p.S5Pmsm')
+            msm_err = msm_err_in
+
+        if msm_err.value.ndim != 2:
+            raise ValueError('input error data must be two dimensional')
+        if np.all(np.isnan(msm_err.value)):
+            raise ValueError('input error data must contain valid data')
+
         # define aspect for the location of fig_info
         self.aspect = 4
-
-        # assert that we have some data to show
-        if isinstance(msm, np.ndarray):
-            msm = S5Pmsm(msm)
-        assert isinstance(msm, S5Pmsm)
-
-        if isinstance(msm_err, np.ndarray):
-            msm_err = S5Pmsm(msm_err)
-        assert isinstance(msm_err, S5Pmsm)
 
         # scale data to keep reduce number of significant digits, and to keep
         # the axis-label and tickmarks readable
@@ -1093,13 +1161,15 @@ class S5Pplot():
             if vperc is None:
                 vperc = (1., 99.)
             else:
-                assert len(vperc) == 2
+                if len(vperc) != 2:
+                    raise TypeError('keyword vperc requires two values')
             (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
                                          vperc)
             (umin, umax) = np.percentile(
                 msm_err.value[np.isfinite(msm_err.value)], vperc)
         else:
-            assert len(vrange) == 2
+            if len(vrange) != 2:
+                raise TypeError('keyword vrange requires two values')
             (vmin, vmax) = vrange
             indx = (np.isfinite(msm.value)
                     & (msm.value >= vmin) & (msm.value <= vmax))
@@ -1234,15 +1304,19 @@ class S5Pplot():
             self.__pdf.savefig(bbox_inches='tight')
 
     # --------------------------------------------------
-    def draw_qhist(self, msm_total, msm_dark, msm_noise,
+    def draw_qhist(self, dpqm, dpqm_dark, dpqm_noise,
                    *, title=None, fig_info=None):
         """
         Display pixel quality as histograms
 
         Parameters
         ----------
-        msm         :  pys5p.S5Pmsm
-           Object holding pixel-quality data and attributes
+        dpqm       :  numpy.ndarray or pys5p.S5Pmsm
+           pixel-quality data and attributes
+        dpqm_dark  :  numpy.ndarray or pys5p.S5Pmsm
+           pixel-quality dark-flux submask
+        dpqm_noise :  numpy.ndarray or pys5p.S5Pmsm
+           pixel-quality noise submask
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -1259,6 +1333,43 @@ class S5Pplot():
         from . import swir_region
         from .sron_colormaps import get_line_colors
 
+        # assert that we have some data to show
+        if isinstance(dpqm, np.ndarray):
+            msm_total = S5Pmsm(dpqm)
+        else:
+            if not isinstance(dpqm, S5Pmsm):
+                raise TypeError('dpqm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm_total = dpqm
+
+        if msm_total.value.ndim != 2:
+            raise ValueError('quality data must be two dimensional')
+        if np.all(np.isnan(msm_total.value)):
+            raise ValueError('quality data must contain valid data')
+
+        if isinstance(dpqm_dark, np.ndarray):
+            msm_dark = S5Pmsm(dpqm_dark)
+        else:
+            if not isinstance(dpqm_dark, S5Pmsm):
+                raise TypeError('dpqm_dark not an numpy.ndarray or pys5p.S5Pmsm')
+            msm_dark = dpqm_dark
+
+        if msm_dark.value.ndim != 2:
+            raise ValueError('quality data must be two dimensional')
+        if np.all(np.isnan(msm_dark.value)):
+            raise ValueError('quality data must contain valid data')
+
+        if isinstance(dpqm_noise, np.ndarray):
+            msm_noise = S5Pmsm(dpqm_noise)
+        else:
+            if not isinstance(dpqm_noise, S5Pmsm):
+                raise TypeError('dpqm_noise not an numpy.ndarray or pys5p.S5Pmsm')
+            msm_noise = dpqm_noise
+
+        if msm_noise.value.ndim != 2:
+            raise ValueError('quality data must be two dimensional')
+        if np.all(np.isnan(msm_noise.value)):
+            raise ValueError('quality data must contain valid data')
+
         # define aspect for the location of fig_info
         self.aspect = -1
 
@@ -1273,10 +1384,6 @@ class S5Pplot():
         # draw histograms
         ipos = 1
         for msm in [msm_total, msm_dark, msm_noise]:
-            if isinstance(msm, np.ndarray):
-                msm = S5Pmsm(msm)
-            assert isinstance(msm, S5Pmsm)
-
             axx = plt.subplot(gspec[ipos:ipos+4, 0])
             axx.set_title(r'histogram of {}'.format(msm.long_name),
                           fontsize='medium')
@@ -1346,19 +1453,24 @@ class S5Pplot():
 
         from .sron_colormaps import sron_cmap, get_line_colors
 
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
+
         # define aspect for the location of fig_info
         self.aspect = 3
 
         # define colors
         line_colors = get_line_colors()
-
-        # assert that we have some data to show
-        if isinstance(msm_in, np.ndarray):
-            msm = S5Pmsm(msm_in)
-        else:
-            msm = msm_in.copy()
-        assert isinstance(msm, S5Pmsm)
-        assert msm.value.ndim == 2
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -1366,11 +1478,13 @@ class S5Pplot():
             if vperc is None:
                 vperc = (1., 99.)
             else:
-                assert len(vperc) == 2
+                if len(vperc) != 2:
+                    raise TypeError('keyword vperc requires two values')
             (vmin, vmax) = np.percentile(msm.value[np.isfinite(msm.value)],
                                          vperc)
         else:
-            assert len(vrange) == 2
+            if len(vrange) != 2:
+                raise TypeError('keyword vrange requires two values')
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
@@ -1396,8 +1510,12 @@ class S5Pplot():
         # set range of X/Y axis
         # determine xstep as greatest common divisor (numpy v1.15+)
         xdata = msm.coords[1]
-        assert np.issubdtype(xdata.dtype, np.integer) \
-            and np.all(xdata[1:] > xdata[:-1])
+        if not __integer_and_increasing(xdata):
+            indx = np.where(xdata[1:] <= xdata[:-1])[0]
+            if indx.size != 0:
+                raise ValueError(
+                    'x-coordinate not increasing at {}'.format(indx))
+            raise ValueError('x-coordinate not of type integer')
         xsteps = np.unique(np.diff(xdata))
         xstep = xsteps.min()
         dx_mn = xstep
@@ -1407,8 +1525,12 @@ class S5Pplot():
 
         # determine ystep as greatest common divisor (numpy v1.15+)
         ydata = msm.coords[0]
-        assert np.issubdtype(ydata.dtype, np.integer) \
-            and np.all(ydata[1:] > ydata[:-1])
+        if not __integer_and_increasing(ydata):
+            indx = np.where(ydata[1:] <= ydata[:-1])[0]
+            if indx.size != 0:
+                raise ValueError(
+                    'y-coordinate not increasing at {}'.format(indx))
+            raise ValueError('y-coordinate not of type integer')
         ysteps = np.unique(np.diff(ydata))
         ystep = ysteps.min()
         dy_mn = ystep
@@ -1567,8 +1689,10 @@ class S5Pplot():
 
         from .sron_colormaps import get_qfour_colors, get_line_colors
 
-        # we require mesurement data and/or house-keeping data
-        assert msm is not None or hk_data is not None
+        # we require measurement data and/or house-keeping data
+        if msm is None and hk_data is None:
+            raise ValueError(
+                'measurement data and/or house-keeping data are required')
 
         # ---------- local function ----------
         def blank_legend_key():
@@ -1631,11 +1755,12 @@ class S5Pplot():
             use_steps = xdata.size <= 256
 
             # define data gaps to avoid interpolation over missing data
-            assert np.issubdtype(xdata.dtype, np.integer),\
-                "xdata must be of integer type"
-            assert np.all(xdata[1:] > xdata[:-1]),\
-                "xdata not increasing at {}".format(
-                    np.where(xdata[1:] <= xdata[:-1]))
+            if not __integer_and_increasing(xdata):
+                indx = np.where(xdata[1:] <= xdata[:-1])[0]
+                if indx.size != 0:
+                    raise ValueError(
+                        'x-coordinate not increasing at {}'.format(indx))
+                raise ValueError('x-coordinate not of type integer')
             xsteps = np.unique(np.diff(xdata))
             xstep = xsteps.min()
             dx_mn = xstep
@@ -1744,11 +1869,12 @@ class S5Pplot():
             use_steps = xdata.size <= 256
 
             # define data gaps to avoid interpolation over missing data
-            assert np.issubdtype(xdata.dtype, np.integer),\
-                "xdata must be of integer type"
-            assert np.all(xdata[1:] > xdata[:-1]),\
-                "xdata not increasing at {}".format(
-                    np.where(xdata[1:] <= xdata[:-1]))
+            if not __integer_and_increasing(xdata):
+                indx = np.where(xdata[1:] <= xdata[:-1])[0]
+                if indx.size != 0:
+                    raise ValueError(
+                        'x-coordinate not increasing at {}'.format(indx))
+                raise ValueError('x-coordinate not of type integer')
             xsteps = np.unique(np.diff(xdata))
             xstep = xsteps.min()
             dx_mn = xstep
