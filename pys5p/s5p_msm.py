@@ -150,13 +150,19 @@ class S5Pmsm():
                 keys.append(keys_default[ii])
                 dims.append(np.arange(self.value.shape[ii]))
             elif self.value.shape[ii] == h5_dset.shape[ii]:
-                keys.append(Path(h5_dset.dims[ii][0].name).name)
+                buff = Path(h5_dset.dims[ii][0].name).name
+                if len(buff.split()) > 1:
+                    buff = buff.split()[0]
+                keys.append(buff)
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
                 dims.append(buff)
             else:
-                keys.append(Path(h5_dset.dims[ii][0].name).name)
+                buff = Path(h5_dset.dims[ii][0].name).name
+                if len(buff.split()) > 1:
+                    buff = buff.split()[0]
+                keys.append(buff)
                 buff = h5_dset.dims[ii][0][:]
                 if np.all(buff == 0):
                     buff = np.arange(buff.size)
@@ -188,12 +194,13 @@ class S5Pmsm():
         # copy its units
         if 'units' in h5_dset.attrs:
             if isinstance(h5_dset.attrs['units'], np.ndarray):
-                self.units = h5_dset.attrs['units'][0]
+                self.units = h5_dset.attrs['units']
+                if isinstance(self.units[0], bytes):
+                    self.units = self.units.astype(str)
             else:
                 self.units = h5_dset.attrs['units']
-
-            if isinstance(self.units, bytes):
-                self.units = self.units.decode('ascii')
+                if isinstance(self.units, bytes):
+                    self.units = self.units.decode('ascii')
 
         # copy its long_name
         if 'long_name' in h5_dset.attrs:

@@ -39,7 +39,10 @@ from .s5p_msm import S5Pmsm
 
 
 # - local functions --------------------------------
-def __integer_and_increasing(data):
+def integer_and_increasing(data):
+    """
+    Return True when data is integer and increasing
+    """
     return (np.issubdtype(data.dtype, np.integer)
             and np.all(data[1:] > data[:-1]))
 
@@ -234,6 +237,10 @@ class S5Pplot():
     def __data_img(self, msm, ref_img):
         from . import swir_region
         from . import error_propagation
+
+        if self.method == 'data':
+            self.data = msm.value.copy()
+            return
 
         if self.method == 'quality':
             scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
@@ -492,7 +499,7 @@ class S5Pplot():
             if zunit is None:
                 zlabel = 'uncertainty'
             else:
-                zlabel = r'uncertainty [${}$]'.format(zunit)
+                zlabel = r'uncertainty [{}]'.format(zunit)
         else:
             if zunit is None:
                 zlabel = 'value'
@@ -1510,7 +1517,7 @@ class S5Pplot():
         # set range of X/Y axis
         # determine xstep as greatest common divisor (numpy v1.15+)
         xdata = msm.coords[1]
-        if not __integer_and_increasing(xdata):
+        if not integer_and_increasing(xdata):
             indx = np.where(xdata[1:] <= xdata[:-1])[0]
             if indx.size != 0:
                 raise ValueError(
@@ -1525,7 +1532,7 @@ class S5Pplot():
 
         # determine ystep as greatest common divisor (numpy v1.15+)
         ydata = msm.coords[0]
-        if not __integer_and_increasing(ydata):
+        if not integer_and_increasing(ydata):
             indx = np.where(ydata[1:] <= ydata[:-1])[0]
             if indx.size != 0:
                 raise ValueError(
@@ -1755,7 +1762,7 @@ class S5Pplot():
             use_steps = xdata.size <= 256
 
             # define data gaps to avoid interpolation over missing data
-            if not __integer_and_increasing(xdata):
+            if not integer_and_increasing(xdata):
                 indx = np.where(xdata[1:] <= xdata[:-1])[0]
                 if indx.size != 0:
                     raise ValueError(
@@ -1869,7 +1876,7 @@ class S5Pplot():
             use_steps = xdata.size <= 256
 
             # define data gaps to avoid interpolation over missing data
-            if not __integer_and_increasing(xdata):
+            if not integer_and_increasing(xdata):
                 indx = np.where(xdata[1:] <= xdata[:-1])[0]
                 if indx.size != 0:
                     raise ValueError(
@@ -1897,8 +1904,12 @@ class S5Pplot():
             for key in hk_keys:
                 if key in hk_data.value.dtype.names:
                     indx = hk_data.value.dtype.names.index(key)
-                    hk_unit = hk_data.units[indx].decode('ascii')
-                    full_string = hk_data.long_name[indx].decode('ascii')
+                    hk_unit = hk_data.units[indx]
+                    if isinstance(hk_unit, bytes):
+                        hk_unit = hk_unit.decode('ascii')
+                    full_string = hk_data.long_name[indx]
+                    if isinstance(full_string, bytes):
+                        full_string = full_string.decode('ascii')
                     if hk_unit == 'K':
                         hk_name = full_string.rsplit(' ', 1)[0]
                         hk_label = 'temperature [{}]'.format(hk_unit)

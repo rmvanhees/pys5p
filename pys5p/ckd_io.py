@@ -44,7 +44,7 @@ class CKDio():
         self.__header = Path('/METADATA/earth_exploirer_header/fixed_header')
 
         self.ckd_dir = Path(ckd_dir)
-        if not ckd_dir.is_dir():
+        if not self.ckd_dir.is_dir():
             raise FileNotFoundError('directory {} not found'.format(ckd_dir))
 
         res = sorted(self.ckd_dir.glob('*_AUX_L1_CKD_*'))
@@ -143,8 +143,7 @@ class CKDio():
 
         long_name = 'SWIR memory CKD'
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
-                     'mem_qua_neg_swir', 'mem_qua_pos_swir',
-                     'mem_res_var_swir']
+                     'mem_qua_neg_swir', 'mem_qua_pos_swir']
         ckd = {}
         for key in ckd_parms:
             for band in bands:
@@ -199,7 +198,7 @@ class CKDio():
         if '7' not in bands and '8' not in bands:
             raise ValueError('Voltage to Charge only available for SWIR')
 
-        ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
+        ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'], datapoint=True)
         ckd.set_long_name('SWIR voltage to charge CKD')
         return ckd
 
