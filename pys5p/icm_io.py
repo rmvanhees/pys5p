@@ -221,7 +221,7 @@ class ICMio():
         if isinstance(res2, bytes):
             res2 = res2.decode('ascii')
 
-        return (res1, res2,)
+        return (res1, res2)
 
     def get_creation_time(self):
         """
@@ -720,18 +720,18 @@ class ICMio():
                         skipped += 1
 
                     if Path(dset.dims[xx][0].name).name in time_list:
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     elif Path(dset.dims[xx][0].name).name in row_list:
                         if rows is None:
-                            data_sel += (np.s_[:],)
+                            data_sel += (slice(None),)
                         else:
-                            data_sel += (np.s_[rows[0]:rows[1]],)
+                            data_sel += (slice(*rows),)
                     elif Path(dset.dims[xx][0].name).name in column_list:
                         column_dim = xx - skipped
                         if columns is None:
-                            data_sel += (np.s_[:],)
+                            data_sel += (slice(None),)
                         else:
-                            data_sel += (np.s_[columns[0]:columns[1]],)
+                            data_sel += (slice(*columns),)
                     else:
                         raise ValueError
 
@@ -845,19 +845,19 @@ class ICMio():
                 data_sel = ()
                 for xx in range(dset.ndim):
                     if len(dset.dims[xx][0][:]) == 1:
-                        data_sel += (np.s_[0],)
+                        data_sel += (0,)
                     elif Path(dset.dims[xx][0].name).name in time_list:
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     elif Path(dset.dims[xx][0].name).name in row_list:
                         if rows is None:
-                            data_sel += (np.s_[:],)
+                            data_sel += (slice(None),)
                         else:
-                            data_sel += (np.s_[rows[0]:rows[1]],)
+                            data_sel += (slice(*rows),)
                     elif Path(dset.dims[xx][0].name).name in column_list:
                         if len(band) == 2:
                             jj = data.ndim-1
                             data = np.stack(np.split(data, 2, axis=jj))
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     else:
                         raise ValueError
 

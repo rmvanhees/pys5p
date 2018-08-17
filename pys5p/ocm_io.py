@@ -153,14 +153,23 @@ class OCMio():
         """
         Returns version of the L01b processor
         """
-        return self.fid.attrs['processor_version'].decode('ascii')
+        res = self.fid.attrs['processor_version']
+        if isinstance(res, bytes):
+            res = res.decode('ascii')
+        return res
 
     def get_coverage_time(self):
         """
         Returns start and end of the measurement coverage time
         """
-        return (self.fid.attrs['time_coverage_start'].decode('ascii'),
-                self.fid.attrs['time_coverage_end'].decode('ascii'))
+        t_bgn = self.fid.attrs['time_coverage_start']
+        if isinstance(t_bgn, bytes):
+            t_bgn = t_bgn.decode('ascii')
+
+        t_end = self.fid.attrs['time_coverage_end']
+        if isinstance(t_end, bytes):
+            t_end = t_end.decode('ascii')
+        return (t_bgn, t_end)
 
     def get_attr(self, attr_name):
         """
@@ -386,19 +395,19 @@ class OCMio():
             for ii in range(dset.ndim):
                 if Path(dset.dims[ii][0].name).name == 'msmt_time':
                     if frames is None:
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     else:
-                        data_sel += (np.s_[frames[0]:frames[1]],)
+                        data_sel += (slice(*frames),)
                 elif Path(dset.dims[ii][0].name).name == 'row':
                     if rows is None:
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     else:
-                        data_sel += (np.s_[rows[0]:rows[1]],)
+                        data_sel += (slice(*rows),)
                 elif Path(dset.dims[ii][0].name).name == 'column':
                     if columns is None:
-                        data_sel += (np.s_[:],)
+                        data_sel += (slice(None),)
                     else:
-                        data_sel += (np.s_[columns[0]:columns[1]],)
+                        data_sel += (slice(*columns),)
                 else:
                     raise ValueError
 
