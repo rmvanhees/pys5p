@@ -110,16 +110,16 @@ class S5Pmsm():
         # copy dataset values (and error) to object
         if data_sel is None:
             if datapoint:
-                self.value = np.array(h5_dset.value['value'])
-                self.error = np.array(h5_dset.value['error'])
+                self.value = h5_dset['value']
+                self.error = h5_dset['error']
             else:
-                self.value = np.array(h5_dset.value)
+                self.value = h5_dset[...]
         else:
             # we need to keep all dimensions to get the dimensions
             # of the output data right
             if datapoint:
-                self.value = h5_dset[data_sel]['value']
-                self.error = h5_dset[data_sel]['error']
+                self.value = h5_dset['value'][data_sel]
+                self.error = h5_dset['error'][data_sel]
                 for ii, elmt in enumerate(data_sel):
                     if isinstance(elmt, int):
                         self.value = np.expand_dims(self.value, axis=ii)

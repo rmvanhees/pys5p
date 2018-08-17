@@ -112,6 +112,10 @@ class CKDio():
         band     : string
            Band identifier '1', '2', ..., '8'
 
+        Returns
+        -------
+        numpy.ndarray or scalar
+
         Handy function for scalar HDF5 datasets, such as:
          - dc_reference_temp
          - dpqf_threshold
