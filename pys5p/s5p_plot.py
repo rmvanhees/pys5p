@@ -13,7 +13,8 @@ Suggestion for the name of the report/pdf-file
     orbit      : reference orbit
 
 -- generate figures --
- Public functions a page in the output PDF
+- Creating an S5Pplot object will open multi-page PDF file or single-page PNG
+- Each public function listed below can be used to create a (new) page
  * draw_signal
  * draw_quality
  * draw_cmp_swir
@@ -22,6 +23,8 @@ Suggestion for the name of the report/pdf-file
  * draw_geolocation
  * draw_trend2d
  * draw_trend1d
+ * draw_trend
+- Closing the S5Pplot object will write the report to disk
 
 Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -121,12 +124,14 @@ class S5Pplot():
     """
     def __init__(self, figname, add_info=True):
         """
-        Initialize multipage PDF document for an SRON SWIR ICM report
+        Initialize multi-page PDF document or a single-page PNG
 
         Parameters
         ----------
         figname   :  string
              name of PDF or PNG file (extension required)
+        add_info  :  boolean
+             generate a legenda with info on the displayed data
         """
         self.data = None
         self.aspect = -1
@@ -404,14 +409,14 @@ class S5Pplot():
         mid_val = (vmin + vmax) / 2
         if method == 'diff':
             cmap = sron_cmap('diverging_BuGnRd')
-            if vmin < 0 and vmax > 0:
+            if vmin < 0 < vmax:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
         elif method == 'ratio':
             cmap = sron_cmap('diverging_BuGnRd')
-            if vmin < 1 and vmax > 1:
+            if vmin < 1 < vmax:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
@@ -998,7 +1003,7 @@ class S5Pplot():
             cmap = sron_cmap('diverging_BuGnRd')
             mid_val = (rmin + rmax) / 2
             (rmin_c, rmax_c) = (rmin, rmax)
-            if rmin < 0 and rmax > 0:
+            if rmin < 0 < rmax:
                 rmin_c = -max(-rmin, rmax)
                 rmax_c = max(-rmin, rmax)
                 mid_val = 0.
@@ -1663,10 +1668,10 @@ class S5Pplot():
 
     # --------------------------------------------------
     def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
-                     title=None, sub_title=None, fig_info=None,
-                     placeholder=False):
+                     title=None, sub_title=None,
+                     fig_info=None, placeholder=False):
         """
-        Display ...
+        Display trends of measurement and house-keeping data
 
         Parameters
         ----------
@@ -1721,6 +1726,7 @@ class S5Pplot():
         # define colors and number of panels
         lcolors = get_line_colors()
 
+        # define number of pannels for measurement data
         if msm is None:
             plot_mode = 'house-keeping'
             npanels = 0
@@ -1732,12 +1738,18 @@ class S5Pplot():
             plot_mode = 'data'
             npanels = 1
 
+        # add pannels for housekeeping parameters
         if hk_data is not None:
+            # default house-keeping parameters
             if hk_keys is None:
-                hk_keys = ('temp_det4', 'temp_obm_swir_grating')
+                if 'temp_det4' in hk_keys:
+                    hk_keys = ('temp_det4', 'temp_obm_swir_grating')
+                elif 'detector_temp' in hk_keys:
+                    hk_keys = ('detector_temp', 'grating_temp',
+                               'imager_temp', 'obm_temp')
+                else:
+                    hk_keys = tuple(hk_data.value.dtype.names)[0:4]
             npanels += len(hk_keys)
-        else:
-            hk_keys = ()
 
         # initialize matplotlib using 'subplots'
         figsize = (10., (npanels + 1) * 1.8)
@@ -1959,13 +1971,29 @@ class S5Pplot():
                     else:
                         axarr[i_ax].plot(xdata, ydata,
                                          lw=1.5, color=lcolor)
-
+                    # we are interested to see the last 10% of the data,
+                    # and any trend over the whole data, without outliers
+                    ylim = None
+                    ybuff = ydata[np.isfinite(ydata)]
+                    if ybuff.size > 100:
+                        ni = ybuff.size // 10
+                        ylim = [min(ybuff[0:ni].min(), ybuff[-ni:].min()),
+                                max(ybuff[0:ni].max(), ybuff[-ni:].max())]
                     if not (np.array_equal(ydata, yerr1)
                             and np.array_equal(ydata, yerr2)):
                         axarr[i_ax].fill_between(xdata, yerr1, yerr2,
                                                  step='post', facecolor=fcolor)
+                        ybuff1 = yerr1[np.isfinite(yerr1)]
+                        ybuff2 = yerr2[np.isfinite(yerr2)]
+                        if ybuff1.size > 10 and ybuff2.size > 10:
+                            ni = (ybuff1.size + ybuff2.size) // 20
+                            ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
+                                    max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
                     axarr[i_ax].locator_params(axis='y', nbins=4)
                     axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+                    if ylim is not None:
+                        delta = (ylim[1] - ylim[0]) / 5
+                        axarr[i_ax].set_ylim([ylim[0] - delta, ylim[1] + delta])
                     axarr[i_ax].grid(True)
                     axarr[i_ax].set_ylabel(hk_label)
                     legenda = axarr[i_ax].legend(
@@ -1986,6 +2014,103 @@ class S5Pplot():
                           transform=axarr[0].transAxes, alpha=0.5,
                           fontsize=50, color='gray', rotation=45.,
                           ha='center', va='center')
+
+        # add annotation and save figure
+        if self.add_info:
+            self.__fig_info(fig, fig_info)
+
+            if self.__pdf is None:
+                plt.savefig(self.filename)
+                plt.close(fig)
+            else:
+                self.__pdf.savefig()
+        elif self.__pdf is None:
+            plt.savefig(self.filename, bbox_inches='tight')
+            plt.close(fig)
+        else:
+            self.__pdf.savefig(bbox_inches='tight')
+
+    # --------------------------------------------------
+    def draw_trend(self, xdata, ydata, ykeys, *,
+                   xlabel=None, ylabel=None,
+                   title=None, sub_title=None,
+                   fig_info=None, placeholder=False):
+        """
+        Display trends of one or more measurement datasets
+
+        Parameters
+        ----------
+        xdata      :  numpy.ndarray
+           shared coordinate for all measurement datasets
+        ydata      :  list of numpy.ndarray
+           list holding one or more measurement datasets
+        ykeys      :  list of strings
+           list holding a key for each measurement datasets
+        xlabel     :  string, optional
+           name of the X-coordinate
+        ylabel     :  string, optional
+           name of the Y-coordinate
+        title      :  string, optional
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        sub_title  :  string, optional
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
+        fig_info   :  dictionary, optional
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        median & spread.
+        """
+        from matplotlib import pyplot as plt
+
+        from .sron_colormaps import get_line_colors
+
+        if len(ydata) != len(ykeys):
+            raise ValueError("you should provide a key for each dataset")
+
+        # define aspect for the location of fig_info
+        self.aspect = 1
+
+        # define colors and number of panels
+        lcolors = get_line_colors()
+
+        # initialize matplotlib using 'subplots'
+        figsize = (10., 10)
+        (fig, axarr) = plt.subplots(1, figsize=figsize)
+
+        # draw titles (and put it at the same place)
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.95),
+                         horizontalalignment='center')
+        if sub_title is not None:
+            axarr.set_title(sub_title, fontsize='large')
+
+        # define x-axis and its label
+        use_steps = xdata.size <= 256
+
+        for ii, ybuff in enumerate(ydata):
+            if use_steps:
+                ydata = np.append(ydata, ydata[-1])
+                axarr.step(xdata, np.append(ybuff, ybuff[-1]), label=ykeys[ii],
+                           where='post', lw=1.5, color=lcolors[ii])
+            else:
+                axarr.plot(xdata, ydata, label=ykeys[ii],
+                           lw=1.5, color=lcolors[ii])
+
+        axarr.set_xlim([xdata[0], xdata[-1]])
+        axarr.grid(True)
+        axarr.set_xlabel(xlabel)
+        axarr.set_ylabel(ylabel)
+        self.add_copyright(axarr)
+        if placeholder:
+            print('*** show placeholder')
+            axarr.text(0.5, 0.5, 'PLACEHOLDER',
+                       transform=axarr[0].transAxes, alpha=0.5,
+                       fontsize=50, color='gray', rotation=45.,
+                       ha='center', va='center')
 
         # add annotation and save figure
         if self.add_info:

@@ -464,7 +464,7 @@ class S5Pmsm():
 
     def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
         """
-        Returns median of the data in the S5Pmsm
+        Returns percentile(s) of the data in the S5Pmsm
 
         Parameters
         ----------
