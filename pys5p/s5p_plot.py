@@ -1971,12 +1971,12 @@ class S5Pplot():
                     else:
                         axarr[i_ax].plot(xdata, ydata,
                                          lw=1.5, color=lcolor)
-                    # we are interested to see the last 10% of the data,
+                    # we are interested to see the last 2 days of the data,
                     # and any trend over the whole data, without outliers
                     ylim = None
                     ybuff = ydata[np.isfinite(ydata)]
-                    if ybuff.size > 100:
-                        ni = ybuff.size // 10
+                    if ybuff.size > 5 * 15:
+                        ni = 2 * 15
                         ylim = [min(ybuff[0:ni].min(), ybuff[-ni:].min()),
                                 max(ybuff[0:ni].max(), ybuff[-ni:].max())]
                     if not (np.array_equal(ydata, yerr1)
