@@ -517,9 +517,9 @@ class S5Pplot():
                                           sharex=ax_img)
             data_row = biweight(self.data, axis=0)
             if xdata.size > 250:
-                ax_medx.plot(xdata, data_row, lw=0.75, color=lcolor[0])
+                ax_medx.plot(xdata, data_row, lw=0.75, color=lcolor.blue)
             else:
-                ax_medx.step(xdata, data_row, lw=0.75, color=lcolor[0])
+                ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.blue)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
@@ -527,9 +527,9 @@ class S5Pplot():
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = biweight(self.data, axis=1)
             if ydata.size > 250:
-                ax_medy.plot(data_col, ydata, lw=0.75, color=lcolor[0])
+                ax_medy.plot(data_col, ydata, lw=0.75, color=lcolor.blue)
             else:
-                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor[0])
+                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.blue)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
