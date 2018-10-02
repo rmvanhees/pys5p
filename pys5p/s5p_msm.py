@@ -376,8 +376,8 @@ class S5Pmsm():
                 self.value = np.concatenate(pad_rows(self.value, msm.value),
                                             axis=axis)
                 if datapoint:
-                    self.error = np.concatenate(pad_rows(self.error, msm.error),
-                                                axis=axis)
+                    self.error = np.concatenate(
+                        pad_rows(self.error, msm.error), axis=axis)
         elif axis == 2:
             if self.value.shape[1] == msm.value.shape[1]:
                 self.value = np.concatenate((self.value, msm.value), axis=axis)
@@ -388,8 +388,8 @@ class S5Pmsm():
                 self.value = np.concatenate(pad_rows(self.value, msm.value),
                                             axis=axis)
                 if datapoint:
-                    self.error = np.concatenate(pad_rows(self.error, msm.error),
-                                                axis=axis)
+                    self.error = np.concatenate(
+                        pad_rows(self.error, msm.error), axis=axis)
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
@@ -401,65 +401,6 @@ class S5Pmsm():
         else:
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
         self.coords = self.coords._replace(**{key: dims})
-        return self
-
-    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
-        """
-        Returns median of the data in the S5Pmsm
-
-        Parameters
-        ----------
-        data_sel  :  numpy slice, optional
-           A numpy slice generated for example numpy.s_. Can be used to skip
-           the first and/or last frame
-        axis      : int, optional
-           Axis or axes along which the medians are computed. Default is 0.
-        keepdims  : bool, optional
-           If this is set to True, the axes which are reduced are left in the
-           result as dimensions with size one. With this option, the result
-           will broadcast correctly against the original arr.
-
-        Returns
-        -------
-        S5Pmsm object with data (value & error) is replaced by their medians
-        and the coordinates are adjusted
-        """
-        if data_sel is None:
-            if self.error is not None:
-                self.error = np.nanmedian(self.error,
-                                          axis=axis, keepdims=keepdims)
-            else:
-                self.error = np.nanstd(self.value, ddof=1,
-                                       axis=axis, keepdims=keepdims)
-            self.value = np.nanmedian(self.value, axis=axis, keepdims=keepdims)
-        else:
-            if self.error is not None:
-                self.error = np.nanmedian(self.error[data_sel],
-                                          axis=axis, keepdims=keepdims)
-            else:
-                self.error = np.nanstd(self.value[data_sel], ddof=1,
-                                       axis=axis, keepdims=keepdims)
-            self.value = np.nanmedian(self.value[data_sel],
-                                      axis=axis, keepdims=keepdims)
-
-        # adjust the coordinates
-        if keepdims:
-            key = self.coords._fields[axis]
-            if self.coords[axis][0] == 0:
-                dims = [0]
-            else:
-                dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key: dims})
-        else:
-            keys = []
-            dims = []
-            for ii in range(self.value.ndim+1):
-                if ii != axis:
-                    keys.append(self.coords._fields[ii])
-                    dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple('Coords', keys)
-            self.coords = coords_namedtuple._make(dims)
-
         return self
 
     def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
@@ -483,17 +424,19 @@ class S5Pmsm():
 
         Returns
         -------
-        S5Pmsm object where value is replaced by its median and error by the
-        minimum and maximum percentiles. The coordinates are adjusted.
+        S5Pmsm object with the original data replaced by the percentiles along
+        one of the axis, see below. The coordinates are adjusted, accordingly.
 
         You should atleast supply one percentile and atmost three.
          vperc is instance 'int' or len(vperc) == 1:
              'value' is replaced by its (nan-)percentile vperc
              'error' is unchanged
          len(vperc) == 2:
+             'vperc' is sorted
              'value' is replaced by its (nan-)median
-             'error' is replaced by percentile('value', (min(vperc), max(vperc))
+             'error' is replaced by percentile('value', (vperc[0], vperc[1]))
          len(vperc) == 3:
+             'vperc' is sorted
              'value' is replaced by percentile('value', vperc[1])
              'error' is replaced by percentile('value', (vperc[0], vperc[2]))
         """
@@ -505,7 +448,8 @@ class S5Pmsm():
         else:
             if len(vperc) == 2:
                 vperc += (50,)
-            vperc = tuple(sorted(vperc)) # make sure that the values are sorted
+            # make sure that the values are sorted
+            vperc = tuple(sorted(vperc))
 
         if len(vperc) != 1 and len(vperc) != 3:
             raise TypeError('dimension vperc must be 1 or 3')
@@ -565,8 +509,8 @@ class S5Pmsm():
 
         Returns
         -------
-        S5Pmsm object with data (value & error) is replaced by their medians
-        and the coordinates are adjusted
+        S5Pmsm object with its data (value & error) replaced by its biweight
+        medians along one axis. The coordinates are adjusted, accordingly.
         """
         from .biweight import biweight
 
@@ -608,9 +552,131 @@ class S5Pmsm():
 
         return self
 
+    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
+        """
+        Returns S5Pmsm object containing median & standard deviation of the
+        original data
+
+        Parameters
+        ----------
+        data_sel  :  numpy slice, optional
+           A numpy slice generated for example numpy.s_. Can be used to skip
+           the first and/or last frame
+        axis      : int, optional
+           Axis or axes along which the medians are computed. Default is 0.
+        keepdims  : bool, optional
+           If this is set to True, the axes which are reduced are left in the
+           result as dimensions with size one. With this option, the result
+           will broadcast correctly against the original arr.
+
+        Returns
+        -------
+        S5Pmsm object with its data (value & error) replaced by its nanmedian
+        and standard deviation along one axis.
+        The coordinates are adjusted, accordingly.
+        """
+        if data_sel is None:
+            if self.error is not None:
+                self.error = np.nanmedian(self.error,
+                                          axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value, ddof=1,
+                                       axis=axis, keepdims=keepdims)
+            self.value = np.nanmedian(self.value, axis=axis, keepdims=keepdims)
+        else:
+            if self.error is not None:
+                self.error = np.nanmedian(self.error[data_sel],
+                                          axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value[data_sel], ddof=1,
+                                       axis=axis, keepdims=keepdims)
+            self.value = np.nanmedian(self.value[data_sel],
+                                      axis=axis, keepdims=keepdims)
+
+        # adjust the coordinates
+        if keepdims:
+            key = self.coords._fields[axis]
+            if self.coords[axis][0] == 0:
+                dims = [0]
+            else:
+                dims = np.median(self.coords[axis], keepdims=keepdims)
+            self.coords = self.coords._replace(**{key: dims})
+        else:
+            keys = []
+            dims = []
+            for ii in range(self.value.ndim+1):
+                if ii != axis:
+                    keys.append(self.coords._fields[ii])
+                    dims.append(self.coords[ii][:])
+            coords_namedtuple = namedtuple('Coords', keys)
+            self.coords = coords_namedtuple._make(dims)
+
+        return self
+
+    def nanmean(self, data_sel=None, axis=0, keepdims=False):
+        """
+        Returns S5Pmsm object containing mean & standard deviation of the
+        original data
+
+        Parameters
+        ----------
+        data_sel  :  numpy slice, optional
+           A numpy slice generated for example numpy.s_. Can be used to skip
+           the first and/or last frame
+        axis      : int, optional
+           Axis or axes along which the mean are computed. Default is 0.
+        keepdims  : bool, optional
+           If this is set to True, the axes which are reduced are left in the
+           result as dimensions with size one. With this option, the result
+           will broadcast correctly against the original arr.
+
+        Returns
+        -------
+        S5Pmsm object with its data (value & error) replaced by its nanmean and
+        standard deviation along one axis.
+        The coordinates are adjusted, accordingly.
+        """
+        if data_sel is None:
+            if self.error is not None:
+                self.error = np.nanmean(self.error,
+                                        axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value, ddof=1,
+                                       axis=axis, keepdims=keepdims)
+            self.value = np.nanmean(self.value, axis=axis, keepdims=keepdims)
+        else:
+            if self.error is not None:
+                self.error = np.nanmean(self.error[data_sel],
+                                        axis=axis, keepdims=keepdims)
+            else:
+                self.error = np.nanstd(self.value[data_sel], ddof=1,
+                                       axis=axis, keepdims=keepdims)
+            self.value = np.nanmean(self.value[data_sel],
+                                    axis=axis, keepdims=keepdims)
+
+        # adjust the coordinates
+        if keepdims:
+            key = self.coords._fields[axis]
+            if self.coords[axis][0] == 0:
+                dims = [0]
+            else:
+                dims = np.mean(self.coords[axis], keepdims=keepdims)
+            self.coords = self.coords._replace(**{key: dims})
+        else:
+            keys = []
+            dims = []
+            for ii in range(self.value.ndim+1):
+                if ii != axis:
+                    keys.append(self.coords._fields[ii])
+                    dims.append(self.coords[ii][:])
+            coords_namedtuple = namedtuple('Coords', keys)
+            self.coords = coords_namedtuple._make(dims)
+
+        return self
+
     def transpose(self):
         """
-        Transpose data and coordinates of S5Pmsm object
+        Transpose data and coordinates of an S5Pmsm object
         """
         if self.value.ndim <= 1:
             return self
