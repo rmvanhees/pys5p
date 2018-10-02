@@ -20,10 +20,11 @@ Suggestion for the name of the report/pdf-file
  * draw_cmp_swir
  * draw_hist
  * draw_qhist
- * draw_geolocation
  * draw_trend2d
  * draw_trend1d
- * draw_trend
+ * draw_line
+ * draw_geolocation
+
 - Closing the S5Pplot object will write the report to disk
 
 Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
@@ -48,6 +49,7 @@ def integer_and_increasing(data):
     """
     return (np.issubdtype(data.dtype, np.integer)
             and np.all(data[1:] > data[:-1]))
+
 
 # set the colormap and centre the colorbar
 class MidpointNormalize(mpl.colors.Normalize):
@@ -148,6 +150,28 @@ class S5Pplot():
 
     def __repr__(self):
         pass
+
+    def close_page(self, fig, fig_info):
+        """
+        close current matplotlib figure or page in a PDF document
+        """
+        # add annotation and save figure
+        if self.__pdf is None:
+            from matplotlib import pyplot as plt
+
+            if self.add_info:
+                self.__fig_info(fig, fig_info)
+                plt.savefig(self.filename)
+                plt.close(fig)
+            else:
+                plt.savefig(self.filename, bbox_inches='tight')
+                plt.close(fig)
+        else:
+            if self.add_info:
+                self.__fig_info(fig, fig_info)
+                self.__pdf.savefig()
+            else:
+                self.__pdf.savefig(bbox_inches='tight')
 
     def close(self):
         """
@@ -549,18 +573,8 @@ class S5Pplot():
             else:
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
-            self.__fig_info(fig, fig_info)
 
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_quality(self, msm_in, ref_data=None, add_medians=True,
@@ -795,19 +809,7 @@ class S5Pplot():
             fig_info.update({'good to bad': np.sum(self.data == 8)})
             fig_info.update({'to worst': np.sum(self.data == 1)})
 
-        if self.add_info:
-            self.__fig_info(fig, fig_info)
-
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_cmp_swir(self, msm_in, model_in, model_label='reference',
@@ -1093,18 +1095,8 @@ class S5Pplot():
             else:
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
-            self.__fig_info(fig, fig_info)
 
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_hist(self, msm_in, msm_err_in, *, vperc=None, vrange=None,
@@ -1234,7 +1226,7 @@ class S5Pplot():
             axx.set_xlabel(d_label)
             axx.set_ylabel('count')
 
-            # add annotation
+            # update figure annotation
             if self.add_info:
                 (median, spread) = biweight(msm.value, spread=True)
                 if zunit is not None:
@@ -1287,7 +1279,7 @@ class S5Pplot():
             axx.set_xlabel(d_label)
             axx.set_ylabel('count')
 
-            # add annotation
+            # update figure annotation
             if self.add_info:
                 (median, spread) = biweight(msm_err.value, spread=True)
                 if zunit is not None:
@@ -1301,19 +1293,7 @@ class S5Pplot():
                 fig_info.update({'unc_spread': spread_str})
 
         # add annotation and save figure
-        if self.add_info:
-            self.__fig_info(fig, fig_info)
-
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_qhist(self, dpqm, dpqm_dark, dpqm_noise,
@@ -1410,19 +1390,7 @@ class S5Pplot():
             ipos += 5
 
         # add annotation and save figure
-        if self.add_info:
-            self.__fig_info(fig, fig_info)
-
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_trend2d(self, msm_in, *, time_axis=None, vperc=None, vrange=None,
@@ -1653,18 +1621,8 @@ class S5Pplot():
                     fig_info.update({'orbit': [extent[0], extent[1]]})
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
-            self.__fig_info(fig, fig_info)
 
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
     def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
@@ -2016,59 +1974,109 @@ class S5Pplot():
                           ha='center', va='center')
 
         # add annotation and save figure
-        if self.add_info:
-            self.__fig_info(fig, fig_info)
-
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
 
     # --------------------------------------------------
-    def draw_trend(self, xdata, ydata, ykeys, *,
-                   xlabel=None, ylabel=None,
-                   title=None, sub_title=None,
-                   fig_info=None, placeholder=False):
+    def draw_line(self, msm_in, *, color=0, symbol=None, llabel=None,
+                  axis=None, method=None, mpl_fig=None,
+                  title=None, sub_title=None, fig_info=None):
         """
-        Display trends of one or more measurement datasets
-
         Parameters
         ----------
-        xdata      :  numpy.ndarray
-           shared coordinate for all measurement datasets
-        ydata      :  list of numpy.ndarray
-           list holding one or more measurement datasets
-        ykeys      :  list of strings
-           list holding a key for each measurement datasets
-        xlabel     :  string, optional
-           name of the X-coordinate
-        ylabel     :  string, optional
-           name of the Y-coordinate
-        title      :  string, optional
+        msm       :  pys5p.S5Pmsm, optional
+           Object holding measurement data and its HDF5 attributes.
+           Special case msm is None then close figure
+        color     :  integer, optional
+           index to color in sron_colormaps.get_line_colors. Default is zero
+        symbol    :  string, optional
+           matplotlib symbol to be used in figure. Default is None
+        llabel    :  string, optional
+           label for line, used in plot legenda
+        axis      :  integer, optional
+           default is None for one dimensional data and zero for data with
+                   more than 1 dimension
+        method    :  string, optional
+           method to average the data. Known methods are 'biweight', 'median'
+                   and 'mean'. Default is 'biweight'
+        mpl_fig  :  tuple, optional
+           tuple with matplotlib pointers to current figure
+        title     :  string, optional
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
-        sub_title  :  string, optional
+        sub_title :  string, optional
            Sub-title of the figure. Default is None
            Suggestion: use attribute "comment" of data-product
-        fig_info   :  dictionary, optional
+        fig_info  :  dictionary, optional
            OrderedDict holding meta-data to be displayed in the figure
 
-        The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date and the data
-        median & spread.
+        Returns
+        -------
+        mpl_fig : tuple with matplotlib.figure.Figure and matplotlib.axes.Axes
         """
+        # should be replaced by the numpy function (requires numpy v1.15+)
+        from math import gcd
+
         from matplotlib import pyplot as plt
 
         from .sron_colormaps import get_line_colors
 
-        if len(ydata) != len(ykeys):
-            raise ValueError("you should provide a key for each dataset")
+        # add annotation and close figure
+        if msm_in is None:
+            if mpl_fig is None:
+                raise ValueError('mpl_fig must be defined')
+            if len(mpl_fig) != 2:
+                raise TypeError('mpl_fig must contain both Figure and Axis')
+
+            # draw titles (and put it at the same place)
+            if title is not None:
+                mpl_fig[0].suptitle(title, fontsize='x-large',
+                                    position=(0.5, 0.95),
+                                    horizontalalignment='center')
+            if sub_title is not None:
+                mpl_fig[1].set_title(sub_title, fontsize='large')
+
+            # draw legenda in figure
+            if mpl_fig[1].get_legend_handles_labels()[1]:
+                mpl_fig[1].legend(fontsize='small', loc='upper left')
+
+            # draw copyright
+            self.add_copyright(mpl_fig[1])
+
+            # close page
+            self.close_page(mpl_fig[0], fig_info)
+            return None
+
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            if msm_in.value.ndim > 1:
+                msm = msm_in.copy()     # we have to modify msm_in
+            else:
+                msm = msm_in            # no need to modify msm_in
+
+        if msm.value.ndim > 2:
+            raise ValueError('input data must be two dimensional or less')
+
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
+
+        if msm_in.value.ndim > 1:
+            if axis is None:
+                axis = 0
+            if method is None:
+                method = 'biweight'
+
+            if method == 'biweight':
+                msm.biweight(axis=axis)
+            elif method == 'median':
+                msm.nanmedian(axis=axis)
+            elif method == 'mean':
+                msm.nanmean(axis=axis)
+            else:
+                raise ValueError('unknown method: {}'.format(method))
 
         # define aspect for the location of fig_info
         self.aspect = 1
@@ -2077,55 +2085,94 @@ class S5Pplot():
         lcolors = get_line_colors()
 
         # initialize matplotlib using 'subplots'
-        figsize = (10., 10)
-        (fig, axarr) = plt.subplots(1, figsize=figsize)
-
-        # draw titles (and put it at the same place)
-        if title is not None:
-            fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.95),
-                         horizontalalignment='center')
-        if sub_title is not None:
-            axarr.set_title(sub_title, fontsize='large')
+        if mpl_fig is None:
+            figsize = (10., 10)
+            (fig, axarr) = plt.subplots(1, figsize=figsize)
+        else:
+            (fig, axarr) = mpl_fig
 
         # define x-axis and its label
+        (xlabel,) = msm.coords._fields
+        xdata = msm.coords[0][:].copy()
         use_steps = xdata.size <= 256
 
-        for ii, ybuff in enumerate(ydata):
-            if use_steps:
-                ydata = np.append(ydata, ydata[-1])
-                axarr.step(xdata, np.append(ybuff, ybuff[-1]), label=ykeys[ii],
-                           where='post', lw=1.5, color=lcolors[ii])
-            else:
-                axarr.plot(xdata, ydata, label=ykeys[ii],
-                           lw=1.5, color=lcolors[ii])
+        # define data gaps to avoid interpolation over missing data
+        if not integer_and_increasing(xdata):
+            indx = np.where(xdata[1:] <= xdata[:-1])[0]
+            if indx.size != 0:
+                raise ValueError(
+                    'x-coordinate not increasing at {}'.format(indx))
+            raise ValueError('x-coordinate not of type integer')
+        xsteps = np.unique(np.diff(xdata))
+        xstep = xsteps.min()
+        dx_mn = xstep
+        for xx in xsteps:
+            if gcd(dx_mn, xx) < xstep:
+                xstep = gcd(dx_mn, xx)
 
-        axarr.set_xlim([xdata[0], xdata[-1]])
-        axarr.grid(True)
-        axarr.set_xlabel(xlabel)
-        axarr.set_ylabel(ylabel)
-        self.add_copyright(axarr)
-        if placeholder:
-            print('*** show placeholder')
-            axarr.text(0.5, 0.5, 'PLACEHOLDER',
-                       transform=axarr[0].transAxes, alpha=0.5,
-                       fontsize=50, color='gray', rotation=45.,
-                       ha='center', va='center')
+        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+        for indx in reversed(gap_list):
+            xdata = np.insert(xdata, indx, xdata[indx])
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+        if use_steps:
+            xdata = np.append(xdata, xdata[-1]+xstep)
 
-        # add annotation and save figure
-        if self.add_info:
-            self.__fig_info(fig, fig_info)
-
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
+        # convert units from electrons to ke, Me, ...
+        if msm.error is None:
+            vmin = msm.value.min()
+            vmax = msm.value.max()
         else:
-            self.__pdf.savefig(bbox_inches='tight')
+            vmin = msm.error[0].min()
+            vmax = msm.error[1].max()
+        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+
+        ydata = msm.value.copy() / dscale
+        for indx in reversed(gap_list):
+            ydata = np.insert(ydata, indx, np.nan)
+            ydata = np.insert(ydata, indx, np.nan)
+            ydata = np.insert(ydata, indx, ydata[indx-1])
+
+        if use_steps:
+            ydata = np.append(ydata, ydata[-1])
+            axarr.step(xdata, ydata, where='post', lw=1.5,
+                       color=lcolors[color], label=llabel)
+        else:
+            axarr.plot(xdata, ydata, lw=1.5,
+                       color=lcolors[color], label=llabel)
+
+        if symbol is not None:
+            pass
+
+        if msm.error is not None:
+            yerr1 = msm.error[0].copy() / dscale
+            yerr2 = msm.error[1].copy() / dscale
+            for indx in reversed(gap_list):
+                yerr1 = np.insert(yerr1, indx, np.nan)
+                yerr2 = np.insert(yerr2, indx, np.nan)
+                yerr1 = np.insert(yerr1, indx, np.nan)
+                yerr2 = np.insert(yerr2, indx, np.nan)
+                yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+            if use_steps:
+                yerr1 = np.append(yerr1, yerr1[-1])
+                yerr2 = np.append(yerr2, yerr2[-1])
+                axarr.fill_between(xdata, yerr1, yerr2,
+                                   step='post', facecolor='#BBCCEE')
+            else:
+                axarr.fill_between(xdata, yerr1, yerr2, facecolor='#BBCCEE')
+
+        if mpl_fig is None:
+            axarr.set_xlim([xdata[0], xdata[-1]])
+            axarr.grid(True)
+            axarr.set_xlabel(xlabel)
+            if zunit is None:
+                axarr.set_ylabel('value')
+            else:
+                axarr.set_ylabel(r'value [{}]'.format(zunit))
+
+        return (fig, axarr)
 
     # --------------------------------------------------
     def draw_geolocation(self, lats, lons,
@@ -2280,15 +2327,5 @@ class S5Pplot():
         if self.add_info:
             if fig_info is None:
                 fig_info = OrderedDict({'lon0': lon_0})
-            self.__fig_info(fig, fig_info)
 
-            if self.__pdf is None:
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                self.__pdf.savefig()
-        elif self.__pdf is None:
-            plt.savefig(self.filename, bbox_inches='tight')
-            plt.close(fig)
-        else:
-            self.__pdf.savefig(bbox_inches='tight')
+        self.close_page(fig, fig_info)
