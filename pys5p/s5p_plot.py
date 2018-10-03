@@ -1933,7 +1933,7 @@ class S5Pplot():
                     # and any trend over the whole data, without outliers
                     ylim = None
                     ybuff = ydata[np.isfinite(ydata)]
-                    if ybuff.size > 5 * 15:
+                    if xlabel == 'orbit' and ybuff.size > 5 * 15:
                         ni = 2 * 15
                         ylim = [min(ybuff[0:ni].min(), ybuff[-ni:].min()),
                                 max(ybuff[0:ni].max(), ybuff[-ni:].max())]
@@ -1943,7 +1943,8 @@ class S5Pplot():
                                                  step='post', facecolor=fcolor)
                         ybuff1 = yerr1[np.isfinite(yerr1)]
                         ybuff2 = yerr2[np.isfinite(yerr2)]
-                        if ybuff1.size > 10 and ybuff2.size > 10:
+                        if xlabel == 'orbit' \
+                           and ybuff1.size > 10 and ybuff2.size > 10:
                             ni = (ybuff1.size + ybuff2.size) // 20
                             ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
                                     max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
