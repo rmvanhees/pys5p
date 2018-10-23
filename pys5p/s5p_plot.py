@@ -164,14 +164,14 @@ class S5Pplot():
                 plt.savefig(self.filename)
                 plt.close(fig)
             else:
-                plt.savefig(self.filename, bbox_inches='tight')
+                plt.savefig(self.filename, transparant=True)
                 plt.close(fig)
         else:
             if self.add_info:
                 self.__fig_info(fig, fig_info)
                 self.__pdf.savefig()
             else:
-                self.__pdf.savefig(bbox_inches='tight')
+                self.__pdf.savefig(transparant=True)
 
     def close(self):
         """
