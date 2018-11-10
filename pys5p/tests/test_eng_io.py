@@ -16,11 +16,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  Standard 3-clause BSD
 """
-import shutil
-
 from pathlib import Path
-
-import numpy as np
 
 from ..get_data_dir import get_data_dir
 from ..l1b_io import L1BioENG

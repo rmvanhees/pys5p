@@ -26,15 +26,12 @@ def test_ckd_io(ckd_dir):
     """
     Read various Tropomi UVN and SWIR CKDs and show their contents
     """
-    from ..ckd_io   import CKDio
-    from ..s5p_plot import S5Pplot
-
     # open object to read the S5P CKDs
     ckd = CKDio(ckd_dir=Path(ckd_dir))
 
     # open object for report
     plot = S5Pplot('s5p_ckd_report.pdf')
-    
+
     # read offset CKD and generate figure (SWIR)
     offset = ckd.offset()
     plot.draw_signal(offset, title='Tropomi UVN and SWIR CKD',
@@ -58,7 +55,7 @@ def test_ckd_io(ckd_dir):
     saturation = ckd.saturation()
     plot.draw_signal(saturation, title='Tropomi UVN and SWIR CKD',
                      sub_title=saturation.long_name)
-    
+
     # read pixel-quality CKD and generate figure (SWIR)
     dpqm = ckd.pixel_quality()
     plot.draw_quality(dpqm, title='Tropomi UVN and SWIR CKD',

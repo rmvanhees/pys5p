@@ -41,7 +41,7 @@ def test_rd_calib(msm_dset=None):
     for name in sorted(filelist):
         print(name, file=sys.stderr)
         l1b = L1BioCAL(name)
-        print( l1b )
+        print(l1b)
         print('orbit:   ', l1b.get_orbit())
         print('version: ', l1b.get_processor_version())
         for key1 in l1b.fid:
@@ -50,7 +50,7 @@ def test_rd_calib(msm_dset=None):
             print(key1)
             for key2 in l1b.fid[key1]:
                 print('-->', key2)
-                l1b.select( key2 )
+                l1b.select(key2)
                 _ = l1b.get_ref_time()
                 res2 = l1b.get_delta_time()
                 print('\t delta time: ', res2.shape)
@@ -77,11 +77,11 @@ def test_rd_calib(msm_dset=None):
                     dset_name = msm_dset
 
                 for ib in l1b.bands:
-                    dset = l1b.get_msm_data( dset_name, band=ib )
+                    dset = l1b.get_msm_data(dset_name, band=ib)
                     print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
 
                 for ib in re.findall('..', l1b.bands):
-                    dset = l1b.get_msm_data( dset_name, band=ib )
+                    dset = l1b.get_msm_data(dset_name, band=ib)
                     print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
 
     del l1b

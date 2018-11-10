@@ -114,11 +114,11 @@ def test_rd_icm():
         print('bands: ', bands)
         res = icm.get_msm_data('signal_avg', band=bands[0])
         print('signal_avg[7]: ', res.shape)
-        res[:,:] = 2
+        res[:, :] = 2
         icm.set_msm_data('signal_avg', res, band='7')
         res = icm.get_msm_data('signal_avg', '8')
         print('signal_avg[8]: ', res.shape)
-        res[:,:] = 3
+        res[:, :] = 3
         icm.set_msm_data('signal_avg', res, band='8')
 
 if __name__ == '__main__':

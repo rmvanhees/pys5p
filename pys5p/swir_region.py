@@ -25,11 +25,8 @@ def mask(region='illuminated'):
       defined as the area where the signal is at least 50% of the main signal
       'level2' - a smaller area used for (ir)radiance products given to level 2
     """
-    res = np.zeros((256, 1000), dtype=np.bool)
-    if region == 'level2':
-        res[12:227, 20:980] = True
-    else:
-        res[11:228, 16:991] = True
+    res = np.full((256, 1000), False)
+    res[coords(region)] = True
 
     return res
 

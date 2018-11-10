@@ -42,7 +42,7 @@ def test_rd_radiance(msm_dset=None):
     for name in sorted(filelist):
         print(name, file=sys.stderr)
         l1b = L1BioRAD(name)
-        print( l1b )
+        print(l1b)
         print('orbit:   ', l1b.get_orbit())
         print('version: ', l1b.get_processor_version())
         for key1 in l1b.fid:
@@ -51,7 +51,7 @@ def test_rd_radiance(msm_dset=None):
             print(key1)
             for key2 in l1b.fid[key1]:
                 print('-->', key2)
-                l1b.select( key2 )
+                l1b.select(key2)
                 _ = l1b.get_ref_time()
                 res2 = l1b.get_delta_time()
                 print('\t delta time: ', res2.shape)

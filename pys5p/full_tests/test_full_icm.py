@@ -39,9 +39,9 @@ def test_rd_icm(msm_dset=None):
         return
 
     for name in sorted(filelist):
-        print(name, file=sys.stderr )
+        print(name, file=sys.stderr)
         icm = ICMio(name)
-        print( icm )
+        print(icm)
         print('version: ', icm.get_processor_version())
         print('creation_time', icm.get_creation_time())
         print('coverage_time', icm.get_coverage_time())
@@ -51,7 +51,7 @@ def test_rd_icm(msm_dset=None):
             print(key1)
             for key2 in icm.fid[key1]:
                 print('-->', key2)
-                icm.select( key2 )
+                icm.select(key2)
                 _ = icm.get_ref_time()
                 res2 = icm.get_delta_time()
                 print('\t delta time: ', res2.shape)

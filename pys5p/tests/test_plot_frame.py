@@ -81,8 +81,8 @@ def test_frame():
             msm.concatenate(S5Pmsm(dict_b7[key]), axis=0)
             msm_err.concatenate(S5Pmsm(dict_b7_std[key]), axis=0)
         print(key, msm.value.shape, msm.coords._fields)
-    msm.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
-    msm_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    msm.nanmedian(data_sel=np.s_[1:-1, ...], axis=0)
+    msm_err.nanmedian(data_sel=np.s_[1:-1, ...], axis=0)
     print('msm_b7: ', msm.name, msm.value.shape, msm.coords._fields)
 
     msm_b8 = None
@@ -95,8 +95,8 @@ def test_frame():
             msm_b8.concatenate(S5Pmsm(dict_b8[key]), axis=0)
             msm_b8_err.concatenate(S5Pmsm(dict_b8_std[key]), axis=0)
         print(key, msm_b8.value.shape, msm_b8.coords._fields)
-    msm_b8.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
-    msm_b8_err.nanmedian(data_sel=np.s_[1:-1,...], axis=0)
+    msm_b8.nanmedian(data_sel=np.s_[1:-1, ...], axis=0)
+    msm_b8_err.nanmedian(data_sel=np.s_[1:-1, ...], axis=0)
     print('msm_b8: ', msm_b8.name, msm_b8.value.shape, msm_b8.coords._fields)
 
     # combine both bands
