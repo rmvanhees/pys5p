@@ -56,6 +56,25 @@ class CKDio():
 
     def __del__(self):
         """
+        called when the object is destroyed
+        """
+        self.close()
+
+    def __enter__(self):
+        """
+        method called to initiate the context manager
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        method called when exiting the context manager
+        """
+        self.close()
+        return False  # any exception is raised by the with statement.
+
+    def close(self):
+        """
         Make sure that we close all resources
         """
         if self.fid is not None:

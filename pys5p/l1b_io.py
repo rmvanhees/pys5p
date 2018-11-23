@@ -97,6 +97,25 @@ class L1Bio():
 
     def __del__(self):
         """
+        called when the object is destroyed
+        """
+        self.close()
+
+    def __enter__(self):
+        """
+        method called to initiate the context manager
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        method called when exiting the context manager
+        """
+        self.close()
+        return False  # any exception is raised by the with statement.
+
+    def close(self):
+        """
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
@@ -108,6 +127,9 @@ class L1Bio():
              - list of patched datasets
              - auxiliary datasets used by patch-routines
         """
+        if self.fid is None:
+            return
+
         if self.__patched_msm:
             from datetime import datetime
 
@@ -121,15 +143,7 @@ class L1Bio():
 
             dset[:] = np.asarray(self.__patched_msm)
 
-        if self.fid is not None:
-            self.fid.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        return False    # any exception is raised by the with statement.
+        self.fid.close()
 
     # ---------- PUBLIC FUNCTIONS ----------
     # ---------- class L1Bio::

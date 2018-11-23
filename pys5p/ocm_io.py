@@ -136,16 +136,28 @@ class OCMio():
                 yield attr
 
     def __del__(self):
-        self.band = None
-        if self.fid is not None:
-            self.fid.close()
+        """
+        called when the object is destroyed
+        """
+        self.close()
 
     def __enter__(self):
+        """
+        method called to initiate the context manager
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        return False    # any exception is raised by the with statement.
+        """
+        method called when exiting the context manager
+        """
+        self.close()
+        return False  # any exception is raised by the with statement.
+
+    def close(self):
+        self.band = None
+        if self.fid is not None:
+            self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------

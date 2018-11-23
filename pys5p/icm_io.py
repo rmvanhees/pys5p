@@ -68,6 +68,25 @@ class ICMio():
 
     def __del__(self):
         """
+        called when the object is destroyed
+        """
+        self.close()
+
+    def __enter__(self):
+        """
+        method called to initiate the context manager
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        method called when exiting the context manager
+        """
+        self.close()
+        return False  # any exception is raised by the with statement.
+
+    def close(self):
+        """
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
@@ -78,6 +97,10 @@ class ICMio():
          - list of patched datasets
          - auxiliary datasets used by patch-routines
         """
+        if self.fid is None:
+            return
+
+        self.bands = None
         if self.__patched_msm:
             from datetime import datetime
 
@@ -95,16 +118,7 @@ class ICMio():
                 dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
                 dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
 
-        self.bands = None
-        if self.fid is not None:
-            self.fid.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.__del__()
-        return False   # any exception is raised by the with statement.
+        self.fid.close()
 
     # ---------- RETURN VERSION of the S/W ----------
     def find(self, msm_class):
