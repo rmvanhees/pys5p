@@ -27,10 +27,10 @@ Suggestion for the name of the report/pdf-file
 
 - Closing the S5Pplot object will write the report to disk
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 from collections import OrderedDict
 from pathlib import Path
@@ -2228,16 +2228,36 @@ class S5Pplot():
             def __init__(self, central_latitude=0.0, central_longitude=0.0,
                          orientation=0, scale_factor=1.0,
                          false_easting=0.0, false_northing=0.0, globe=None):
-                centlon = np.round(central_longitude / 15.0) * 15.0 + 0.01
-                gam = np.sign(orientation) * 89.99
-                proj4_params = [('proj', 'omerc'), ('lat_0', central_latitude),
-                                ('lonc', centlon), ('alpha', '0.01'),
-                                ('gamma', gam), ('over', ''),
-                                ('k_0', scale_factor),
-                                ('x_0', false_easting), ('y_0', false_northing),
-                                ('units', 'm')]
-                super(BetterTransverseMercator, self).__init__(proj4_params,
-                                                               globe=globe)
+                """
+                Parameters
+                ----------
+                * central_longitude - The true longitude of the central
+                  meridian in degrees. Defaults to 0.
+                * central_latitude - The true latitude of the planar origin in
+                  degrees. Defaults to 0.
+                * orientation - ...
+                  Defaults to 0.
+                * scale_factor - Scale factor at the central meridian.
+                  Defaults to 1.
+                * false_easting - X offset from the planar origin in metres.
+                  Defaults to 0.
+                * false_northing - Y offset from the planar origin in metres.
+                  Defaults to 0.
+                * globe - An instance of :class:`cartopy.crs.Globe`.
+                  If omitted, a default globe is created.
+                """
+                proj4_params = [
+                    ('proj', 'omerc'),
+                    ('lat_0', central_latitude),
+                    ('lonc', np.round(central_longitude / 15) * 15.0 + 0.01),
+                    ('alpha', '0.01'),
+                    ('gamma', np.sign(orientation) * 89.99),
+                    ('over', ''),
+                    ('k_0', scale_factor),
+                    ('x_0', false_easting),
+                    ('y_0', false_northing),
+                    ('units', 'm')]
+                super().__init__(proj4_params, globe=globe)
 
             @property
             def threshold(self):
@@ -2248,7 +2268,8 @@ class S5Pplot():
                 xx0, xx1 = self.x_limits
                 yy0, yy1 = self.y_limits
                 return sgeom.LineString([(xx0, yy0), (xx0, yy1),
-                                         (xx1, yy1), (xx1, yy0), (xx0, yy0)])
+                                         (xx1, yy1), (xx1, yy0),
+                                         (xx0, yy0)])
 
             @property
             def x_limits(self):

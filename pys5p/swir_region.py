@@ -5,10 +5,10 @@ https://git.sron.nl/tropomi_icm.git
 
 Return SWIR detector mask with the 'illuminated' or 'level2' region
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 
 import numpy as np

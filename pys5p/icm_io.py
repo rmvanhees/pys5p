@@ -5,10 +5,10 @@ https://github.com/rmvanhees/pys5p.git
 
 The class ICMio provides read access to S5p Tropomi ICM_CA_SIR products
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 from pathlib import Path
 

@@ -3,10 +3,10 @@ This file is part of pys5p
 
 https://github.com/rmvanhees/pys5p.git
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 __all__ = ['biweight', 'ckd_io', 'error_propagation', 'get_data_dir',
            'icm_io', 'l1b_io', 'ocm_io', 's5p_msm', 's5p_plot',

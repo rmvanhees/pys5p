@@ -6,10 +6,10 @@ https://github.com/rmvanhees/pys5p.git
 The class L1Bpatch provides methods to patch Tropomi SWIR measurement data in
 offline level 1b products (incl. calibration, irradiance and radiance).
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 
 

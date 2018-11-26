@@ -14,7 +14,7 @@ Please use the code as tutorial
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 import argparse
 

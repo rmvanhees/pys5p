@@ -6,10 +6,10 @@ https://github.com/rmvanhees/pys5p.git
 The classes L1BioCAL, L1BioIRR, L1BioRAD provide read access to
 offline level 1b products, resp. calibration, irradiance and radiance.
 
-Copyright (c) 2017--2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
-License:  Standard 3-clause BSD
+License:  BSD-3-Clause
 """
 from pathlib import Path
 
