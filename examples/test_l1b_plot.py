@@ -27,7 +27,8 @@ from pys5p.biweight import biweight
 from pys5p.s5p_msm import S5Pmsm
 from pys5p.s5p_plot import S5Pplot
 
-#--------------------------------------------------
+
+# --------------------------------------------------
 def read_using_l1b_io(args):
     """
     Perform read using L1BioRAD and use S5Pplot to create the figure
@@ -63,15 +64,15 @@ def read_using_l1b_io(args):
     plot.draw_signal(biweight(res, axis=0),
                      sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
 
-    plot.draw_trend2d(biweight(res, axis=2), time_axis=0, 
+    plot.draw_trend2d(biweight(res, axis=2), time_axis=0,
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
-    
-    plot.draw_trend2d(biweight(res, axis=1), time_axis=1, 
+
+    plot.draw_trend2d(biweight(res, axis=1), time_axis=1,
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
-    del plot
-    return
-    
-#--------------------------------------------------
+    plot.close()
+
+
+# --------------------------------------------------
 def read_using_s5p_msm(args):
     """
     Perform read using s5p_msm  and use S5Pplot to create the figure
@@ -91,7 +92,7 @@ def read_using_s5p_msm(args):
         msm = S5Pmsm(dset, data_sel=np.s_[:, min(indx):max(indx), :, :])
         msm.fill_as_nan()
         print(msm_name, msm.value.shape, msm.coords._fields)
-    
+
     with h5py.File(args.input_file.replace('_BD7_', '_BD8_'), 'r') as fid:
         msm_name = '/BAND8_RADIANCE/STANDARD_MODE/OBSERVATIONS/radiance'
         dset = fid[msm_name]
@@ -101,7 +102,7 @@ def read_using_s5p_msm(args):
 
     msm.concatenate(msm_tmp, axis=2)
     print('msm: ', msm.name, msm.long_name, msm.value.shape)
-    
+
     plot = S5Pplot('test_plot_s5p_msm.pdf')
     print('step 1')
     msm_tmp = msm.copy()
@@ -111,18 +112,18 @@ def read_using_s5p_msm(args):
     print('step 2')
     msm_tmp = msm.copy()
     print('step 2a', msm_tmp.long_name, msm_tmp.value.shape)
-    plot.draw_trend2d(msm_tmp.biweight(axis=2), time_axis=0, 
+    plot.draw_trend2d(msm_tmp.biweight(axis=2), time_axis=0,
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
-    
+
     print('step 3')
     msm_tmp = msm.copy()
     print('step 3a', msm_tmp.long_name, msm_tmp.value.shape)
-    plot.draw_trend2d(msm_tmp.biweight(axis=1), time_axis=1, 
+    plot.draw_trend2d(msm_tmp.biweight(axis=1), time_axis=1,
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
-    del plot
-    return
-    
-#- main function --------------------------------------
+    plot.close()
+
+
+# - main function --------------------------------------
 def main():
     """
     main function when called from the command-line
@@ -133,11 +134,11 @@ def main():
             Path(__file__).name))
     parser.add_argument('input_file', nargs='?', type=str, default=None,
                         help='read from INPUT_FILE')
-    parser.add_argument( '--icid', default=2, type=int,
-                         help=('select ICID'))
-    parser.add_argument( '--msm_mode', default=False, action='store_true',
-                         help=('use s5p_msm to read the data'))
-    
+    parser.add_argument('--icid', default=2, type=int,
+                        help=('select ICID'))
+    parser.add_argument('--msm_mode', default=False, action='store_true',
+                        help=('use s5p_msm to read the data'))
+
     args = parser.parse_args()
     if args.input_file is None:
         parser.print_help()
@@ -148,6 +149,7 @@ def main():
     else:
         read_using_l1b_io(args)
 
-#- main code --------------------------------------
+
+# - main code --------------------------------------
 if __name__ == '__main__':
     main()
