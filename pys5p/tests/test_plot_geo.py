@@ -62,7 +62,7 @@ def test_geo():
                           geo['satellite_longitude'],
                           sequence=geo['sequence'],
                           subsatellite=True)
-    del plot
+    plot.close()
 
 if __name__ == '__main__':
     test_geo()
