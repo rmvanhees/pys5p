@@ -90,6 +90,7 @@ class LV2io():
 
         return None
 
+    # -------------------------
     def get_algorithm_version(self):
         """
         Returns version of the level 2 algorithm
@@ -103,6 +104,21 @@ class LV2io():
 
         return res
 
+    # -------------------------
+    def get_processor_version(self):
+        """
+        Returns version of the L12 processor
+        """
+        if 'processor_version' not in self.fid.attrs:
+            return None
+
+        res = self.fid.attrs['processor_version']
+        if isinstance(res, bytes):
+            return res.decode('ascii')
+
+        return res
+
+    # -------------------------
     def get_product_version(self):
         """
         Returns version of the level 2 product
@@ -116,6 +132,7 @@ class LV2io():
 
         return res
 
+    # -------------------------
     def get_coverage_time(self):
         """
         Returns start and end of the measurement coverage time
@@ -134,6 +151,7 @@ class LV2io():
 
         return (res1, res2)
 
+    # -------------------------
     def get_creation_time(self):
         """
         Returns creation date/time of the level 2 product
@@ -147,6 +165,7 @@ class LV2io():
 
         return res
 
+    # -------------------------
     def get_attr(self, attr_name):
         """
         Obtain value of an HDF5 file attribute
@@ -176,12 +195,14 @@ class LV2io():
         ref_time += timedelta(seconds=int(self.fid['/PRODUCT/time'][0]))
         return ref_time
 
+    # -------------------------
     def get_delta_time(self):
         """
         Returns offset from the reference start time of measurement
         """
         return self.fid['/PRODUCT/delta_time'][0, :].astype(int)
 
+    # -------------------------
     def get_geo_data(self,
                      geo_dset='satellite_latitude,satellite_longitude'):
         """
@@ -207,40 +228,85 @@ class LV2io():
 
         return res
 
-    def get_geo_bounds(self):
+    # -------------------------
+    def get_geo_bounds(self, extent=None, data_sel=None):
         """
         Returns bounds of latitude/longitude as a mesh for plotting
 
+        Parameters
+        ----------
+        extent    :  list
+           select data to cover a region with geolocation defined by:
+             lon_min, lon_max, lat_min, lat_max and return numpy slice
+        data_sel  :  numpy slice
+           a 3-dimensional numpy slice: time, scan_line, ground_pixel
+           Note 'data_sel' will be overwritten when 'extent' is defined
+
         Returns
         -------
-        out   :   dictionary
+        data_sel  :   numpy slice
+           slice of data which covers geolocation defined by extent. Only
+           provided if extent is not None.
+        out       :   dictionary
            with numpy arrays for latitude and longitude
         """
+        if extent is not None:
+            if len(extent) != 4:
+                raise ValueError('parameter extent must have 4 elements')
+            
+            lats = self.fid['/PRODUCT/latitude'][:]
+            lons = self.fid['/PRODUCT/longitude'][:]
+            indx = np.where((lons >= extent[0]) & (lons <= extent[1])
+                            & (lats >= extent[2]) & (lats <= extent[3]))
+            data_sel = np.s_[0,
+                             indx[0].min():indx[0].max(),
+                             indx[1].min():indx[1].max()]
+            print(extent, data_sel)
+
+            
         gid = self.fid['/PRODUCT/SUPPORT_DATA/GEOLOCATIONS']
-        _sz = gid['latitude_bounds'].shape
+        if data_sel is None:
+            _sz = gid['latitude_bounds'][0, ...].shape
+        else:
+            _sz = gid['latitude_bounds'][data_sel].shape
 
         res = {}
-        res['latitude'] = np.empty((_sz[1]+1, _sz[2]+1), dtype=float)
-        res['latitude'][:-1, :-1] = gid['latitude_bounds'][0, :, :, 0]
-        res['latitude'][-1, :-1] = gid['latitude_bounds'][0, -1, :, 1]
-        res['latitude'][:-1, -1] = gid['latitude_bounds'][0, :, -1, 1]
-        res['latitude'][-1, -1] = gid['latitude_bounds'][0, -1, -1, 2]
+        res['latitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=float)
+        if data_sel is None:
+            lat_bounds = gid['latitude_bounds'][0, ...]
+        else:
+            lat_bounds = gid['latitude_bounds'][data_sel + (slice(None),)]
+        res['latitude'][:-1, :-1] = lat_bounds[:, :, 0]
+        res['latitude'][-1, :-1] = lat_bounds[-1, :, 1]
+        res['latitude'][:-1, -1] = lat_bounds[:, -1, 1]
+        res['latitude'][-1, -1] = lat_bounds[-1, -1, 2]
 
-        res['longitude'] = np.empty((_sz[1]+1, _sz[2]+1), dtype=float)
-        res['longitude'][:-1, :-1] = gid['longitude_bounds'][0, :, :, 0]
-        res['longitude'][-1, :-1] = gid['longitude_bounds'][0, -1, :, 1]
-        res['longitude'][:-1, -1] = gid['longitude_bounds'][0, :, -1, 1]
-        res['longitude'][-1, -1] = gid['longitude_bounds'][0, -1, -1, 2]
-        return res
+        res['longitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=float)
+        if data_sel is None:
+            lon_bounds = gid['longitude_bounds'][0, ...]
+        else:
+            lon_bounds = gid['longitude_bounds'][data_sel + (slice(None),)]
+        res['longitude'][:-1, :-1] = lon_bounds[:, :, 0]
+        res['longitude'][-1, :-1] = lon_bounds[-1, :, 1]
+        res['longitude'][:-1, -1] = lon_bounds[:, -1, 1]
+        res['longitude'][-1, -1] = lon_bounds[-1, -1, 2]
 
-    def get_msm_data(self, name, fill_as_nan=True):
+        if extent is None:
+            return res
+
+        return data_sel, res
+
+    # -------------------------
+    def get_msm_data(self, name, data_sel=None, fill_as_nan=True):
         """
-        Read level 2 data
+        Read level 2 dataset
 
         Parameters
         ----------
         name   :  string
             name of dataset with level 2 data
+        data_sel  :  numpy slice
+           a 3-dimensional numpy slice: time, scan_line, ground_pixel
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
@@ -251,10 +317,43 @@ class LV2io():
         fillvalue = float.fromhex('0x1.ep+122')
 
         dset = self.fid['/PRODUCT/{}'.format(name)]
-        if dset.dtype == np.float32:
-            res = np.squeeze(dset).astype(np.float64)
+        if data_sel is None:
+            if dset.dtype == np.float32:
+                res = dset[0, ...].astype(np.float64)
+            else:
+                res = dset[0, ...]
         else:
-            res = np.squeeze(dset)
+            if dset.dtype == np.float32:
+                res = dset[data_sel].astype(np.float64)
+            else:
+                res = dset[data_sel]
         if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
             res[(res == fillvalue)] = np.nan
         return res
+
+    # -------------------------
+    def get_msm_attr(self, name, attr_name):
+        """
+        Returns attribute of measurement dataset "msm_dset"
+
+        Parameters
+        ----------
+        name      :  string
+            name of measurement dataset
+        attr_name : string
+            name of the attribute
+
+        Returns
+        -------
+        out   :   scalar or numpy array
+           value of attribute "attr_name"
+        """
+        dset = self.fid['/PRODUCT/{}'.format(name)]
+        if attr_name not in dset.attrs.keys():
+            return None
+            
+        attr = dset.attrs[attr_name]
+        if isinstance(attr, bytes):
+            return attr.decode('ascii')
+
+        return attr

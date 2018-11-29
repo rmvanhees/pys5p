@@ -31,6 +31,9 @@ import matplotlib as mpl
 import numpy as np
 
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
+                                   LATITUDE_FORMATTER)
 import shapely.geometry as sgeom
 
 
@@ -158,8 +161,7 @@ class S5Pgeoplot():
 
         if self.__pdf is not None:
             doc = self.__pdf.infodict()
-            doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
-            doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
+            doc['Author'] = '(c) SRON Netherlands Institute for Space Research'
             doc['Keywords'] = 'PdfPages multipage keywords author title'
             self.__pdf.close()
             plt.close('all')
@@ -221,11 +223,10 @@ class S5Pgeoplot():
                  bbox={'facecolor': 'white', 'pad': 5})
 
     # --------------------------------------------------
-    def draw_geolocation(self, lats, lons,
-                         *, sequence=None, subsatellite=False,
-                         title=None, fig_info=None):
+    def draw_geo_tiles(self, lons, lats, *, sequence=None,
+                       title=None, fig_info=None):
         """
-        Display footprint of sub-satellite coordinates project on the globe
+        Display footprints projected with (beter) TransverseMercator
 
         Parameters
         ----------
@@ -235,8 +236,6 @@ class S5Pgeoplot():
            Longitude coordinates
         sequence     :  list
            Indices to footprints to be drawn by polygons
-        subsatellite :  boolean
-           Coordinates are given for sub-satellite point. Default is False
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -246,12 +245,8 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        from matplotlib import pyplot as plt
+        import matplotlib.pyplot as plt
         from matplotlib.patches import Polygon
-
-        import cartopy.feature as cfeature
-        from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
-                                           LATITUDE_FORMATTER)
 
         # define aspect for the location of fig_info
         self.aspect = -1
@@ -295,40 +290,34 @@ class S5Pgeoplot():
         glx.yformatter = LATITUDE_FORMATTER
 
         # draw footprint
-        if not subsatellite:
-            if sequence is None:
-                lat = np.concatenate((lats[0, :], lats[1:-1, -1],
-                                      lats[-1, ::-1], lats[1:-1:-1, 0]))
-                lon = np.concatenate((lons[0, :], lons[1:-1, -1],
-                                      lons[-1, ::-1], lons[1:-1:-1, 0]))
+        if sequence is None:
+            lat = np.concatenate([lats[0, :], lats[1:-1, -1],
+                                  lats[-1, ::-1], lats[1:-1:-1, 0]])
+            lon = np.concatenate([lons[0, :], lons[1:-1, -1],
+                                  lons[-1, ::-1], lons[1:-1:-1, 0]])
+
+            poly = Polygon(xy=list(zip(lon, lat)), closed=True,
+                           alpha=0.6, facecolor=s5p_color,
+                           transform=ccrs.PlateCarree())
+            axx.add_patch(poly)
+        else:
+            print('Unique sequence: {}'.format(np.unique(sequence)))
+            for ii in np.unique(sequence):
+                indx = np.unique(np.where(sequence == ii)[0])
+                indx_rev = indx[::-1]
+                lat = np.concatenate([lats[indx[0], :],
+                                      lats[indx, -1],
+                                      lats[indx[-1], ::-1],
+                                      lats[indx_rev, 0]])
+                lon = np.concatenate([lons[indx[0], :],
+                                      lons[indx, -1],
+                                      lons[indx[-1], ::-1],
+                                      lons[indx_rev, 0]])
 
                 poly = Polygon(xy=list(zip(lon, lat)), closed=True,
                                alpha=0.6, facecolor=s5p_color,
                                transform=ccrs.PlateCarree())
                 axx.add_patch(poly)
-            else:
-                print('Unique sequence: {}'.format(np.unique(sequence)))
-                for ii in np.unique(sequence):
-                    indx = np.unique(np.where(sequence == ii)[0])
-                    indx_rev = indx[::-1]
-                    lat = np.concatenate((lats[indx[0], :],
-                                          lats[indx, -1],
-                                          lats[indx[-1], ::-1],
-                                          lats[indx_rev, 0]))
-                    lon = np.concatenate((lons[indx[0], :],
-                                          lons[indx, -1],
-                                          lons[indx[-1], ::-1],
-                                          lons[indx_rev, 0]))
-
-                    poly = Polygon(xy=list(zip(lon, lat)), closed=True,
-                                   alpha=0.6, facecolor=s5p_color,
-                                   transform=ccrs.PlateCarree())
-                    axx.add_patch(poly)
-
-        # draw sub-satellite spot(s)
-        else:
-            axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
-                        marker='o', color=s5p_color)
 
         self.add_copyright(axx)
         if self.add_info:
@@ -337,13 +326,48 @@ class S5Pgeoplot():
 
         self.close_page(fig, fig_info)
 
-    def draw_geo_blocks(self, gridlon, gridlat, data,
+    # --------------------------------------------------
+    def draw_geo_subsat(self, lons, lats, *,
                         title=None, fig_info=None):
         """
+        Display sub-satellite coordinates projected with TransverseMercator
+
+        Parameters
+        ----------
+        lats         :  ndarray
+           Latitude coordinates
+        lons         :  ndarray
+           Longitude coordinates
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box.
         """
         import matplotlib.pyplot as plt
 
-        lon_0 = np.around(np.mean(gridlon), decimals=-1)
+        # define aspect for the location of fig_info
+        self.aspect = -1
+
+        # define colors
+        watercolor = '#ddeeff'
+        landcolor = '#e1c999'
+        gridcolor = '#bbbbbb'
+        s5p_color = '#ee6677'
+
+        # determine central longitude
+        sphere_radius = 6370997.0
+        parallel_half = 0.883 * sphere_radius
+        meridian_half = 2.360 * sphere_radius
+        if lons.max() - lons.min() > 180:
+            if np.sum(lons > 0) > np.sum(lons < 0):
+                lons[lons < 0] += 360
+            else:
+                lons[lons > 0] -= 360
+        lon_0 = np.around(np.mean(lons), decimals=-1)
 
         # inititalize figure
         fig = plt.figure(figsize=(15, 10))
@@ -351,14 +375,173 @@ class S5Pgeoplot():
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
 
-        axx = plt.axes(projection=ccrs.PlateCarree())
-        plt.pcolormesh(gridlon, gridlat, data,
-                       transform=ccrs.PlateCarree())
-        axx.coastlines()
+        # draw worldmap
+        axx = plt.axes(projection=BetterTransverseMercator(
+            central_longitude=lon_0, orientation=1,
+            globe=ccrs.Globe(ellipse='sphere')))
+        axx.set_xlim(-meridian_half, meridian_half)
+        axx.set_ylim(-parallel_half, parallel_half)
+        axx.outline_patch.set_visible(False)
+        axx.background_patch.set_facecolor(watercolor)
+        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
+        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
+        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
+        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
+        glx.xformatter = LONGITUDE_FORMATTER
+        glx.yformatter = LATITUDE_FORMATTER
+
+        # draw sub-satellite spot(s)
+        axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
+                    marker='o', color=s5p_color)
 
         self.add_copyright(axx)
         if self.add_info:
             if fig_info is None:
                 fig_info = OrderedDict({'lon0': lon_0})
 
+        self.close_page(fig, fig_info)
+
+    # --------------------------------------------------
+    def draw_geo_msm(self, gridlon, gridlat, msm_in, *,
+                     vperc=None, vrange=None,
+                     whole_globe=False, title=None, fig_info=None):
+        """
+        Show measurement data projected with (better) TransverseMercator.
+
+        Parameters
+        ----------
+        gridlon   :  array_like
+        gridlat   :  array_like
+           The coordinates of the quadrilateral corners, with dimnsions one
+           larger then data
+        data      :  array_like
+           Measurement data as a scalar 2-D array. The values will be
+           color-mapped.
+        vrange    :  list [vmin,vmax]
+           Range to normalize luminance data between vmin and vmax.
+        vperc     :  list
+           Range to normalize luminance data between percentiles min and max of
+           array data. Default is [1., 99.].
+           keyword 'vperc' is ignored when vrange is given
+        title     :  string
+           Title of the figure. Default is None
+           [Suggestion] use attribute "title" of data-product
+        sub_title :  string
+           Sub-title of the figure. Default is None
+           [Suggestion] use attribute "comment" of data-product
+        fig_info  :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date and the data
+        (biweight) median & spread.
+        """
+        import matplotlib.pyplot as plt
+
+        from .sron_colormaps import sron_cmap
+        from .s5p_msm import S5Pmsm
+
+        # assert that we have some data to show
+        if isinstance(msm_in, np.ndarray):
+            msm = S5Pmsm(msm_in)
+        else:
+            if not isinstance(msm_in, S5Pmsm):
+                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
+            msm = msm_in
+
+        if msm.value.ndim != 2:
+            raise ValueError('input data must be two dimensional')
+        if np.all(np.isnan(msm.value)):
+            raise ValueError('input data must contain valid data')
+        data = msm.value.copy()
+        if msm.units is None:
+            zunit = None
+        elif msm.units == '1':
+            zunit = None
+        else:
+            zunit = msm.units
+            
+        # define aspect for the location of fig_info
+        self.aspect = -1
+
+        # define colors
+        watercolor = '#ddeeff'
+        landcolor = '#e1c999'
+        gridcolor = '#bbbbbb'
+
+        # define data-range
+        if vrange is None:
+            if vperc is None:
+                vperc = (1., 99.)
+            else:
+                if len(vperc) != 2:
+                    raise TypeError('keyword vperc requires two values')
+            vmin, vmax = np.nanpercentile(data, vperc)
+        else:
+            if len(vrange) != 2:
+                raise TypeError('keyword vrange requires two values')
+            vmin, vmax = vrange
+
+        # determine central longitude
+        if gridlon.max() - gridlon.min() > 180:
+            if np.sum(gridlon > 0) > np.sum(gridlon < 0):
+                gridlon[gridlon < 0] += 360
+            else:
+                gridlon[gridlon > 0] -= 360
+        lon_0 = np.around(np.mean(gridlon), decimals=-1)
+
+        # inititalize figure
+        myproj = BetterTransverseMercator(central_longitude=lon_0,
+                                          orientation=0,
+                                          globe=ccrs.Globe(ellipse='sphere'))
+
+        fig, axx = plt.subplots(1, 1, figsize=(10, 12.5),
+                                subplot_kw={'projection': myproj})
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.9), horizontalalignment='center')
+
+        # Add the colorbar axes anywhere in the figure.
+        # Its position will be re-calculated at each figure resize.
+        cax = fig.add_axes([0, 0, 0.1, 0.1])
+        fig.subplots_adjust(hspace=0, wspace=0, left=0.05, right=0.85)
+
+        # define worldmap
+        if whole_globe:
+            sphere_radius = 6370997.0
+            parallel_half = 0.883 * sphere_radius
+            meridian_half = 2.360 * sphere_radius
+            axx.set_xlim(-parallel_half, parallel_half)
+            axx.set_ylim(-meridian_half, meridian_half)
+        axx.outline_patch.set_visible(False)
+        axx.background_patch.set_facecolor(watercolor)
+        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
+        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
+        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
+        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
+        glx.xformatter = LONGITUDE_FORMATTER
+        glx.yformatter = LATITUDE_FORMATTER
+
+        # draw image and colorbar
+        img = axx.pcolormesh(gridlon, gridlat, data,
+                             vmin=vmin, vmax=vmax,
+                             cmap=sron_cmap('diverging_BuGnRd'),
+                             transform=ccrs.PlateCarree())
+        plt.draw()
+        posn = axx.get_position()
+        cax.set_position([posn.x0 + posn.width + 0.01,
+                          posn.y0, 0.04, posn.height])
+        if zunit is None:
+            zlabel = 'value'
+        else:
+            zlabel = r'value [{}]'.format(zunit)
+        plt.colorbar(img, cax=cax, label=zlabel)
+
+        # finalize figure
+        self.add_copyright(axx)
+        if self.add_info:
+            if fig_info is None:
+                fig_info = OrderedDict({'lon0': lon_0})
+            else:
+                fig_info.update({'lon0': lon_0})
         self.close_page(fig, fig_info)
