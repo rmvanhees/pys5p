@@ -166,23 +166,33 @@ class LV2io():
         return res
 
     # -------------------------
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name, ds_name=None):
         """
-        Obtain value of an HDF5 file attribute
+        Obtain value of an HDF5 file attribute or dataset attribute
 
         Parameters
         ----------
         attr_name : string
            name of the attribute
+        ds_name   : string
+           name of dataset in group PRODUCT
         """
-        if attr_name not in self.fid.attrs:
-            return None
+        if ds_name is not None:
+            dset = self.fid['/PRODUCT/{}'.format(ds_name)]
+            if attr_name not in dset.attrs.keys():
+                return None
 
-        res = self.fid.attrs[attr_name]
-        if isinstance(res, bytes):
-            return res.decode('ascii')
+            attr = dset.attrs[attr_name]
+        else:
+            if attr_name not in self.fid.attrs:
+                return None
 
-        return res
+            attr = self.fid.attrs[attr_name]
+
+        if isinstance(attr, bytes):
+            return attr.decode('ascii')
+
+        return attr
 
     # ---------- Functions using data in the PRODUCT group ----------
     def get_ref_time(self):
@@ -253,7 +263,7 @@ class LV2io():
         if extent is not None:
             if len(extent) != 4:
                 raise ValueError('parameter extent must have 4 elements')
-            
+
             lats = self.fid['/PRODUCT/latitude'][:]
             lons = self.fid['/PRODUCT/longitude'][:]
             indx = np.where((lons >= extent[0]) & (lons <= extent[1])
@@ -261,9 +271,7 @@ class LV2io():
             data_sel = np.s_[0,
                              indx[0].min():indx[0].max(),
                              indx[1].min():indx[1].max()]
-            print(extent, data_sel)
 
-            
         gid = self.fid['/PRODUCT/SUPPORT_DATA/GEOLOCATIONS']
         if data_sel is None:
             _sz = gid['latitude_bounds'][0, ...].shape
@@ -297,9 +305,9 @@ class LV2io():
         return data_sel, res
 
     # -------------------------
-    def get_msm_data(self, name, data_sel=None, fill_as_nan=True):
+    def get_dataset(self, name, data_sel=None, fill_as_nan=True):
         """
-        Read level 2 dataset
+        Read level 2 dataset from PRODUCT group
 
         Parameters
         ----------
@@ -315,6 +323,9 @@ class LV2io():
         out  :  array
         """
         fillvalue = float.fromhex('0x1.ep+122')
+
+        if name not in self.fid['/PRODUCT']:
+            raise ValueError('dataset {} for found'.format(name))
 
         dset = self.fid['/PRODUCT/{}'.format(name)]
         if data_sel is None:
@@ -332,28 +343,48 @@ class LV2io():
         return res
 
     # -------------------------
-    def get_msm_attr(self, name, attr_name):
+    def get_data_as_s5pmsm(self, name, data_sel=None, fill_as_nan=True,
+                           mol_m2=False):
         """
-        Returns attribute of measurement dataset "msm_dset"
+        Read level 2 dataset from PRODUCT group as S5Pmsm object
 
         Parameters
         ----------
-        name      :  string
-            name of measurement dataset
-        attr_name : string
-            name of the attribute
+        name   :  string
+            name of dataset with level 2 data
+        data_sel  :  numpy slice
+           a 3-dimensional numpy slice: time, scan_line, ground_pixel
+        fill_as_nan :  boolean
+            Replace (float) FillValues with Nan's, when True
+        mol_m2    : boolean
+            Leaf units as mol per m^2 or convert units to molecules per cm^2
 
         Returns
         -------
-        out   :   scalar or numpy array
-           value of attribute "attr_name"
+        out  :  pys5p.S5Pmsm object
         """
-        dset = self.fid['/PRODUCT/{}'.format(name)]
-        if attr_name not in dset.attrs.keys():
-            return None
-            
-        attr = dset.attrs[attr_name]
-        if isinstance(attr, bytes):
-            return attr.decode('ascii')
+        from pys5p.s5p_msm import S5Pmsm
 
-        return attr
+        if name not in self.fid['/PRODUCT']:
+            raise ValueError('dataset {} for found'.format(name))
+
+        dset = self.fid['/PRODUCT/{}'.format(name)]
+        msm = S5Pmsm(dset, data_sel=data_sel)
+        if '{}_precision'.format(name) in self.fid['/PRODUCT']:
+            msm.error = self.get_dataset('{}_precision'.format(name),
+                                         data_sel=data_sel)
+
+        if not mol_m2:
+            factor = dset.attrs[
+                'multiplication_factor_to_convert_to_molecules_percm2']
+            msm.value[msm.value != msm.fillvalue] *= factor
+            msm.units = 'molecules / cm^2'
+            if msm.error is not None:
+                msm.error[msm.error != msm.fillvalue] *= factor
+        else:
+            msm.units = 'mol / m^2'
+
+        if fill_as_nan:
+            msm.fill_as_nan()
+
+        return msm

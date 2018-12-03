@@ -45,27 +45,31 @@ def read_using_lv2_io(args):
         orbit = lv2.get_orbit()
 
         data_sel = np.s_[0, 500:-500, :]
-        lats = lv2.get_msm_data('latitude', data_sel=data_sel)
-        lons = lv2.get_msm_data('longitude', data_sel=data_sel)
+        lats = lv2.get_dataset('latitude', data_sel=data_sel)
+        lons = lv2.get_dataset('longitude', data_sel=data_sel)
 
         #data_sel = np.s_[0, 1598:2264, :]
         geo = lv2.get_geo_bounds(data_sel=data_sel)
         msm_name = 'carbonmonoxide_total_column'
-        co_data = lv2.get_msm_data(msm_name, data_sel=data_sel,
-                                   fill_as_nan=True)
-        msm = S5Pmsm(co_data)
-        msm.set_units(lv2.get_msm_attr(msm_name, 'units'))
-        msm.set_long_name(lv2.get_msm_attr(msm_name, 'long_name'))
+        co_data = lv2.get_dataset(msm_name, data_sel=data_sel,
+                                  fill_as_nan=True)
+        co_msm = lv2.get_data_as_s5pmsm(msm_name, data_sel=data_sel,
+                                        fill_as_nan=True)
 
     plot = S5Pplot('test_plot_lv2_io.pdf')
-    plot.draw_signal(msm, sub_title='CO orbit={}'.format(orbit))
+    plot.draw_signal(co_data, sub_title='CO orbit={}'.format(orbit))
+    plot.draw_signal(co_msm, sub_title='CO orbit={}'.format(orbit))
     plot.close()
 
     plot = S5Pgeoplot('test_plot_lv2_geo.pdf')
     plot.draw_geo_tiles(lons, lats)
-    plot.draw_geo_msm(geo['longitude'], geo['latitude'], msm,
+    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_data,
                       title='CO orbit={}'.format(orbit), whole_globe=True)
-    plot.draw_geo_msm(geo['longitude'], geo['latitude'], msm,
+    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_data,
+                      title='CO orbit={}'.format(orbit))
+    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_msm,
+                      title='CO orbit={}'.format(orbit), whole_globe=True)
+    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_msm,
                       title='CO orbit={}'.format(orbit))
     plot.close()
 
