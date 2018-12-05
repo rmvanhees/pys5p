@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 Purpose
 -------
-Perform (quick) unittest 
+Perform (quick) unittest
 
 Note
 ----
@@ -20,10 +20,8 @@ import argparse
 
 from pathlib import Path
 
-import h5py
 import numpy as np
 
-from pys5p.s5p_msm import S5Pmsm
 from pys5p.s5p_plot import S5Pplot
 from pys5p.s5p_geoplot import S5Pgeoplot
 
@@ -37,20 +35,38 @@ def read_using_lv2_io(args):
 
     with LV2io(args.input_file) as lv2:
         print(lv2)
+        print(lv2.science_product)
         print(lv2.get_algorithm_version())
         print(lv2.get_processor_version())
         print(lv2.get_product_version())
         print(lv2.get_creation_time())
         print(lv2.get_coverage_time())
         orbit = lv2.get_orbit()
+        if orbit is None:
+            orbit = -1
 
-        data_sel = np.s_[0, 500:-500, :]
-        lats = lv2.get_dataset('latitude', data_sel=data_sel)
-        lons = lv2.get_dataset('longitude', data_sel=data_sel)
+        geo = lv2.get_geo_data()
+        for key in geo:
+            print(key, geo[key].shape)
 
-        #data_sel = np.s_[0, 1598:2264, :]
+        if lv2.science_product:
+            data_sel = np.s_[750:-750, :]
+        else:
+            data_sel = np.s_[0, 750:-750, :]
         geo = lv2.get_geo_bounds(data_sel=data_sel)
-        msm_name = 'carbonmonoxide_total_column'
+        for key in geo:
+            print(key, geo[key].shape)
+
+        extent = [-180, 180, -30, 30]
+        data_sel, geo = lv2.get_geo_bounds(extent=extent)
+        print('data_sel: ', data_sel)
+        for key in geo:
+            print(key, geo[key].shape)
+
+        if lv2.science_product:
+            msm_name = 'co_column'
+        else:
+            msm_name = 'carbonmonoxide_total_column'
         co_data = lv2.get_dataset(msm_name, data_sel=data_sel,
                                   fill_as_nan=True)
         co_msm = lv2.get_data_as_s5pmsm(msm_name, data_sel=data_sel,
@@ -62,11 +78,6 @@ def read_using_lv2_io(args):
     plot.close()
 
     plot = S5Pgeoplot('test_plot_lv2_geo.pdf')
-    plot.draw_geo_tiles(lons, lats)
-    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_data,
-                      title='CO orbit={}'.format(orbit), whole_globe=True)
-    plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_data,
-                      title='CO orbit={}'.format(orbit))
     plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_msm,
                       title='CO orbit={}'.format(orbit), whole_globe=True)
     plot.draw_geo_msm(geo['longitude'], geo['latitude'], co_msm,

@@ -1341,7 +1341,7 @@ class S5Pplot():
             msm_dark = S5Pmsm(dpqm_dark)
         else:
             if not isinstance(dpqm_dark, S5Pmsm):
-                raise TypeError('dpqm_dark not an numpy.ndarray or pys5p.S5Pmsm')
+                raise TypeError('dpqm_dark not an ndarray or pys5p.S5Pmsm')
             msm_dark = dpqm_dark
 
         if msm_dark.value.ndim != 2:
@@ -1353,7 +1353,7 @@ class S5Pplot():
             msm_noise = S5Pmsm(dpqm_noise)
         else:
             if not isinstance(dpqm_noise, S5Pmsm):
-                raise TypeError('dpqm_noise not an numpy.ndarray or pys5p.S5Pmsm')
+                raise TypeError('dpqm_noise not an ndarray or pys5p.S5Pmsm')
             msm_noise = dpqm_noise
 
         if msm_noise.value.ndim != 2:
