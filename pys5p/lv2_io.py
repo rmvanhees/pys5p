@@ -56,7 +56,7 @@ class LV2io():
         # open LV2 product as HDF5 file
         self.fid = h5py.File(lv2_product, "r")
         try:
-            if self.fid.attrs['institution'] in science_inst:
+            if self.get_attr('institution') in science_inst:
                 self.science_product = True
         except OSError:
             self.science_product = True
@@ -71,6 +71,7 @@ class LV2io():
             self.ground_pixel += 1
             self.scanline = self.fid['/instrument/scanline'][:].max()
             self.scanline += 1
+            # alternative set flag sparse
             if self.fid['/instrument/scanline'].size % self.ground_pixel != 0:
                 raise ValueError('not all scanlines are complete')
         else:
