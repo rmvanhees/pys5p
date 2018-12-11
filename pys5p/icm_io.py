@@ -620,8 +620,9 @@ class ICMio():
 
         Returns
         -------
-        out   :   array-like
-           Compound array with data of selected datasets from the GEODATA group
+        out   :   dictionary
+           dictionary data of selected datasets from the GEODATA group
+           names of dictionary are taken from parameter geo_dset
         """
         if not self.__msm_path:
             return None
@@ -634,7 +635,7 @@ class ICMio():
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
 
-        res = None
+        res = {}
         if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_group_keys']
@@ -645,10 +646,7 @@ class ICMio():
                 grp = self.fid[grp_path]
                 sgrp = grp['GEODATA']
                 for key in geo_dset.split(','):
-                    if res is None:
-                        res = np.squeeze(sgrp[key])
-                    else:
-                        res = np.append(res, np.squeeze(sgrp[key]))
+                    res[key] = np.squeeze(sgrp[key])
         elif msm_type in ['DPQF_MAP', 'NOISE']:
             grp_path = str(Path(msm_path).parent / 'ANALOG_OFFSET_SWIR')
             grp = self.fid[grp_path]
@@ -660,17 +658,11 @@ class ICMio():
                 grp = self.fid[grp_path]
                 sgrp = grp['GEODATA']
                 for key in geo_dset.split(','):
-                    if res is None:
-                        res = np.squeeze(sgrp[key])
-                    else:
-                        res = np.append(res, np.squeeze(sgrp[key]))
+                    res[key] = np.squeeze(sgrp[key])
         else:
             grp = self.fid[str(Path(msm_path, 'GEODATA'))]
             for key in geo_dset.split(','):
-                if res is None:
-                    res = np.squeeze(grp[key])
-                else:
-                    res = np.append(res, np.squeeze(grp[key]))
+                res[key] = np.squeeze(grp[key])
 
         return res
 
