@@ -32,7 +32,7 @@ class CKDio():
 
     Not all CKD are defined or derived for all bands.
     You can request a CKD for one band or for a channel (bands: '12', '34',
-    '56', '78'). Do not mix bands from UVN and SWIR!
+    '56', '78'). Do not mix bands from different channels
     """
     def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd'):
         """
@@ -295,6 +295,55 @@ class CKDio():
 
             ckd.set_fillvalue()
 
+        return ckd
+
+    def relirr(self, qvd=1, bands='78'):
+        """
+        Returns relative irradiance correction
+
+        Parameters
+        ----------
+         - qvd   : integer
+                   select data from QVD1 or QVD2.
+                   Default QVD1
+         - bands : string
+                   select CKD for one band or a channel. Channels can be
+                   selected by bands equals '12', '34', '56' or '78'.
+                   Default SWIR channel 
+
+        Returns
+        -------
+        dictionary with keys:
+         - mapping_cols   :    coarse irregular mapping of the columns 
+         - mapping_rows   :    coarse irregular mapping of the rows 
+         - cheb_qvd       :    chebyshev parameters for elevation and azimuth
+                               for pixels on a coarse irregular grid
+
+        Note SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+
+        ckd = {}
+        for band in bands:
+            _sz = self.fid['/BAND{}/PRNU'.format(band)].shape
+            dsname = '/BAND{}/rel_irr_coarse_mapping_vert'.format(band)
+            if 'mapping_rows' not in ckd:
+                ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
+            dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
+            mapping_hor = self.fid[dsname][:].astype(int)
+            mapping_hor[mapping_hor > 1000] -= 2**16
+            if 'mapping_cols' not in ckd:
+                ckd['mapping_cols'] = mapping_hor
+            else:
+                ckd['mapping_cols'] = np.concatenate((ckd['mapping_cols'],
+                                                      mapping_hor + _sz[1]))
+            dsname = '/BAND{}/rel_irr_coarse_func_cheb_qvd{}'.format(band, qvd)
+            if 'cheb_qvd' not in ckd:
+                ckd['cheb_qvd'] = self.fid[dsname][:]
+            else:
+                ckd['cheb_qvd'] = np.hstack((ckd['cheb_qvd'],
+                                             self.fid[dsname][:]))
         return ckd
 
     def absrad(self, bands='78'):
