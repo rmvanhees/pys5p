@@ -309,13 +309,13 @@ class CKDio():
          - bands : string
                    select CKD for one band or a channel. Channels can be
                    selected by bands equals '12', '34', '56' or '78'.
-                   Default SWIR channel 
+                   Default SWIR channel
 
         Returns
         -------
         dictionary with keys:
-         - mapping_cols   :    coarse irregular mapping of the columns 
-         - mapping_rows   :    coarse irregular mapping of the rows 
+         - mapping_cols   :    coarse irregular mapping of the columns
+         - mapping_rows   :    coarse irregular mapping of the rows
          - cheb_qvd       :    chebyshev parameters for elevation and azimuth
                                for pixels on a coarse irregular grid
 
@@ -324,27 +324,24 @@ class CKDio():
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
 
-        ckd = {}
+        res = ()
         for band in bands:
-            _sz = self.fid['/BAND{}/PRNU'.format(band)].shape
+            ckd = {}
+            ckd['band'] = int(band)
+
             dsname = '/BAND{}/rel_irr_coarse_mapping_vert'.format(band)
-            if 'mapping_rows' not in ckd:
-                ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
+            ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
+
             dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
             mapping_hor = self.fid[dsname][:].astype(int)
             mapping_hor[mapping_hor > 1000] -= 2**16
-            if 'mapping_cols' not in ckd:
-                ckd['mapping_cols'] = mapping_hor
-            else:
-                ckd['mapping_cols'] = np.concatenate((ckd['mapping_cols'],
-                                                      mapping_hor + _sz[1]))
+            ckd['mapping_cols'] = mapping_hor
+
             dsname = '/BAND{}/rel_irr_coarse_func_cheb_qvd{}'.format(band, qvd)
-            if 'cheb_qvd' not in ckd:
-                ckd['cheb_qvd'] = self.fid[dsname][:]
-            else:
-                ckd['cheb_qvd'] = np.hstack((ckd['cheb_qvd'],
-                                             self.fid[dsname][:]))
-        return ckd
+            ckd['cheb_coefs'] = self.fid[dsname]['coefs'][:]
+            res += (ckd,)
+
+        return res
 
     def absrad(self, bands='78'):
         """

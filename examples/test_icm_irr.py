@@ -27,9 +27,13 @@ def read_using_icm_io(args):
     """
     Perform read of SWIR irradiance data using ICMio
     """
+    from pys5p.biweight import biweight
     from pys5p.icm_io import ICMio
+    from pys5p.s5p_plot import S5Pplot
 
     geo_dset='solar_azimuth_angle,solar_elevation_angle'
+
+    plot = S5Pplot('test_plot_icm_irr.pdf')
 
     result = {}
     with ICMio(args.input_file) as icm:
@@ -50,10 +54,16 @@ def read_using_icm_io(args):
             for key in geo_dset.split(','):
                 print(key, res[key].shape)
             irr = icm.get_msm_data('irradiance')
-            indx = np.where(np.abs(res['solar_elevation_angle']) <= 3.4)[0]
+            indx = np.where(np.abs(res['solar_elevation_angle']) <= 1.)[0]
+            irr_med = biweight(irr[indx, :, :], axis=0)
+            print(irr.shape, irr_med.shape)
+            plot.draw_signal(biweight(irr / irr_med, axis=0))
+            plot.draw_signal(biweight(irr / irr_med, axis=1))
+            plot.draw_signal(biweight(irr / irr_med, axis=2))
             print(res['solar_elevation_angle'][indx])
             result[msm_type] = irr[indx, :, :]
-            
+
+    plot.close()
     return result
         
 # - main function --------------------------------------
