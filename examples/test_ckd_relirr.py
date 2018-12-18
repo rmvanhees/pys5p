@@ -48,16 +48,24 @@ def relirr_factor(bands, azi=2., elev=4.):
                     elev/6, azi/12, ckd_bands[0]['cheb_coefs'][iy, ix, :, :])
                 buff2[iy, ix] = chebval2d(
                     elev/6, azi/12, ckd_bands[1]['cheb_coefs'][iy, ix, :, :])
-
+        # first spectral band
+        print(ckd_bands[0]['mapping_cols'].shape,
+              ckd_bands[0]['mapping_cols'])
         f_interpol = interpolate.interp2d(ckd_bands[0]['mapping_cols'],
                                           ckd_bands[0]['mapping_rows'],
                                           buff1, kind='linear')
         buff1_fine = f_interpol(np.arange(500), np.arange(256))
+        # second spectral band
+        print(ckd_bands[1]['mapping_cols'].shape,
+              ckd_bands[1]['mapping_cols'])
         f_interpol = interpolate.interp2d(ckd_bands[1]['mapping_cols'],
                                           ckd_bands[1]['mapping_rows'],
                                           buff2, kind='linear')
         buff2_fine = f_interpol(np.arange(500), np.arange(256))
+        # combine both spectral bands
         relirr_fine = np.hstack((buff1_fine, buff2_fine))
+        for ix in range(1000):
+            print(ix, relirr_fine[100, ix])
     elif len(bands) == 1:
         _sz = ckd_bands[0]['cheb_coefs'].shape
         buff1 = np.empty((_sz[0], _sz[1]), dtype=float)

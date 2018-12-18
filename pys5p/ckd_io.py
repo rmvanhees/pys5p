@@ -314,9 +314,10 @@ class CKDio():
         Returns
         -------
         dictionary with keys:
+         - band           :    Tropomi spectral band ID
          - mapping_cols   :    coarse irregular mapping of the columns
          - mapping_rows   :    coarse irregular mapping of the rows
-         - cheb_qvd       :    chebyshev parameters for elevation and azimuth
+         - cheb_coefs     :    chebyshev parameters for elevation and azimuth
                                for pixels on a coarse irregular grid
 
         Note SWIR row 257 is excluded
