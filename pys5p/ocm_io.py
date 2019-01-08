@@ -246,6 +246,21 @@ class OCMio():
 
         return res
 
+    def get_gse_stimuli(self):
+        """
+        Returns GSE stimuli parameters
+        """
+        if not self.__msm_path:
+            return {}
+
+        grp = self.fid['BAND{}'.format(self.band)]
+        res = {}
+        for msm in sorted(self.__msm_path):
+            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
+            res[msm] = np.squeeze(sgrp['gse_stimuli'])
+
+        return res
+
     def get_exposure_time(self):
         """
         Returns the exact pixel exposure time of the measurements
