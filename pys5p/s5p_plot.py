@@ -1951,6 +1951,11 @@ class S5Pplot():
                     axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                     if ylim is not None:
                         delta = (ylim[1] - ylim[0]) / 5
+                        if delta == 0:
+                            if ylim[0] == 0:
+                                delta = 0.01
+                            else:
+                                delta = ylim[0] / 20
                         axarr[i_ax].set_ylim([ylim[0] - delta, ylim[1] + delta])
                     axarr[i_ax].grid(True)
                     axarr[i_ax].set_ylabel(hk_label)
