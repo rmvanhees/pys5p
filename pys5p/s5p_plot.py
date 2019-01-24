@@ -1624,7 +1624,7 @@ class S5Pplot():
         self.close_page(fig, fig_info)
 
     # --------------------------------------------------
-    def draw_trend1d(self, msm, hk_data=None, *, hk_keys=None,
+    def draw_trend1d(self, msm1, msm2=None, hk_data=None, *, hk_keys=None,
                      title=None, sub_title=None,
                      fig_info=None, placeholder=False):
         """
@@ -1659,7 +1659,7 @@ class S5Pplot():
         from .sron_colormaps import get_qfour_colors, get_line_colors
 
         # we require measurement data and/or house-keeping data
-        if msm is None and hk_data is None:
+        if msm1 is None and hk_data is None:
             raise ValueError(
                 'measurement data and/or house-keeping data are required')
 
@@ -1673,9 +1673,41 @@ class S5Pplot():
             return Rectangle((0, 0), 0, 0, fill=False,
                              edgecolor='none', visible=False)
 
+        def get_xdata(msm, use_steps):
+            """
+            Returns xdata and xlabel
+            """
+            (xlabel,) = msm.coords._fields
+            xdata = msm.coords[0][:].copy()
+
+            # define data gaps to avoid interpolation over missing data
+            if not integer_and_increasing(xdata):
+                indx = np.where(xdata[1:] <= xdata[:-1])[0]
+                if indx.size != 0:
+                    raise ValueError(
+                        'x-coordinate not increasing at {}'.format(indx))
+                raise ValueError('x-coordinate not of type integer')
+
+            xsteps = np.unique(np.diff(xdata))
+            xstep = xsteps.min()
+            dx_mn = xstep
+            for xx in xsteps:
+                if gcd(dx_mn, xx) < xstep:
+                    xstep = gcd(dx_mn, xx)
+
+            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+            for indx in reversed(gap_list):
+                xdata = np.insert(xdata, indx, xdata[indx])
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+            if use_steps:
+                xdata = np.append(xdata, xdata[-1]+xstep)
+
+            return (xlabel, xdata, gap_list)
+
         # make sure that we use 'large' fonts in the small plots
         if self.__pdf is None:
-            plt.rc('font', size=15)
+            plt.rc('font', size=10)
 
         # define aspect for the location of fig_info
         self.aspect = 3
@@ -1684,16 +1716,20 @@ class S5Pplot():
         lcolors = get_line_colors()
 
         # define number of pannels for measurement data
-        if msm is None:
+        if msm1 is None:
             plot_mode = 'house-keeping'
             npanels = 0
-        elif (msm.value.dtype.names is not None
-              and 'bad' in msm.value.dtype.names):
+        elif (msm1.value.dtype.names is not None
+              and 'bad' in msm1.value.dtype.names):
             plot_mode = 'quality'
             npanels = 2
+            use_steps = msm1.value.size <= 256
         else:
             plot_mode = 'data'
             npanels = 1
+            use_steps = msm1.value.size <= 256
+            if msm2 is not None:
+                npanels = 2
 
         # add pannels for housekeeping parameters
         if hk_data is not None:
@@ -1724,40 +1760,14 @@ class S5Pplot():
         if sub_title is not None:
             axarr[0].set_title(sub_title, fontsize='large')
 
-        # define x-axis and its label
-        if plot_mode in ('quality', 'data'):
-            (xlabel,) = msm.coords._fields
-            xdata = msm.coords[0][:].copy()
-            use_steps = xdata.size <= 256
-
-            # define data gaps to avoid interpolation over missing data
-            if not integer_and_increasing(xdata):
-                indx = np.where(xdata[1:] <= xdata[:-1])[0]
-                if indx.size != 0:
-                    raise ValueError(
-                        'x-coordinate not increasing at {}'.format(indx))
-                raise ValueError('x-coordinate not of type integer')
-            xsteps = np.unique(np.diff(xdata))
-            xstep = xsteps.min()
-            dx_mn = xstep
-            for xx in xsteps:
-                if gcd(dx_mn, xx) < xstep:
-                    xstep = gcd(dx_mn, xx)
-
-            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-            for indx in reversed(gap_list):
-                xdata = np.insert(xdata, indx, xdata[indx])
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            if use_steps:
-                xdata = np.append(xdata, xdata[-1]+xstep)
-
         # Implemented 3 options
         # 1) only house-keeping data, no upper-panel with detector data
         # 2) draw pixel-quality data, displayed in the upper-panel
         # 3) draw measurement data, displayed in the upper-panel
         i_ax = 0
         if plot_mode == 'quality':
+            (xlabel, xdata, gap_list) = get_xdata(msm1, use_steps)
+
             qcolors = get_qfour_colors()
             qc_dict = {'bad': qcolors.bad,
                        'worst': qcolors.worst}
@@ -1765,7 +1775,7 @@ class S5Pplot():
                        'worst': 'worst (quality < 0.1)'}
 
             for key in ['bad', 'worst']:
-                ydata = msm.value[key].copy().astype(float)
+                ydata = msm1.value[key].copy().astype(float)
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, np.nan)
@@ -1787,56 +1797,63 @@ class S5Pplot():
                 legenda.draw_frame(False)
                 i_ax += 1
         elif plot_mode == 'data':
-            # convert units from electrons to ke, Me, ...
-            if msm.error is None:
-                vmin = msm.value.min()
-                vmax = msm.value.max()
-            else:
-                vmin = msm.error[0].min()
-                vmax = msm.error[1].max()
-            (zunit, dscale) = convert_units(msm.units, vmin, vmax)
+            for msm in (msm1, msm2):
+                if msm is None:
+                    continue
 
-            ydata = msm.value.copy() / dscale
-            for indx in reversed(gap_list):
-                ydata = np.insert(ydata, indx, np.nan)
-                ydata = np.insert(ydata, indx, np.nan)
-                ydata = np.insert(ydata, indx, ydata[indx-1])
+                # convert units from electrons to ke, Me, ...
+                if msm.error is None:
+                    vmin = msm.value.min()
+                    vmax = msm.value.max()
+                else:
+                    vmin = msm.error[0].min()
+                    vmax = msm.error[1].max()
+                (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
-            if use_steps:
-                ydata = np.append(ydata, ydata[-1])
-                axarr[i_ax].step(xdata, ydata, where='post',
-                                 lw=1.5, color=lcolors.blue)
-            else:
-                axarr[i_ax].plot(xdata, ydata,
-                                 lw=1.5, color=lcolors.blue)
-
-            if msm.error is not None:
-                yerr1 = msm.error[0].copy() / dscale
-                yerr2 = msm.error[1].copy() / dscale
+                (xlabel, xdata, gap_list) = get_xdata(msm, use_steps)
+                ydata = msm.value.copy() / dscale
                 for indx in reversed(gap_list):
-                    yerr1 = np.insert(yerr1, indx, np.nan)
-                    yerr2 = np.insert(yerr2, indx, np.nan)
-                    yerr1 = np.insert(yerr1, indx, np.nan)
-                    yerr2 = np.insert(yerr2, indx, np.nan)
-                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
-                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+                    ydata = np.insert(ydata, indx, np.nan)
+                    ydata = np.insert(ydata, indx, np.nan)
+                    ydata = np.insert(ydata, indx, ydata[indx-1])
 
                 if use_steps:
-                    yerr1 = np.append(yerr1, yerr1[-1])
-                    yerr2 = np.append(yerr2, yerr2[-1])
-                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                             step='post', facecolor='#BBCCEE')
+                    ydata = np.append(ydata, ydata[-1])
+                    axarr[i_ax].step(xdata, ydata, where='post',
+                                     lw=1.5, color=lcolors.blue)
                 else:
-                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                             facecolor='#BBCCEE')
+                    axarr[i_ax].plot(xdata, ydata,
+                                     lw=1.5, color=lcolors.blue)
 
-            axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
-            axarr[i_ax].grid(True)
-            if zunit is None:
-                axarr[i_ax].set_ylabel('detector value')
-            else:
-                axarr[i_ax].set_ylabel(r'detector value [{}]'.format(zunit))
-            i_ax += 1
+                if msm.error is not None:
+                    yerr1 = msm.error[0].copy() / dscale
+                    yerr2 = msm.error[1].copy() / dscale
+                    for indx in reversed(gap_list):
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                        yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+                    if use_steps:
+                        yerr1 = np.append(yerr1, yerr1[-1])
+                        yerr2 = np.append(yerr2, yerr2[-1])
+                        axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                                 step='post',
+                                                 facecolor='#BBCCEE')
+                    else:
+                        axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                                 facecolor='#BBCCEE')
+
+                axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
+                axarr[i_ax].grid(True)
+                if zunit is None:
+                    axarr[i_ax].set_ylabel(msm.long_name)
+                else:
+                    axarr[i_ax].set_ylabel(r'{} [{}]'.format(
+                        msm.long_name, zunit))
+                i_ax += 1
 
         # add figures with house-keeping data
         if hk_data is not None:
