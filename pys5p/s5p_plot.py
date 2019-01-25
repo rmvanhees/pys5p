@@ -42,14 +42,37 @@ from .s5p_msm import S5Pmsm
 
 
 # - local functions --------------------------------
-def integer_and_increasing(data):
+def get_xdata(xdata, use_steps):
     """
-    Return True when data is integer and increasing
+    The X-coordinate from the data in object msm is checked for data gaps.
+    The data of the X-coordinate is extended to avoid interpolation over
+    missing data.
+
+    A list of indices to all data gaps is also returned which can be used to
+    update the Y-coordinate.
     """
-    return (np.issubdtype(data.dtype, np.integer)
-            and np.all(data[1:] > data[:-1]))
+    # this function only works when the X-coordinate is of type integer and
+    # increasing
+    if not np.issubdtype(xdata.dtype, np.integer):
+        raise ValueError('x-coordinate not of type integer')
+    if not np.all(xdata[1:] > xdata[:-1]):
+        indx = np.where(xdata[1:] <= xdata[:-1])[0]
+        raise ValueError('x-coordinate not increasing at {}'.format(indx))
+
+    xstep = np.gcd.reduce(xdata)
+    gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+    for indx in reversed(gap_list):
+        xdata = np.insert(xdata, indx, xdata[indx])
+        xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+        xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
+
+    if use_steps:
+        xdata = np.append(xdata, xdata[-1] + xstep)
+
+    return (xdata, gap_list)
 
 
+# -------------------------
 # set the colormap and centre the colorbar
 class MidpointNormalize(mpl.colors.Normalize):
     """
@@ -276,7 +299,7 @@ class S5Pplot():
 
             iarr = (msm.value * 10).astype(np.int8)
             if not ((iarr >= 0) & (iarr <= 10)).all():
-                raise ValueError('pixel quality data out of rainge')
+                raise ValueError('pixel quality data out of range')
 
             self.data = scale_dpqm[iarr+1]
             if ref_img is not None:
@@ -284,7 +307,7 @@ class S5Pplot():
 
                 iarr = (ref_img * 10).astype(np.int8)
                 if not ((iarr >= 0) & (iarr <= 10)).all():
-                    raise ValueError('pixel quality data out of rainge')
+                    raise ValueError('pixel quality data out of range')
                 ref_data = scale_dpqm[iarr+1]
 
                 # all pixels are initialy unchanged
@@ -1424,9 +1447,6 @@ class S5Pplot():
         """
         import warnings
 
-        # should be replaced by the numpy function (requires numpy v1.15+)
-        from math import gcd
-
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -1487,35 +1507,22 @@ class S5Pplot():
             (ylabel, xlabel) = msm.coords._fields
 
         # set range of X/Y axis
-        # determine xstep as greatest common divisor (numpy v1.15+)
         xdata = msm.coords[1]
-        if not integer_and_increasing(xdata):
-            indx = np.where(xdata[1:] <= xdata[:-1])[0]
-            if indx.size != 0:
-                raise ValueError(
-                    'x-coordinate not increasing at {}'.format(indx))
+        if not np.issubdtype(xdata.dtype, np.integer):
             raise ValueError('x-coordinate not of type integer')
-        xsteps = np.unique(np.diff(xdata))
-        xstep = xsteps.min()
-        dx_mn = xstep
-        for xx in xsteps:
-            if gcd(dx_mn, xx) < xstep:
-                xstep = gcd(dx_mn, xx)
+        if not np.all(xdata[1:] > xdata[:-1]):
+            indx = np.where(xdata[1:] <= xdata[:-1])[0]
+            raise ValueError('x-coordinate not increasing at {}'.format(indx))
+        xstep = np.gcd.reduce(xdata)
 
         # determine ystep as greatest common divisor (numpy v1.15+)
         ydata = msm.coords[0]
-        if not integer_and_increasing(ydata):
-            indx = np.where(ydata[1:] <= ydata[:-1])[0]
-            if indx.size != 0:
-                raise ValueError(
-                    'y-coordinate not increasing at {}'.format(indx))
+        if not np.issubdtype(ydata.dtype, np.integer):
             raise ValueError('y-coordinate not of type integer')
-        ysteps = np.unique(np.diff(ydata))
-        ystep = ysteps.min()
-        dy_mn = ystep
-        for yy in ysteps:
-            if gcd(dy_mn, yy) < ystep:
-                ystep = gcd(dy_mn, yy)
+        if not np.all(ydata[1:] > ydata[:-1]):
+            indx = np.where(ydata[1:] <= ydata[:-1])[0]
+            raise ValueError('y-coordinate not increasing at {}'.format(indx))
+        ystep = np.gcd.reduce(ydata)
 
         # define extent of image
         extent = [xdata.min(), xdata.max()+xstep,
@@ -1624,7 +1631,7 @@ class S5Pplot():
         self.close_page(fig, fig_info)
 
     # --------------------------------------------------
-    def draw_trend1d(self, msm1, msm2=None, hk_data=None, *, hk_keys=None,
+    def draw_trend1d(self, msm1, hk_data=None, *, msm2=None, hk_keys=None,
                      title=None, sub_title=None,
                      fig_info=None, placeholder=False):
         """
@@ -1632,8 +1639,10 @@ class S5Pplot():
 
         Parameters
         ----------
-        msm       :  pys5p.S5Pmsm, optional
-           Object holding measurement data and its HDF5 attributes
+        msm1      :  pys5p.S5Pmsm, optional
+           Object with measurement data and its HDF5 attributes (first figure)
+        msm2      :  pys5p.S5Pmsm, optional
+           Object with measurement data and its HDF5 attributes (second figure)
         hk_data   :  pys5p.S5Pmsm, optional
            Object holding housekeeping data and its HDF5 attributes
         hk_keys    : list or tuple
@@ -1647,13 +1656,13 @@ class S5Pplot():
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
-        The information provided in the parameter 'fig_info' will be displayed
-        in a small box. In addition, we display the creation date and the data
-        median & spread.
-        """
-        # should be replaced by the numpy function (requires numpy v1.15+)
-        from math import gcd
+        You have to provide a non-None value for parameter 'msm1' or 'hk_data'.
+        Only house-keeping data will be shown when 'msm1' is None (parameter
+        'msm2' is ignored when 'msm1' equals None.
 
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box. In addition, we display the creation date of the figure.
+        """
         from matplotlib import pyplot as plt
 
         from .sron_colormaps import get_qfour_colors, get_line_colors
@@ -1673,38 +1682,6 @@ class S5Pplot():
             return Rectangle((0, 0), 0, 0, fill=False,
                              edgecolor='none', visible=False)
 
-        def get_xdata(msm, use_steps):
-            """
-            Returns xdata and xlabel
-            """
-            (xlabel,) = msm.coords._fields
-            xdata = msm.coords[0][:].copy()
-
-            # define data gaps to avoid interpolation over missing data
-            if not integer_and_increasing(xdata):
-                indx = np.where(xdata[1:] <= xdata[:-1])[0]
-                if indx.size != 0:
-                    raise ValueError(
-                        'x-coordinate not increasing at {}'.format(indx))
-                raise ValueError('x-coordinate not of type integer')
-
-            xsteps = np.unique(np.diff(xdata))
-            xstep = xsteps.min()
-            dx_mn = xstep
-            for xx in xsteps:
-                if gcd(dx_mn, xx) < xstep:
-                    xstep = gcd(dx_mn, xx)
-
-            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-            for indx in reversed(gap_list):
-                xdata = np.insert(xdata, indx, xdata[indx])
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            if use_steps:
-                xdata = np.append(xdata, xdata[-1]+xstep)
-
-            return (xlabel, xdata, gap_list)
-
         # make sure that we use 'large' fonts in the small plots
         if self.__pdf is None:
             plt.rc('font', size=10)
@@ -1722,14 +1699,15 @@ class S5Pplot():
         elif (msm1.value.dtype.names is not None
               and 'bad' in msm1.value.dtype.names):
             plot_mode = 'quality'
-            npanels = 2
             use_steps = msm1.value.size <= 256
+            npanels = 2
         else:
             plot_mode = 'data'
-            npanels = 1
             use_steps = msm1.value.size <= 256
             if msm2 is not None:
                 npanels = 2
+            else:
+                npanels = 1
 
         # add pannels for housekeeping parameters
         if hk_data is not None:
@@ -1766,7 +1744,8 @@ class S5Pplot():
         # 3) draw measurement data, displayed in the upper-panel
         i_ax = 0
         if plot_mode == 'quality':
-            (xlabel, xdata, gap_list) = get_xdata(msm1, use_steps)
+            (xlabel,) = msm1.coords._fields
+            (xdata, gap_list) = get_xdata(msm1.coords[0][:].copy(), use_steps)
 
             qcolors = get_qfour_colors()
             qc_dict = {'bad': qcolors.bad,
@@ -1797,6 +1776,7 @@ class S5Pplot():
                 legenda.draw_frame(False)
                 i_ax += 1
         elif plot_mode == 'data':
+            (xlabel,) = msm1.coords._fields
             for msm in (msm1, msm2):
                 if msm is None:
                     continue
@@ -1810,7 +1790,8 @@ class S5Pplot():
                     vmax = msm.error[1].max()
                 (zunit, dscale) = convert_units(msm.units, vmin, vmax)
 
-                (xlabel, xdata, gap_list) = get_xdata(msm, use_steps)
+                (xdata, gap_list) = get_xdata(msm.coords[0][:].copy(),
+                                              use_steps)
                 ydata = msm.value.copy() / dscale
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
@@ -1860,28 +1841,7 @@ class S5Pplot():
             (xlabel,) = hk_data.coords._fields
             xdata = hk_data.coords[0][:].copy()
             use_steps = xdata.size <= 256
-
-            # define data gaps to avoid interpolation over missing data
-            if not integer_and_increasing(xdata):
-                indx = np.where(xdata[1:] <= xdata[:-1])[0]
-                if indx.size != 0:
-                    raise ValueError(
-                        'x-coordinate not increasing at {}'.format(indx))
-                raise ValueError('x-coordinate not of type integer')
-            xsteps = np.unique(np.diff(xdata))
-            xstep = xsteps.min()
-            dx_mn = xstep
-            for xx in xsteps:
-                if gcd(dx_mn, xx) < xstep:
-                    xstep = gcd(dx_mn, xx)
-
-            gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-            for indx in reversed(gap_list):
-                xdata = np.insert(xdata, indx, xdata[indx])
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-                xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            if use_steps:
-                xdata = np.append(xdata, xdata[-1]+xstep)
+            (xdata, gap_list) = get_xdata(xdata, use_steps)
 
             if xlabel == 'time':
                 xdata = xdata.astype(np.float) / 3600
@@ -2035,9 +1995,6 @@ class S5Pplot():
         -------
         mpl_fig : tuple with matplotlib.figure.Figure and matplotlib.axes.Axes
         """
-        # should be replaced by the numpy function (requires numpy v1.15+)
-        from math import gcd
-
         from matplotlib import pyplot as plt
 
         from .sron_colormaps import get_line_colors
@@ -2117,28 +2074,7 @@ class S5Pplot():
         (xlabel,) = msm.coords._fields
         xdata = msm.coords[0][:].copy()
         use_steps = xdata.size <= 256
-
-        # define data gaps to avoid interpolation over missing data
-        if not integer_and_increasing(xdata):
-            indx = np.where(xdata[1:] <= xdata[:-1])[0]
-            if indx.size != 0:
-                raise ValueError(
-                    'x-coordinate not increasing at {}'.format(indx))
-            raise ValueError('x-coordinate not of type integer')
-        xsteps = np.unique(np.diff(xdata))
-        xstep = xsteps.min()
-        dx_mn = xstep
-        for xx in xsteps:
-            if gcd(dx_mn, xx) < xstep:
-                xstep = gcd(dx_mn, xx)
-
-        gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
-        for indx in reversed(gap_list):
-            xdata = np.insert(xdata, indx, xdata[indx])
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-            xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
-        if use_steps:
-            xdata = np.append(xdata, xdata[-1]+xstep)
+        (xdata, gap_list) = get_xdata(xdata, use_steps)
 
         # convert units from electrons to ke, Me, ...
         if msm.error is None:
