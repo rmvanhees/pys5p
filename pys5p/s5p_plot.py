@@ -59,7 +59,7 @@ def get_xdata(xdata, use_steps):
         indx = np.where(xdata[1:] <= xdata[:-1])[0]
         raise ValueError('x-coordinate not increasing at {}'.format(indx))
 
-    xstep = np.gcd.reduce(xdata)
+    xstep = np.gcd.reduce(np.diff(xdata))
     gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
     for indx in reversed(gap_list):
         xdata = np.insert(xdata, indx, xdata[indx])
@@ -1507,22 +1507,22 @@ class S5Pplot():
             (ylabel, xlabel) = msm.coords._fields
 
         # set range of X/Y axis
+        # determine xstep and ystep with greatest common divisor (numpy v1.15+)
         xdata = msm.coords[1]
         if not np.issubdtype(xdata.dtype, np.integer):
             raise ValueError('x-coordinate not of type integer')
         if not np.all(xdata[1:] > xdata[:-1]):
             indx = np.where(xdata[1:] <= xdata[:-1])[0]
             raise ValueError('x-coordinate not increasing at {}'.format(indx))
-        xstep = np.gcd.reduce(xdata)
+        xstep = np.gcd.reduce(np.diff(xdata))
 
-        # determine ystep as greatest common divisor (numpy v1.15+)
         ydata = msm.coords[0]
         if not np.issubdtype(ydata.dtype, np.integer):
             raise ValueError('y-coordinate not of type integer')
         if not np.all(ydata[1:] > ydata[:-1]):
             indx = np.where(ydata[1:] <= ydata[:-1])[0]
             raise ValueError('y-coordinate not increasing at {}'.format(indx))
-        ystep = np.gcd.reduce(ydata)
+        ystep = np.gcd.reduce(np.diff(ydata))
 
         # define extent of image
         extent = [xdata.min(), xdata.max()+xstep,
