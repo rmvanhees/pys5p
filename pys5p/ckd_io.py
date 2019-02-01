@@ -54,11 +54,11 @@ class CKDio():
         self.ckd_file = res[-1]
         self.fid = h5py.File(self.ckd_file, "r")
 
-    def __del__(self):
-        """
-        called when the object is destroyed
-        """
-        self.close()
+    # def __del__(self):
+    #    """
+    #    called when the object is destroyed
+    #    """
+    #    self.close()
 
     def __enter__(self):
         """

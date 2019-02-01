@@ -51,10 +51,12 @@ def __biweight(data):
 
     wmx = np.maximum(0, 1 - (deltas / (6 * med_dd)) ** 2) ** 2
     xbi = med_xx + np.sum(wmx * deltas) / np.sum(wmx)
+
     umn = np.minimum(1, (deltas / (9 * med_dd)) ** 2)
     sbi = np.sum(deltas ** 2 * (1 - umn) ** 4)
     sbi /= np.sum((1 - umn) * (1 - 5 * umn)) ** 2
     sbi = np.sqrt(len(xx) * sbi)
+
     return (xbi, sbi)
 
 
@@ -72,8 +74,8 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
        axis along which the biweight medians are computed.
         - Note that axis will be ignored when data is a 1-D array.
     cpu_count : int, optional
-       specify number of threads to be used.
-        - Multiprocessing is used only when axis is not None.
+       specify number of threads to be used. Default is None
+        - Note Multiprocessing is used only when axis is not None.
     spread :   bool, optional
        if True, then return the biweight spread.
 
