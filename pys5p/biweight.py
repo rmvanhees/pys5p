@@ -82,7 +82,7 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
-    import multiprocessing as mp
+    from multiprocessing import Pool
 
     if axis is None or data.ndim == 1:
         if spread:
@@ -96,22 +96,18 @@ def biweight(data, axis=None, cpu_count=None, spread=False):
     if not 0 <= axis < data.ndim:
         raise ValueError('axis out-of-range')
 
-    if cpu_count is None:
-        pool = mp.Pool()
-    else:
-        pool = mp.Pool(cpu_count)
-
+    # prepare data for multiprocessing
     res_size = data.size // data.shape[axis]
     tmp = np.moveaxis(data, axis, 0)        # returns a numpy view
     shape = tmp.shape
     buff = tmp.reshape(shape[0], res_size)  # returns a numpy view
     ins = [buff[:, ii] for ii in range(res_size)]
-    if spread:
-        outs = pool.map(__biweight, ins)
-    else:
-        outs = pool.map(__biweight_median, ins)
-    pool.close()
-    pool.join()
+
+    with Pool(cpu_count) as pool:
+        if spread:
+            outs = pool.map(__biweight, ins)
+        else:
+            outs = pool.map(__biweight_median, ins)
 
     if spread:
         res = np.array(outs).reshape(shape[1:] + (2,))
