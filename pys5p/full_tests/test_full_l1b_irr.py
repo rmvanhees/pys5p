@@ -73,7 +73,7 @@ def test_rd_irrad(msm_dset=None):
                     dset = l1b.get_msm_data(dset_name, band=ib)
                     print('\t {}[{}]: {}'.format(dset_name, ib, dset.shape))
 
-    del l1b
+    l1b.close()
 
 if __name__ == '__main__':
     test_rd_irrad()

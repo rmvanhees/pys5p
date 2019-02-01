@@ -63,7 +63,7 @@ def show_signals(args):
     plot.draw_trend2d(res[:, 20:-20], time_axis=1,
                       sub_title='orbit={}, ICID={}'.format(orbit, args.icid))
     plot.close()
-    del icm
+    icm.close()
 
 
 # - main function --------------------------------------

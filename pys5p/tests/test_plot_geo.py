@@ -44,7 +44,7 @@ def test_geo():
     print(l1b, file=sys.stderr)
     l1b.select()
     geo = l1b.get_geo_data(icid=4)
-    del l1b
+    l1b.close()
 
     plot = S5Pplot('test_plot_geo.pdf')
     plot.draw_geolocation(geo['latitude'], geo['longitude'],
@@ -56,7 +56,7 @@ def test_geo():
     print(l1b, file=sys.stderr)
     l1b.select('BACKGROUND_RADIANCE_MODE_0005')
     geo = l1b.get_geo_data()
-    del l1b
+    l1b.close()
 
     plot.draw_geolocation(geo['satellite_latitude'],
                           geo['satellite_longitude'],

@@ -79,7 +79,7 @@ def test_rd_radiance(msm_dset=None):
                     dset = l1b.get_msm_data(dset_name, icid=icid)
                     print('\t {}[{}]: {}'.format(dset_name, icid, dset.shape))
 
-    del l1b
+    l1b.close()
 
 if __name__ == '__main__':
     test_rd_radiance()

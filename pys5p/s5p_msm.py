@@ -267,7 +267,7 @@ class S5Pmsm():
         """
         Set fillvalue to KNMI undefined
         """
-        if self.value.dtype == np.float64 or self.value.dtype == np.float32:
+        if self.value.dtype in (np.float, np.float32):
             if self.fillvalue is None or self.fillvalue == 0.:
                 self.fillvalue = float.fromhex('0x1.ep+122')
 
@@ -291,6 +291,12 @@ class S5Pmsm():
 
     def sort(self, axis=0):
         """
+        Sort data and its coordinate along a given axis
+
+        Parameters
+        ----------
+        axis  : int, optional
+           axis for which the array will be sorted. Default is 0.
         """
         if not isinstance(axis, int):
             raise TypeError('axis not an integer')
@@ -336,7 +342,7 @@ class S5Pmsm():
         msm   :  pys5p.S5Pmsm
            an S5Pmsm object
         axis  : int, optional
-           The axis along which the arrays will be joined. Default is 0.
+           The axis for which the array will be joined. Default is 0.
 
         Returns
         -------

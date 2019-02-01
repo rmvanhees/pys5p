@@ -66,11 +66,11 @@ class ICMio():
             if not attr.startswith("__"):
                 yield attr
 
-    def __del__(self):
-        """
-        called when the object is destroyed
-        """
-        self.close()
+    # def __del__(self):
+    #    """
+    #    called when the object is destroyed
+    #    """
+    #    self.close()
 
     def __enter__(self):
         """
@@ -119,6 +119,7 @@ class ICMio():
                 dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
 
         self.fid.close()
+        self.fid = None
 
     # ---------- RETURN VERSION of the S/W ----------
     def find(self, msm_class):
@@ -686,7 +687,7 @@ class ICMio():
         Returns
         -------
         out  :  array
-           Data of measurement dataset "msm_dset"
+           Data of measurement dataset "msm_dset" (floats converted to np.float)
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -742,9 +743,11 @@ class ICMio():
                         raise ValueError
 
                 if dset.dtype == np.float32:
-                    res = np.squeeze(dset[data_sel]).astype(np.float64)
+                    with dset.astype(np.float):
+                        res = np.squeeze(dset[data_sel])
                 else:
                     res = np.squeeze(dset[data_sel])
+
                 if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
                     res[(res == fillvalue)] = np.nan
                 data.append(res)

@@ -116,9 +116,9 @@ def test_frame():
                      fig_info=None)
     plot.draw_hist(msm, msm_err,
                    title=ocm7.get_attr('title'), fig_info=None)
-    del plot
-    del ocm7
-    del ocm8
+    plot.close()
+    ocm7.close()
+    ocm8.close()
 
 if __name__ == '__main__':
     test_frame()

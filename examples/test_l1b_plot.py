@@ -49,14 +49,14 @@ def read_using_l1b_io(args):
     indx = np.where(np.mean(geo['solar_zenith_angle'], axis=1) <= 85)[0]
     res = l1b.get_msm_data('radiance', icid=args.icid, fill_as_nan=True)
     res_b7 = res[indx, ...]
-    del l1b
+    l1b.close()
 
     l1b = L1BioRAD(args.input_file.replace('_BD7_', '_BD8_'))
     print(l1b)
     l1b.select()
     res = l1b.get_msm_data('radiance', icid=args.icid, fill_as_nan=True)
     res_b8 = res[indx, ...]
-    del l1b
+    l1b.close()
     res = np.dstack((res_b7, res_b8))
     print('radiance', res.shape)
 
@@ -84,7 +84,7 @@ def read_using_s5p_msm(args):
     l1b.select()
     geo = l1b.get_geo_data(icid=args.icid, geo_dset='solar_zenith_angle')
     indx = np.where(np.mean(geo['solar_zenith_angle'], axis=1) <= 85)[0]
-    del l1b
+    l1b.close()
 
     with h5py.File(args.input_file, 'r') as fid:
         msm_name = '/BAND7_RADIANCE/STANDARD_MODE/OBSERVATIONS/radiance'

@@ -135,11 +135,11 @@ class OCMio():
             if not attr.startswith("__"):
                 yield attr
 
-    def __del__(self):
-        """
-        called when the object is destroyed
-        """
-        self.close()
+    # def __del__(self):
+    #    """
+    #    called when the object is destroyed
+    #    """
+    #    self.close()
 
     def __enter__(self):
         """
@@ -158,6 +158,7 @@ class OCMio():
         self.band = None
         if self.fid is not None:
             self.fid.close()
+            self.fid = None
 
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
@@ -440,9 +441,11 @@ class OCMio():
 
             # read data
             if dset.dtype == np.float32:
-                data = np.squeeze(dset[data_sel]).astype(np.float64)
+                with dset.astype(np.float):
+                    data = np.squeeze(dset[data_sel])
             else:
                 data = np.squeeze(dset[data_sel])
+
             if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
                 data[(data == fillvalue)] = np.nan
 

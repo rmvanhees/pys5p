@@ -95,11 +95,11 @@ class L1Bio():
             if not attr.startswith("__"):
                 yield attr
 
-    def __del__(self):
-        """
-        called when the object is destroyed
-        """
-        self.close()
+    # def __del__(self):
+    #    """
+    #    called when the object is destroyed
+    #    """
+    #    self.close()
 
     def __enter__(self):
         """
@@ -133,17 +133,22 @@ class L1Bio():
         if self.__patched_msm:
             from datetime import datetime
 
-            sgrp = self.fid.create_group("/METADATA/SRON_METADATA")
+            sgrp = self.fid.require_group("/METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = __version__
-            dtype = h5py.special_dtype(vlen=str)
-            dset = sgrp.create_dataset('patched_datasets',
-                                       (len(self.__patched_msm),),
-                                       dtype=dtype)
-
-            dset[:] = np.asarray(self.__patched_msm)
+            if 'patched_datasets' not in sgrp:
+                dtype = h5py.special_dtype(vlen=str)
+                dset = sgrp.create_dataset('patched_datasets',
+                                           (len(self.__patched_msm),),
+                                           maxshape=(None,), dtype=dtype)
+                dset[:] = np.asarray(self.__patched_msm)
+            else:
+                dset = sgrp['patched_datasets']
+                dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
+                dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
 
         self.fid.close()
+        self.fid = None
 
     # ---------- PUBLIC FUNCTIONS ----------
     # ---------- class L1Bio::
@@ -1365,7 +1370,7 @@ class L1BioENG(L1Bio):
         swir_hk['fee_box_heater'] = hk_tbl['meas_cur_val_htr13']
         swir_hk['fee_box_heater_cycle'] = hk_tbl['last_pwm_val_htr13']
 
-        # Note all elements should be floats!
+        # CHECK: works only when all elements of swir_hk are floats
         if fill_as_nan:
             for key in dtype_hk_db.names:
                 swir_hk[key][swir_hk[key] == 999.] = np.nan

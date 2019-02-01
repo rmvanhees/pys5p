@@ -61,7 +61,7 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
     #           geo['satellite_longitude'][ii])
     dset = l1b.get_msm_data(msm_dset, band=l1b.bands[0:2])
     print('{}: {}'.format(msm_dset, dset.shape))
-    del l1b
+    l1b.close()
 
 def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     """
@@ -98,7 +98,7 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     print('housekeeping data [{}]: '.format(res.size), res.shape)
     dset = l1b.get_msm_data(msm_dset, band=l1b.bands[0:2])
     print('{}: {}'.format(msm_dset, dset.shape))
-    del l1b
+    l1b.close()
 
 def test_rd_rad(icid=4, msm_dset='radiance'):
     """
@@ -139,7 +139,7 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
     #    print(ii, geo['sequence'][ii, 117], geo['latitude'][ii, 117],
     #           geo['longitude'][ii, 117])
     print(msm_dset, l1b.get_msm_data(msm_dset, icid=icid).shape)
-    del l1b
+    l1b.close()
 
 if __name__ == '__main__':
     test_rd_calib()

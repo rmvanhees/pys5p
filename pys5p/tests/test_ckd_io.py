@@ -87,7 +87,7 @@ def test_ckd_io(ckd_dir):
                          sub_title=wavelength.long_name)
 
     plot.close()
-    del ckd
+    ckd.close()
 
 def main():
     """

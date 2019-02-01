@@ -102,7 +102,7 @@ def test_rd_icm(msm_dset=None):
                     print('\t {}[{}]: {}'.format(dset_name, ib,
                                                  data.shape))
 
-        del icm
+        icm.close()
 
 if __name__ == '__main__':
     test_rd_icm()

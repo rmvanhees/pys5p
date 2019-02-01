@@ -89,7 +89,7 @@ def test_rd_ocm(msm_dset='signal', print_data=False):
         else:
             print('*** INFO: successfully obtained msm_data')
 
-    del ocm
+    ocm.close()
 
 if __name__ == '__main__':
     test_rd_ocm()

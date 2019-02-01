@@ -317,8 +317,8 @@ def test():
     icm.select('BACKGROUND_MODE_0609')
     icm.set_msm_data('signal_avg', np.split(res_sls[1], 2, axis=1))
     icm.set_msm_data('signal_avg_std', np.split(res_sls[2], 2, axis=1))
-    del icm
-    del patch
+    icm.close()
+    patch.close()
 
 
 if __name__ == '__main__':
