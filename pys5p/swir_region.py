@@ -20,7 +20,7 @@ License:  BSD-3-Clause
 import numpy as np
 
 
-def coords(mode='illuminated'):
+def coords(mode='illuminated', band='78') -> slice:
     """
     Return slice defining the illuminated region on the SWIR detector
 
@@ -28,14 +28,26 @@ def coords(mode='illuminated'):
     ----------
     mode  :   {'illuminated', 'level2'}, optional
        default is 'illuminated'
+    band  :   str, optional
+       select band 7 or 8, default is both bands
     """
     if mode == 'level2':
+        if band == '7':
+            return np.s_[12:227, 20:500]
+        if band == '8':
+            return np.s_[12:227, 500:980]
+        # else
         return np.s_[12:227, 20:980]
 
+    if band == '7':
+        return np.s_[11:228, 16:500]
+    if band == '8':
+        return np.s_[11:228, 500:991]
+    # else
     return np.s_[11:228, 16:991]
 
 
-def mask(mode='illuminated'):
+def mask(mode='illuminated', band='78'):
     """
     Return mask of the illuminated region, where the value of the illuminated
     pixels are set to True.
@@ -44,8 +56,14 @@ def mask(mode='illuminated'):
     ----------
     mode  :   {'illuminated', 'level2'}, optional
        default is 'illuminated'
+    band  :   str, optional
+       select band 7 or 8, default is both bands
     """
-    res = np.full((256, 1000), False)
-    res[coords(mode)] = True
+    if band in ('7', '8'):
+        res = np.full((256, 500), False)
+    else:
+        res = np.full((256, 1000), False)
+
+    res[coords(mode, band)] = True
 
     return res
