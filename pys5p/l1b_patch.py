@@ -11,244 +11,348 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from pathlib import Path
+
+import h5py
+import numpy as np
+
 from pys5p.l1b_io import L1BioRAD
 
+# - global variables --------------------------------
+_MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'
 
-# --------------------------------------------------
-def pixel_quality(l1b_file, l1b_patched):
+
+# - local functions --------------------------------
+def swir_exp_time(int_delay, int_hold):
     """
-    Patch SWIR pixel_quality.
-
-    Patched dataset: 'spectral_channel_quality'
-
-    Requires (naive approach):
-     * read original dataset 'spectral_channel_quality'
-     * read pixel quality ckd
-     * adjust third pixel of each byte
-     * write updated dataset to patched product
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    Nothing
+    Returns the exact pixel exposure time of the measurements
     """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('spectral_channel_quality')
-
-    # read new pixel-quality CKD
-
-    # patch dataset 'spectral_channel_quality'
-
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('spectral_channel_quality', data)
+    return 1.25e-6 * (65540 - int_delay + int_hold)
 
 
-def offset(l1b_file, l1b_patched):
+# - class definition -------------------------------
+class L1Bpatch():
     """
-    Patch SWIR offset correction.
-
-    Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
-
-    Requires (naive approach):
-     * reverse applied radiance calibration
-     * reverse applied stray-light correction
-     * reverse applied PRNU correction
-     * reverse applied dark-flux correction
-     * reverse applied offset correction
-     * apply (alternative) offset correction
-     * apply (alternative) dark-flux correction
-     * apply (alternative) PRNU correction
-     * apply (alternative) stray-light correction
-     * apply (alternative) radiance calibration
-
-    Alternative: ...
-
-    Parameters
-    ----------
-    None
-
-    Returns
-    -------
-    Nothing
+    Definition off class L1Bpatch
     """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('radiance')
+    def __init__(self, l1b_product: str, data_dir='/tmp',
+                 ckd_dir='/nfs/Tropomi/share/ckd') -> None:
+        """
+        Initialize access to a Tropomi offline L1b product
+        """
+        import shutil
 
-    # read required CKD's
+        prod_type = Path(l1b_product).name[0:15]
+        if prod_type not in ('S5P_OFFL_L1B_RA', 'S5P_RPRO_L1B_RA'):
+            raise TypeError(
+                'Warning: only implemented for Tropomi L1b radiance products')
 
-    # patch dataset 'radiance'
+        # initialize private class-attributes
+        self.data_dir = Path(data_dir)
+        if not self.data_dir.is_dir():
+            self.data_dir.mkdir(mode=0o755)
+        self.ckd_dir = Path(ckd_dir)
+        self.l1b_product = Path(l1b_product)
+        self.l1b_patched = \
+            self.data_dir / self.l1b_product.name.replace('_01_', '_99_')
+        shutil.copy(self.l1b_product, self.l1b_patched)
+        self.__patched_msm = []
 
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('radiance', data)
+    def __enter__(self):
+        """
+        method called to initiate the context manager
+        """
+        return self
 
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """
+        method called when exiting the context manager
+        """
+        self.close()
+        return False  # any exception is raised by the with statement.
 
-def darkflux(l1b_file, l1b_patched):
-    """
-    Patch SWIR dark-flux correction.
+    def close(self) -> None:
+        """
+        Before closing the product, we make sure that the output product
+        describes what has been altered by the S/W. To keep any change
+        traceable.
 
-    Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+        In case the L1b product is altered, the attributes listed below are
+        added to the group: "/METADATA/SRON_METADATA":
+             - dateStamp ('now')
+             - Git-version of S/W
+             - list of patched datasets
+             - auxiliary datasets used by patch-routines
+        """
+        from datetime import datetime
+        from .version import version as __version__
 
-    Requires (naive approach):
-     * reverse applied radiance calibration
-     * reverse applied stray-light correction
-     * reverse applied PRNU correction
-     * reverse applied dark-flux correction
-     * apply (alternative) dark-flux correction
-     * apply (alternative) PRNU correction
-     * apply (alternative) stray-light correction
-     * apply (alternative) radiance calibration
+        if not self.__patched_msm:
+            return
 
-    Alternative: ...
+        with h5py.File(self.l1b_patched, 'r+') as fid:
+            sgrp = fid.require_group("/METADATA/SRON_METADATA")
+            sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
+            sgrp.attrs['git_tag'] = __version__
+            if 'patched_datasets' not in sgrp:
+                dtype = h5py.special_dtype(vlen=str)
+                dset = sgrp.create_dataset('patched_datasets',
+                                           (len(self.__patched_msm),),
+                                           maxshape=(None,), dtype=dtype)
+                dset[:] = np.asarray(self.__patched_msm)
+            else:
+                dset = sgrp['patched_datasets']
+                dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
+                dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
 
-    Parameters
-    ----------
-    None
+    # --------------------------------------------------
+    def pixel_quality(self, dpqm, threshold=0.8) -> None:
+        """
+        Patch SWIR pixel_quality.
 
-    Returns
-    -------
-    Nothing
-    """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('radiance')
+        Patched dataset: 'quality_level' and 'spectral_channel_quality'
 
-    # read required CKD's
+        Requires (naive approach):
+        * read original dataset 'spectral_channel_quality'
+        * read pixel quality ckd
+        * adjust second pixel of each byte of spectral_channel_quality
+        * quality_level = int(100 * dpqm)
+        * write updated datasets to patched product
 
-    # patch dataset 'radiance'
+        Parameters
+        ----------
+        dpqm  :   array-like
+           SWIR pixel quality as a float value between 0 and 1
+        thershold :  float, optional
+           threshold for good pixels, default 0.8
 
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('radiance', data)
+        Returns
+        -------
+        Nothing
+        """
+        from pys5p import swir_region
 
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            quality_level = l1b.get_msm_data('quality_level')
+            chan_quality = l1b.get_msm_data('spectral_channel_quality')
 
-def prnu(l1b_file, l1b_patched):
-    """
-    Patch pixel response non-uniformity correction.
+        if band in ('7', '8'):
+            l2_dpqm = dpqm[swir_region.coords(mode='level2', band=band)]
+        else:
+            raise ValueError('only implemented for band 7 or 8')
 
-    Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+        # patch dataset 'quality_level'
+        quality_level[...] = int(100 * l2_dpqm)  # broadcasting
 
-    Requires (naive approach):
-     * reverse applied radiance calibration
-     * reverse applied stray-light correction
-     * reverse applied PRNU correction
-     * apply (alternative) PRNU correction
-     * apply (alternative) stray-light correction
-     * apply (alternative) radiance calibration
+        # patch dataset 'spectral_channel_quality'
+        chan_quality &= ~2               # set second bit to zero (all bad)
+        chan_quality[l2_dpqm >= threshold] &= 2  # flag good pixels
 
-    Alternative: neglect impact stray-light, but apply patch to correct for
-       spectral features.
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('quality_level', quality_level)
+            l1b.set_msm_data('spectral_channel_quality', chan_quality)
 
-    Parameters
-    ----------
-    array      :  ndarray
-       SWIR detector data, band 7 & 8 combined
-    prnu_orig  :  ndarray
-       PRNU CKD used by the L01b processor
-    prnu_patch :  ndarray
-       newly developed PRNU CKD
+    def offset(self) -> None:
+        """
+        Patch SWIR offset correction.
 
-    Returns
-    -------
-    out    :  ndarray
-       Returns array where the data is corrected with the newly developed PRNU
+        Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
-    Notes
-    -----
-    It is assumed that for the PRNU correction the CKD has to be multiplied
-    with the pixel signals.
-    """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('radiance')
+        Requires (naive approach):
+        * reverse applied radiance calibration
+        * reverse applied stray-light correction
+        * reverse applied PRNU correction
+        * reverse applied dark-flux correction
+        * reverse applied offset correction
+        * apply (alternative) offset correction
+        * apply (alternative) dark-flux correction
+        * apply (alternative) PRNU correction
+        * apply (alternative) stray-light correction
+        * apply (alternative) radiance calibration
 
-    # read required CKD's
+        Parameters
+        ----------
+        None
 
-    # patch dataset 'radiance'
+        Returns
+        -------
+        Nothing
+        """
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            data = l1b.get_msm_data('radiance')
 
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('radiance', data)
+        # read required CKD's
 
+        # patch dataset 'radiance'
 
-def relrad(l1b_file, l1b_patched):
-    """
-    Patch relative radiance calibration.
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('radiance', data)
 
-    Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+    def darkflux(self) -> None:
+        """
+        Patch SWIR dark-flux correction.
 
-    Requires:
-     * reverse applied radiance calibration
-     * apply alternative radiance calibration
+        Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
-    Parameters
-    ----------
-    None
+        Requires (naive approach):
+        * reverse applied radiance calibration
+        * reverse applied stray-light correction
+        * reverse applied PRNU correction
+        * reverse applied dark-flux correction
+        * apply (alternative) dark-flux correction
+        * apply (alternative) PRNU correction
+        * apply (alternative) stray-light correction
+        * apply (alternative) radiance calibration
 
-    Returns
-    -------
-    Nothing
-    """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('radiance')
+        Parameters
+        ----------
+        None
 
-    # read required CKD's
+        Returns
+        -------
+        Nothing
+        """
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            data = l1b.get_msm_data('radiance')
 
-    # patch dataset 'radiance'
+        # read required CKD's
 
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('radiance', data)
+        # patch dataset 'radiance'
 
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('radiance', data)
 
-def absrad(l1b_file, l1b_patched):
-    """
-    Patch absolute radiance calibration.
+    def prnu(self) -> None:
+        """
+        Patch pixel response non-uniformity correction.
 
-    Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+        Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
-    Requires:
-     * reverse applied irradiance calibration
-     * apply alternative irradiance calibration
+        Requires (naive approach):
+        * reverse applied radiance calibration
+        * reverse applied stray-light correction
+        * reverse applied PRNU correction
+        * apply (alternative) PRNU correction
+        * apply (alternative) stray-light correction
+        * apply (alternative) radiance calibration
 
-    Parameters
-    ----------
-    None
+        Alternative: neglect impact stray-light, but apply patch to correct for
+        spectral features.
 
-    Returns
-    -------
-    Nothing
-    """
-    # read original data
-    with L1BioRAD(l1b_file) as l1b:
-        l1b.select('STANDARD_MODE')
-        data = l1b.get_msm_data('radiance')
+        Parameters
+        ----------
+        None
 
-    # read required CKD's
+        Returns
+        -------
+        None
 
-    # patch dataset 'radiance'
+        Notes
+        -----
+        It is assumed that for the PRNU correction the CKD has to be multiplied
+        with the pixel signals.
+        """
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            data = l1b.get_msm_data('radiance')
 
-    # write patched dataset to new product
-    with L1BioRAD(l1b_patched, readwrite=True) as l1b:
-        l1b.select('STANDARD_MODE')
-        l1b.set_msm_data('radiance', data)
+        # read required CKD's
+
+        # patch dataset 'radiance'
+
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('radiance', data)
+
+    def relrad(self) -> None:
+        """
+        Patch relative radiance calibration.
+
+        Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+
+        Requires:
+        * reverse applied radiance calibration
+        * apply alternative radiance calibration
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing
+        """
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            data = l1b.get_msm_data('radiance')
+
+        # read required CKD's
+
+        # patch dataset 'radiance'
+
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('radiance', data)
+
+    def absrad(self) -> None:
+        """
+        Patch absolute radiance calibration.
+
+        Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
+
+        Requires:
+        * reverse applied irradiance calibration
+        * apply alternative irradiance calibration
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing
+        """
+        # read original data
+        with L1BioRAD(self.l1b_product) as l1b:
+            band = l1b.select('STANDARD_MODE')
+            data = l1b.get_msm_data('radiance')
+
+        # read required CKD's
+
+        # patch dataset 'radiance'
+
+        # write patched dataset to new product
+        with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
+            res = l1b.select('STANDARD_MODE')
+            if res != band:
+                raise ValueError(_MSG_ERR_IO_BAND_)
+            l1b.set_msm_data('radiance', data)
 
 
 # --------------------------------------------------
@@ -257,8 +361,8 @@ def _main():
     main function: process command-line parameters and call patch functions
     """
     import argparse
-    import shutil
-    from pathlib import Path
+
+    from pys5p.ckd_io import CKDio
 
     # parse command-line parameters
     parser = argparse.ArgumentParser(
@@ -270,8 +374,6 @@ def _main():
                         help='name of L1B product (full path)')
     parser.add_argument('--ckd_dir', default=None,
                         help='path to official SWIR CKD')
-    parser.add_argument('--patched_ckd_dir', default=None,
-                        help='path to alternative SWIR CKD')
     # ToDo maybe we want a comma seperated list to perform multiple patches?
     parser.add_argument('--patch', default=None,
                         choices=('pixel_quality', 'offset', 'darkflux',
@@ -288,42 +390,34 @@ def _main():
         parser.print_usage()
         parser.exit()
 
-    if not Path(args.output).is_dir():
-        Path(args.output).mkdir(mode=0o755)
+    with L1Bpatch(args.l1b_product, data_dir=args.output,
+                  ckd_dir=args.ckd_dir) as l1b_patch:
+        if args.patch == 'pixel_quality':
+            with CKDio(args.ckd_dir) as ckd:
+                dpqm = ckd.pixel_quality()
 
-    l1b_patch = str(Path(args.output,
-                         Path(args.l1b_product.replace('_01_', '_02_')).name))
-    shutil.copy(args.l1b_product, l1b_patch)
+            l1b_patch.pixel_quality(dpqm)
+            print('INFO: applied patch pixel_qualtiy')
 
-    prod_type = Path(l1b_patch).name[0:15]
-    if prod_type not in ('S5P_OFFL_L1B_RA', 'S5P_RPRO_L1B_RA'):
-        print('Warning: only implemented for Tropomi offline L1b radiance')
-        return
+        if args.patch == 'offset':
+            l1b_patch.offset()
+            print('WARNING: patch offset not yet implemented')
 
-    if args.patch == 'pixel_quality':
-        # add dir with patched CKD
-        pixel_quality(args.l1b_product, l1b_patch)
-        print('INFO: applied patch {}'.format(args.patch))
+        if args.patch == 'darkflux':
+            l1b_patch.darkflux()
+            print('WARNING: patch dark-flux not yet implemented')
 
-    if args.patch == 'offset':
-        offset(args.l1b_product, l1b_patch)
-        print('WARNING: patch {} not yet implemented'.format(args.patch))
+        if args.patch == 'prnu':
+            l1b_patch.prnu()
+            print('WARNING: patch prnu not yet implemented')
 
-    if args.patch == 'darkflux':
-        darkflux(args.l1b_product, l1b_patch)
-        print('WARNING: patch {} not yet implemented'.format(args.patch))
+        if args.patch == 'relrad':
+            l1b_patch.relrad()
+            print('WARNING: patch relrad not yet implemented')
 
-    if args.patch == 'prnu':
-        prnu(args.l1b_product, l1b_patch)
-        print('WARNING: patch {} not yet implemented'.format(args.patch))
-
-    if args.patch == 'relrad':
-        relrad(args.l1b_product, l1b_patch)
-        print('WARNING: patch {} not yet implemented'.format(args.patch))
-
-    if args.patch == 'absrad':
-        absrad(args.l1b_product, l1b_patch)
-        print('WARNING: patch {} not yet implemented'.format(args.patch))
+        if args.patch == 'absrad':
+            l1b_patch.absrad()
+            print('WARNING: patch absrad not yet implemented')
 
 
 # --------------------------------------------------
