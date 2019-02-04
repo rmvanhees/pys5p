@@ -32,30 +32,23 @@ def pad_rows(arr1, arr2):
     elif arr2.ndim == 2:
         if arr1.shape[0] < arr2.shape[0]:
             buff = arr1.copy()
-            arr1 = np.full_like(arr2, np.nan)
+            arr1 = np.full(arr2.shape, np.nan, dtype=arr2.dtype)
             arr1[0:buff.shape[0], :] = buff
         elif arr1.shape[0] > arr2.shape[0]:
             buff = arr2.copy()
-            arr2 = np.full_like(arr1, np.nan)
+            arr2 = np.full(arr1.shape, np.nan, dtype=arr2.dtype)
             arr2[0:buff.shape[0], :] = buff
     else:
         if arr1.shape[1] < arr2.shape[1]:
             buff = arr1.copy()
-            arr1 = np.full_like(arr2, np.nan)
+            arr1 = np.full(arr2.shape, np.nan, dtype=arr2.dtype)
             arr1[:, 0:buff.shape[1], :] = buff
         elif arr1.shape[1] > arr2.shape[1]:
             buff = arr2.copy()
-            arr2 = np.full_like(arr1, np.nan)
+            arr2 = np.full(arr1.shape, np.nan, dtype=arr2.dtype)
             arr2[:, 0:buff.shape[1], :] = buff
 
     return (arr1, arr2)
-
-
-def swir_exp_time(int_delay, int_hold):
-    """
-    Returns the exact pixel exposure time of the measurements
-    """
-    return 1.25e-6 * (65540 - int_delay + int_hold)
 
 
 # - class definition -------------------------------
@@ -205,7 +198,8 @@ class L1Bio():
         if attr_end is None:
             return None
 
-        return (attr_start.decode('ascii'), attr_end.decode('ascii'))
+        return (attr_start.decode('ascii'),
+                attr_end.decode('ascii'))
 
     # ---------- class L1Bio::
     def get_creation_time(self):
@@ -626,6 +620,8 @@ class L1BioCAL(L1Bio):
             Select one of the band present in the product
             Default is 'None' which returns the first available band
         """
+        from .swir_texp import swir_exp_time
+
         if band is None:
             band = self.bands[0]
 
@@ -880,6 +876,8 @@ class L1BioIRR(L1Bio):
             Select one of the band present in the product
             Default is 'None' which returns the first available band
         """
+        from .swir_texp import swir_exp_time
+
         if band is None:
             band = self.bands[0]
 
@@ -1082,6 +1080,8 @@ class L1BioRAD(L1Bio):
         Returns pixel exposure time of the measurements, which is calculated
         from the parameters 'int_delay' and 'int_hold' for SWIR.
         """
+        from .swir_texp import swir_exp_time
+
         instr_arr = super().instrument_settings(self.__msm_path)
 
         # calculate exact exposure time
