@@ -88,7 +88,7 @@ class L1Bpatch():
 
         if not self.__patched_msm:
             return
-        
+
         with h5py.File(self.l1b_patched, 'r+') as fid:
             sgrp = fid.require_group('/METADATA/SRON_METADATA')
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
@@ -391,19 +391,19 @@ class L1Bpatch():
 
         for ds_name in patched_datasets:
             with L1BioRAD(self.l1b_product) as l1b:
-                band = l1b.select('STANDARD_MODE')
+                l1b.select('STANDARD_MODE')
                 orig = l1b.get_msm_data(ds_name.split('/')[-1])
 
             with L1BioRAD(self.l1b_patched) as l1b:
-                band = l1b.select('STANDARD_MODE')
+                l1b.select('STANDARD_MODE')
                 patch = l1b.get_msm_data(ds_name.split('/')[-1])
 
             if np.issubdtype(orig.dtype, np.integer):
-                if np.array_equiv(patch, orig):
+                if np.array_equiv(orig, patch):
                     print(ds_name.split('/')[-1], ' equal True')
                 else:
-                    print('{} equal {} differ {}'format(
+                    print('{} equal {} differ {}'.format(
                         ds_name.split('/')[-1],
-                        (aa == bb).sum(), (aa != bb).sum()))
+                        (orig == patch).sum(), (orig != patch).sum()))
             else:
                 print('test not yet defined')
