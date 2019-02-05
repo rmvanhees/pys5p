@@ -56,7 +56,7 @@ def _main():
             with CKDio(args.ckd_dir) as ckd:
                 dpqm = ckd.pixel_quality()
 
-            l1b_patch.pixel_quality(dpqm)
+            l1b_patch.pixel_quality(dpqm.value)
             print('INFO: applied patch pixel_qualtiy')
 
         if args.patch == 'offset':

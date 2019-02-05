@@ -143,7 +143,7 @@ class L1Bpatch():
             print('chan_quality', chan_quality.dtype)
 
         if band in ('7', '8'):
-            l2_dpqm = dpqm.value[swir_region.coords(mode='level2', band=band)]
+            l2_dpqm = dpqm[swir_region.coords(mode='level2', band=band)]
         else:
             raise ValueError('only implemented for band 7 or 8')
 
