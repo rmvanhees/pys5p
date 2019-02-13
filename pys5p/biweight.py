@@ -61,7 +61,7 @@ def __biweight(data):
 
 
 # ----- main function -------------------------
-def biweight(data, axis=None, cpu_count=None, spread=False):
+def biweight(data, axis=None, cpu_count=1, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
