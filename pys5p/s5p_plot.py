@@ -249,8 +249,8 @@ class S5Pplot():
             xpos = 0.95
             ypos = 0.975
         elif self.aspect == 2:
-            xpos = 1.
-            ypos = 1.
+            xpos = 0.925
+            ypos = 0.97
         elif self.aspect == 1:
             xpos = 0.91
             ypos = 0.98
