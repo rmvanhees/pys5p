@@ -956,8 +956,8 @@ class S5Pplot():
         # convert units from electrons to ke, Me, ...
         (runit, rscale) = convert_units(msm.units, rmin, rmax)
         residual[mask] /= rscale
-        rmin /= dscale
-        rmax /= dscale
+        rmin /= rscale
+        rmax /= rscale
 
         # inititalize figure
         nrow = 1
@@ -1051,7 +1051,7 @@ class S5Pplot():
 
             cbar = plt.colorbar(img)
             if zunit is not None:
-                cbar.set_label(zlabel)
+                cbar.set_label('value [{}]'.format(runit))
 
         # create lower-panel with reference (model, CKD, previous measurement)
         if add_model:
@@ -1073,7 +1073,7 @@ class S5Pplot():
 
             cbar = plt.colorbar(img)
             if runit is not None:
-                cbar.set_label('value [{}]'.format(runit))
+                cbar.set_label(zlabel)
 
         if add_hist:
             iplot += 1
