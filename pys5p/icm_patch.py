@@ -47,14 +47,14 @@ Copyright (c) 2016--2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import Path
+from pathlib import PurePath
 
 import h5py
 import numpy as np
 
-CKD_DIR = Path('/nfs/Tropomi/ocal/ckd/ckd_release_swir')
-OCAL_DIR = Path('/nfs/Tropomi/ocal/proc_raw')
-DLED_DIR = Path('/data/richardh/Tropomi')
+CKD_DIR = PurePath('/nfs/Tropomi/ocal/ckd/ckd_release_swir')
+OCAL_DIR = PurePath('/nfs/Tropomi/ocal/proc_raw')
+DLED_DIR = PurePath('/data/richardh/Tropomi')
 
 DB_NAME = '/nfs/Tropomi/ical/share/db/sron_s5p_icm.db'
 
@@ -287,8 +287,8 @@ def test():
         return
 
     # create temproary file to patch
-    data_dir = Path(res[0][0])
-    temp_dir = Path('/tmp')
+    data_dir = PurePath(res[0][0])
+    temp_dir = PurePath('/tmp')
     icm_file = res[0][1]
     patch_file = icm_file.replace('_01_', '_02_')
     print(data_dir / icm_file)

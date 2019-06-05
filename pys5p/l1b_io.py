@@ -11,7 +11,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import Path
+from pathlib import PurePosixPath
 
 import h5py
 import numpy as np
@@ -62,6 +62,8 @@ class L1Bio():
         """
         Initialize access to a Tropomi offline L1b product
         """
+        from pathlib import Path
+
         # initialize private class-attributes
         self.filename = l1b_product
         self.__rw = readwrite
@@ -232,7 +234,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'OBSERVATIONS'))]
         return datetime(2010, 1, 1, 0, 0, 0) \
             + timedelta(seconds=int(grp['time'][0]))
 
@@ -249,7 +251,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'OBSERVATIONS'))]
         return grp['delta_time'][0, :].astype(int)
 
     # ---------- class L1Bio::
@@ -270,7 +272,7 @@ class L1Bio():
         #    KeyError: 'Unable to open object (Component not found)'.
         # This is my workaround
         #
-        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'INSTRUMENT'))]
         instr = np.empty(grp['instrument_settings'].shape,
                          dtype=grp['instrument_settings'].dtype)
         grp['instrument_settings'].read_direct(instr)
@@ -292,7 +294,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'INSTRUMENT'))]
         return np.squeeze(grp['housekeeping_data'])
 
     # ---------- class L1Bio::
@@ -315,7 +317,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        ds_path = Path(msm_path, 'OBSERVATIONS', msm_dset)
+        ds_path = PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset)
         return self.fid[str(ds_path)].shape
 
     # ---------- class L1Bio::
@@ -338,11 +340,11 @@ class L1Bio():
             self.imsm = None
             return
 
-        grp = self.fid[str(Path(msm_path, 'INSTRUMENT'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'INSTRUMENT'))]
         icid_list = np.squeeze(grp['instrument_configuration']['ic_id'])
         master_cycle = grp['instrument_settings']['master_cycle_period_us'][0]
         master_cycle /= 1000
-        grp = self.fid[str(Path(msm_path, 'OBSERVATIONS'))]
+        grp = self.fid[str(PurePosixPath(msm_path, 'OBSERVATIONS'))]
         delta_time = np.squeeze(grp['delta_time'])
         length = delta_time.size
         self.imsm = np.empty((length,), dtype=[('icid', 'u2'),
@@ -388,7 +390,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
+        ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
         if attr_name in self.fid[ds_path].attrs.keys():
             attr = self.fid[ds_path].attrs[attr_name]
             if isinstance(attr, bytes):
@@ -424,7 +426,7 @@ class L1Bio():
         if msm_path is None:
             return None
 
-        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
+        ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
         dset = self.fid[ds_path]
 
         if icid is None:
@@ -480,7 +482,7 @@ class L1Bio():
         if not self.__rw:
             raise PermissionError('read/write access required')
 
-        ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
+        ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
         dset = self.fid[ds_path]
 
         # overwrite the data
@@ -544,19 +546,19 @@ class L1BioCAL(L1Bio):
         self.imsm = None
         for name in ('CALIBRATION', 'IRRADIANCE', 'RADIANCE'):
             for ii in '12345678':
-                grp_path = str(Path('BAND{}_{}'.format(ii, name), msm_type))
-                if grp_path in self.fid:
+                grp_path = PurePosixPath('BAND{}_{}'.format(ii, name), msm_type)
+                if str(grp_path) in self.fid:
                     if self.__verbose:
                         print('*** INFO: found: ', grp_path)
                     self.bands += ii
 
             if self.bands:
-                grp_path = str(Path('BAND%_{}'.format(name), msm_type))
+                grp_path = PurePosixPath('BAND%_{}'.format(name), msm_type)
                 break
 
         if self.bands:
-            self.__msm_path = grp_path
-            super().msm_info(grp_path.replace('%', self.bands[0]))
+            self.__msm_path = str(grp_path)
+            super().msm_info(str(grp_path).replace('%', self.bands[0]))
 
         return self.bands
 
@@ -682,7 +684,8 @@ class L1BioCAL(L1Bio):
         res = np.empty((nscans,), dtype=dtype)
         res['sequence'] = self.imsm['sequence']
 
-        grp = self.fid[str(Path(self.__msm_path.replace('%', band), 'GEODATA'))]
+        grp = self.fid[str(PurePosixPath(self.__msm_path.replace('%', band),
+                                         'GEODATA'))]
         for name in geo_dset.split(','):
             res[name][...] = grp[name][0, :]
 
@@ -822,15 +825,16 @@ class L1BioIRR(L1Bio):
         self.bands = ''
         self.imsm = None
         for ii in '12345678':
-            grp_path = str(Path('BAND{}_IRRADIANCE'.format(ii), msm_type))
-            if grp_path in self.fid:
+            grp_path = PurePosixPath('BAND{}_IRRADIANCE'.format(ii), msm_type)
+            if str(grp_path) in self.fid:
                 if self.__verbose:
                     print('*** INFO: found: ', grp_path)
                 self.bands += ii
 
         if self.bands:
-            self.__msm_path = str(Path('BAND%_IRRADIANCE', msm_type))
-            super().msm_info(self.__msm_path.replace('%', self.bands[0]))
+            grp_path = PurePosixPath('BAND%_IRRADIANCE', msm_type)
+            self.__msm_path = str(grp_path)
+            super().msm_info(str(grp_path).replace('%', self.bands[0]))
 
         return self.bands
 
@@ -1040,16 +1044,17 @@ class L1BioRAD(L1Bio):
         self.bands = ''
         self.imsm = None
         for ii in '12345678':
-            grp_path = str(Path('BAND{}_RADIANCE'.format(ii), msm_type))
-            if grp_path in self.fid:
+            grp_path = PurePosixPath('BAND{}_RADIANCE'.format(ii), msm_type)
+            if str(grp_path) in self.fid:
                 if self.__verbose:
                     print('*** INFO: found: ', grp_path)
                 self.bands = ii
                 break              # only one band per product
 
         if self.bands:
-            self.__msm_path = grp_path
-            super().msm_info(self.__msm_path)
+            grp_path = PurePosixPath('BAND%_RADIANCE', msm_type)
+            self.__msm_path = str(grp_path)
+            super().msm_info(str(grp_path).replace('%', self.bands[0]))
 
         return self.bands
 
@@ -1131,7 +1136,7 @@ class L1BioRAD(L1Bio):
         """
         nrows = self.fid[self.__msm_path]['ground_pixel'].size
 
-        grp = self.fid[str(Path(self.__msm_path, 'GEODATA'))]
+        grp = self.fid[str(PurePosixPath(self.__msm_path, 'GEODATA'))]
 
         if icid is None:
             nscans = self.fid[self.__msm_path]['scanline'].size

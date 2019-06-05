@@ -25,7 +25,6 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from collections import OrderedDict
-from pathlib import Path
 
 import matplotlib as mpl
 import numpy as np
@@ -115,13 +114,15 @@ class S5Pgeoplot():
         add_info  :  boolean
              generate a legenda with info on the displayed data
         """
+        from pathlib import PurePath
+
         self.data = None
         self.aspect = -1
         self.method = None
         self.add_info = add_info
 
         self.filename = figname
-        if Path(figname).suffix.lower() == '.pdf':
+        if PurePath(figname).suffix.lower() == '.pdf':
             from matplotlib.backends.backend_pdf import PdfPages
 
             self.__pdf = PdfPages(figname)

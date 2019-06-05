@@ -11,7 +11,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import Path
+from pathlib import PurePosixPath
 
 import h5py
 import numpy as np
@@ -113,6 +113,8 @@ class OCMio():
            Full path to on-ground calibration measurement
 
         """
+        from pathlib import Path
+
         # initialize class-attributes
         self.filename = ocm_product
         self.__msm_path = None
@@ -211,7 +213,7 @@ class OCMio():
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(Path(msm, 'GEODATA'))]
+            sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
             res[msm] = datetime(2010, 1, 1, 0, 0, 0)
             res[msm] += timedelta(seconds=int(sgrp['time'][0]))
 
@@ -227,7 +229,7 @@ class OCMio():
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(Path(msm, 'GEODATA'))]
+            sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
             res[msm] = sgrp['delta_time'][:].astype(int)
 
         return res
@@ -242,7 +244,7 @@ class OCMio():
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
+            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
             res[msm] = np.squeeze(sgrp['instrument_settings'])
 
         return res
@@ -257,7 +259,7 @@ class OCMio():
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
+            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
             res[msm] = np.squeeze(sgrp['gse_stimuli'])
 
         return res
@@ -271,7 +273,7 @@ class OCMio():
 
         grp = self.fid['BAND{}'.format(self.band)]
         msm = self.__msm_path[0]  # all measurement sets have the same ICID
-        sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
+        sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
         instr = np.squeeze(sgrp['instrument_settings'])
 
         if int(self.band) > 6:
@@ -289,7 +291,7 @@ class OCMio():
         grp = self.fid['BAND{}'.format(self.band)]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(Path(msm, 'INSTRUMENT'))]
+            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
             res[msm] = np.squeeze(sgrp['housekeeping_data'])
 
         return res
@@ -361,7 +363,7 @@ class OCMio():
 
         grp = self.fid['BAND{}'.format(self.band)]
         for msm_path in self.__msm_path:
-            ds_path = str(Path(msm_path, 'OBSERVATIONS', msm_dset))
+            ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
 
             if attr_name in grp[ds_path].attrs.keys():
                 attr = grp[ds_path].attrs[attr_name]
@@ -405,7 +407,7 @@ class OCMio():
         # show HDF5 dataset names and return
         grp = self.fid['BAND{}'.format(self.band)]
         if msm_dset is None:
-            ds_path = str(Path(self.__msm_path[0], 'OBSERVATIONS'))
+            ds_path = str(PurePosixPath(self.__msm_path[0], 'OBSERVATIONS'))
             for kk in grp[ds_path]:
                 print(kk)
             return {}
@@ -418,20 +420,21 @@ class OCMio():
         # combine data of all measurement groups in dictionary
         res = {}
         for msm_grp in sorted(self.__msm_path):
-            dset = grp[str(Path(msm_grp, 'OBSERVATIONS', msm_dset))]
+            dset = grp[str(PurePosixPath(msm_grp, 'OBSERVATIONS', msm_dset))]
             data_sel = ()
             for ii in range(dset.ndim):
-                if Path(dset.dims[ii][0].name).name == 'msmt_time':
+                dim_name = PurePosixPath(dset.dims[ii][0].name).name
+                if dim_name == 'msmt_time':
                     if frames is None:
                         data_sel += (slice(None),)
                     else:
                         data_sel += (slice(*frames),)
-                elif Path(dset.dims[ii][0].name).name == 'row':
+                elif dim_name == 'row':
                     if rows is None:
                         data_sel += (slice(None),)
                     else:
                         data_sel += (slice(*rows),)
-                elif Path(dset.dims[ii][0].name).name == 'column':
+                elif dim_name == 'column':
                     if columns is None:
                         data_sel += (slice(None),)
                     else:

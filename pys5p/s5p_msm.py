@@ -27,7 +27,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from collections import namedtuple
-from pathlib import Path
+from pathlib import PurePath
 
 import numpy as np
 
@@ -105,7 +105,7 @@ class S5Pmsm():
         """
         initialize S5Pmsm object from h5py dataset
         """
-        self.name = Path(h5_dset.name).name
+        self.name = PurePath(h5_dset.name).name
 
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -150,7 +150,7 @@ class S5Pmsm():
                 keys.append(keys_default[ii])
                 dims.append(np.arange(self.value.shape[ii]))
             elif self.value.shape[ii] == h5_dset.shape[ii]:
-                buff = Path(h5_dset.dims[ii][0].name).name
+                buff = PurePath(h5_dset.dims[ii][0].name).name
                 if len(buff.split()) > 1:
                     buff = buff.split()[0]
                 keys.append(buff)
@@ -159,7 +159,7 @@ class S5Pmsm():
                     buff = np.arange(buff.size)
                 dims.append(buff)
             else:
-                buff = Path(h5_dset.dims[ii][0].name).name
+                buff = PurePath(h5_dset.dims[ii][0].name).name
                 if len(buff.split()) > 1:
                     buff = buff.split()[0]
                 keys.append(buff)
@@ -353,7 +353,7 @@ class S5Pmsm():
          - The arrays must have the same shape, except in the dimension
         corresponding to axis (the first, by default).
         """
-        if self.name != Path(msm.name).name:
+        if self.name != PurePath(msm.name).name:
             raise TypeError('combining dataset with different name')
 
         if self.error is None and msm.error is None:
