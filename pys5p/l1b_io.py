@@ -1052,9 +1052,10 @@ class L1BioRAD(L1Bio):
                 break              # only one band per product
 
         if self.bands:
-            grp_path = PurePosixPath('BAND%_RADIANCE', msm_type)
-            self.__msm_path = str(grp_path)
-            super().msm_info(str(grp_path).replace('%', self.bands[0]))
+            grp_path = str(PurePosixPath(
+                'BAND%_RADIANCE'.replace('%', self.bands[0]), msm_type))
+            self.__msm_path = grp_path
+            super().msm_info(grp_path)
 
         return self.bands
 
