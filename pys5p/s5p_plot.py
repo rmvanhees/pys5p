@@ -294,6 +294,10 @@ class S5Pplot():
             self.data = msm.value.copy()
             return
 
+        if self.method == 'error':
+            self.data = msm.error.copy()
+            return
+
         if self.method == 'quality':
             scale_dpqm = np.array([0, 1, 8, 8, 8, 8, 8, 8, 8, 10, 10, 10],
                                   dtype=np.int8)
@@ -367,7 +371,7 @@ class S5Pplot():
             by the method 'ratio_unc'
         method    : string
            Method of plot to be generated, default is 'data', optional are
-            'diff', 'ratio', 'ratio_unc'
+            'error', 'diff', 'ratio', 'ratio_unc'
         add_medians :  boolean
            show in side plots row and column (biweight) medians. Default=True.
 
@@ -468,7 +472,7 @@ class S5Pplot():
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
                 mid_val = 1.
-        elif method == 'data':
+        elif method in ('data', 'error'):
             cmap = sron_cmap('rainbow_PiRd')
         elif method == 'ratio_unc':
             cmap = sron_cmap('rainbow_PiRd')
