@@ -18,8 +18,12 @@ License:  BSD-3-Clause
 """
 from pathlib import Path
 
-from ..ckd_io import CKDio
-from ..s5p_plot import S5Pplot
+import matplotlib as mpl
+
+from pys5p.ckd_io import CKDio
+from pys5p.s5p_plot import S5Pplot
+
+mpl.use('Agg')
 
 #-------------------------
 def test_ckd_io(ckd_dir):
@@ -98,7 +102,7 @@ def main():
     # parse command-line parameters
     parser = argparse.ArgumentParser(
         description='test of pys5p.ckd_io and pys5p.s5p_plot')
-    parser.add_argument('--ckd_dir', default='/nfs/Tropomi/share/ckd/current')
+    parser.add_argument('--ckd_dir', default='/nfs/Tropomi/share/ckd')
     args = parser.parse_args()
 
     test_ckd_io(args.ckd_dir)

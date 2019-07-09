@@ -3,7 +3,27 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-Provides access to the S5P Static CKD product, type AUX_L1_CKD
+Provides access to the S5P Tropomi CKD (static and dynamic)
+
+The option to have dynamic CKD is not used for the Tropomi mission, only for
+S/W version 1 a dynamic CKD product is defined. This product contained the OCAL
+CKD and was not updated automatically. For version 2, all CKD are stored in one
+product, where some CKD have a time-axis to correct any in-flight degradation.
+
+Therefore, the logic to find a CKD is implemented as follows:
+1) ckd_dir, defines the base directory to search for the CKD products
+  (see below)
+2) ckd_file, defines the full path to (static) CKD product; 
+  (version 1) any product with dynamic CKD has to be in the same directory
+
+Version 1:
+* Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
+* Dynamic CKD are stored in two files: 
+  - UVN, use glob('*_ICM_CKDUVN_*')
+  - SWIR, use glob('*_ICM_CKDSIR_*')
+
+Version 2+:
+* All CKD in one file: glob('*_AUX_L1_CKD_*')
 
 ToDo:
  - access to UVN CKD, still incomplete
@@ -34,24 +54,44 @@ class CKDio():
     You can request a CKD for one band or for a channel (bands: '12', '34',
     '56', '78'). Do not mix bands from different channels
     """
-    def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd'):
+    def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd', ckd_file=None):
         """
         Initialize access to a Tropomi Static CKD product
         """
         # initialize private class-attributes
         self.ckd_file = None
+        self.ckd_dyn_file = None
         self.fid = None
         self.__header = Path('/METADATA/earth_exploirer_header/fixed_header')
 
-        self.ckd_dir = Path(ckd_dir)
-        if not self.ckd_dir.is_dir():
-            raise FileNotFoundError('directory {} not found'.format(ckd_dir))
+        # define path to CKD product
+        if ckd_file is not None:
+            if not Path(ckd_file).is_file():
+                raise FileNotFoundError(
+                    'Not found CKD file: {}'.format(ckd_file))
+            self.ckd_dir = Path(ckd_file).parent
+            self.ckd_file = Path(ckd_file)
+        else:
+            if not Path(ckd_dir).is_dir():
+                raise FileNotFoundError(
+                    'Not found CKD directory: {}'.format(ckd_dir))
+            self.ckd_dir = Path(ckd_dir)
+            if (self.ckd_dir / 'static').is_dir():
+                res = sorted((self.ckd_dir / 'static').glob('*_AUX_L1_CKD_*'))
+            else:
+                res = sorted(self.ckd_dir.glob('*_AUX_L1_CKD_*'))
+            if not res:
+                raise FileNotFoundError('Static CKD product not found')
+            self.ckd_file = res[-1]
 
-        # ToDo use latest version or appropriate validation period
-        res = sorted((self.ckd_dir / 'static').glob('*_AUX_L1_CKD_*'))
-        if not res:
-            raise FileNotFoundError('Static CKD product not found')
-        self.ckd_file = res[-1]
+        # obtain path to dynamic CKD product (version 1, only)
+        if (self.ckd_dir / 'dynamic').is_dir():
+            res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
+        else:
+            res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
+        if res:
+            self.ckd_dyn_file = res[-1]
+
         self.fid = h5py.File(self.ckd_file, "r")
 
     # def __del__(self):
@@ -452,8 +492,7 @@ class CKDio():
             return ckd
 
         # try the dynamic CKD products
-        ckd_file = self.ckd_dir / 'dynamic' / 'ckd.offset.detector4.nc'
-        with h5py.File(ckd_file, 'r') as fid:
+        with h5py.File(self.ckd_dyn_file, 'r') as fid:
             for band in bands:
                 dsname = '/BAND{}/analog_offset_swir'.format(band)
 
@@ -465,7 +504,6 @@ class CKDio():
                     buff = S5Pmsm(fid[dsname],
                                   datapoint=True, data_sel=np.s_[:-1, :])
                     ckd.concatenate(buff, axis=1)
-
         ckd.set_fillvalue()
         return ckd
 
@@ -503,8 +541,7 @@ class CKDio():
             return ckd
 
         # try the dynamic CKD products
-        ckd_file = self.ckd_dir / 'dynamic' / 'ckd.dark.detector4.nc'
-        with h5py.File(ckd_file, 'r') as fid:
+        with h5py.File(self.ckd_dyn_file, 'r') as fid:
             for band in bands:
                 dsname = '/BAND{}/long_term_swir'.format(band)
 
@@ -518,6 +555,85 @@ class CKDio():
                     ckd.concatenate(buff, axis=1)
 
         ckd.set_fillvalue()
+        return ckd
+
+    def dpqf(self, threshold=None, bands='78'):
+        """
+        Returns Detector Pixel Quality Mask (boolean), SWIR only
+
+        Note1 SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' not in bands and '8' not in bands:
+            raise ValueError('pixel quality CKD is only available for SWIR')
+
+        # try the Static CKD product, first
+        if '/BAND7/dpqf_threshold' in self.fid:
+            if threshold is None:
+                threshold = self.fid['/BAND7/dpqf_threshold'][:]
+
+            dset = self.fid['/BAND7/dpqf_map']
+            dpqf_b7 = dset[:-1, :]
+            dset = self.fid['/BAND8/dpqf_map']
+            dpqf_b8 = dset[:-1, :]
+
+            return np.hstack((dpqf_b7, dpqf_b8)) < threshold
+
+        # try the dynamic CKD products
+        with h5py.File(self.ckd_dyn_file, 'r') as fid:
+            if threshold is None:
+                threshold = fid['/BAND7/dpqf_threshold'][:]
+
+            dset = fid['/BAND7/dpqf_map']
+            dpqf_b7 = dset[:-1, :]
+            dset = fid['/BAND8/dpqf_map']
+            dpqf_b8 = dset[:-1, :]
+
+        return np.hstack((dpqf_b7, dpqf_b8)) < threshold
+
+    def pixel_quality(self, bands='78'):
+        """
+        Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only
+
+        Note1 SWIR row 257 is excluded
+        """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' not in bands and '8' not in bands:
+            raise ValueError('pixel quality CKD is only available for SWIR')
+
+        ckd = None
+        long_name = 'SWIR pixel-quality CKD'
+        
+        # try the Static CKD product, first
+        for band in bands:
+            dsname = '/BAND{}/dpqf_map'.format(band)
+            if dsname not in self.fid:
+                continue
+
+            if not ckd:
+                ckd = S5Pmsm(self.fid[dsname], data_sel=np.s_[:-1, :])
+                ckd.set_long_name(long_name)
+            else:
+                buff = S5Pmsm(self.fid[dsname], data_sel=np.s_[:-1, :])
+                ckd.concatenate(buff, axis=1)
+
+        if ckd is not None:
+            return ckd
+
+        # try the dynamic CKD products
+        with h5py.File(self.ckd_dyn_file, 'r') as fid:
+            for band in bands:
+                dsname = '/BAND{}/dpqf_map'.format(band)
+
+                if not ckd:
+                    ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.set_long_name(long_name)
+                else:
+                    buff = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
+                    ckd.concatenate(buff, axis=1)
+
         return ckd
 
     def noise(self, bands='78'):
@@ -553,7 +669,7 @@ class CKDio():
             return ckd
 
         # try the dynamic CKD products
-        ckd_file = self.ckd_dir / 'dynamic' / 'ckd.readnoise.detector4.nc'
+        ckd_file = self.ckd_dir / 'OCAL' / 'ckd.readnoise.detector4.nc'
         with h5py.File(ckd_file, 'r') as fid:
             for band in bands:
                 dsname = '/BAND{}/readout_noise_swir'.format(band)
@@ -584,7 +700,7 @@ class CKDio():
 
         ckd = None
         long_name = 'SWIR saturation(pre-offset) CKD'
-        ckd_file = (self.ckd_dir / 'dynamic'
+        ckd_file = (self.ckd_dir / 'OCAL'
                     / 'ckd.saturation_preoffset.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
             for band in bands:
@@ -598,54 +714,4 @@ class CKDio():
                     ckd.concatenate(buff, axis=1)
 
         ckd.set_fillvalue()
-        return ckd
-
-    def dpqf(self, threshold=None, bands='78'):
-        """
-        Returns Detector Pixel Quality Mask (boolean), SWIR only
-
-        Note1 SWIR row 257 is excluded
-        """
-        if len(bands) > 2:
-            raise ValueError('read per band or channel, only')
-        if '7' not in bands and '8' not in bands:
-            raise ValueError('pixel quality CKD is only available for SWIR')
-
-        ckd_file = self.ckd_dir / 'dynamic' / 'ckd.dpqf.detector4.nc'
-        with h5py.File(ckd_file, 'r') as fid:
-            if threshold is None:
-                threshold = fid['/BAND7/dpqf_threshold'][:]
-
-            dset = fid['/BAND7/dpqf_map']
-            dpqf_b7 = dset[:-1, :]
-            dset = fid['/BAND8/dpqf_map']
-            dpqf_b8 = dset[:-1, :]
-
-        return np.hstack((dpqf_b7, dpqf_b8)) < threshold
-
-    def pixel_quality(self, bands='78'):
-        """
-        Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only
-
-        Note1 SWIR row 257 is excluded
-        """
-        if len(bands) > 2:
-            raise ValueError('read per band or channel, only')
-        if '7' not in bands and '8' not in bands:
-            raise ValueError('pixel quality CKD is only available for SWIR')
-
-        ckd = None
-        long_name = 'SWIR pixel-quality CKD'
-        ckd_file = self.ckd_dir / 'dynamic' / 'ckd.dpqf.detector4.nc'
-        with h5py.File(ckd_file, 'r') as fid:
-            for band in bands:
-                dsname = '/BAND{}/dpqf_map'.format(band)
-
-                if not ckd:
-                    ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
-                    ckd.set_long_name(long_name)
-                else:
-                    buff = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
-                    ckd.concatenate(buff, axis=1)
-
         return ckd

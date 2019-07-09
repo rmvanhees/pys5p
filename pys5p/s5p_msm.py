@@ -154,18 +154,24 @@ class S5Pmsm():
                 if len(buff.split()) > 1:
                     buff = buff.split()[0]
                 keys.append(buff)
-                buff = h5_dset.dims[ii][0][:]
-                if np.all(buff == 0):
-                    buff = np.arange(buff.size)
+                if h5_dset.dims[ii][0][:].size == h5_dset.shape[ii]:
+                    buff = h5_dset.dims[ii][0][:]
+                    if np.all(buff == 0):
+                        buff = np.arange(buff.size)
+                else:                          # bug in some KMNI HDF5 files
+                    buff = np.arange(h5_dset.shape[ii])
                 dims.append(buff)
             else:
                 buff = PurePath(h5_dset.dims[ii][0].name).name
                 if len(buff.split()) > 1:
                     buff = buff.split()[0]
                 keys.append(buff)
-                buff = h5_dset.dims[ii][0][:]
-                if np.all(buff == 0):
-                    buff = np.arange(buff.size)
+                if h5_dset.dims[ii][0][:].size == h5_dset.shape[ii]:
+                    buff = h5_dset.dims[ii][0][:]
+                    if np.all(buff == 0):
+                        buff = np.arange(buff.size)
+                else:                          # bug in some KMNI HDF5 files
+                    buff = np.arange(h5_dset.shape[ii])
 
                 if len(data_sel) == h5_dset.ndim:
                     dims.append(buff[data_sel[ii]])
@@ -194,9 +200,14 @@ class S5Pmsm():
         # copy its units
         if 'units' in h5_dset.attrs:
             if isinstance(h5_dset.attrs['units'], np.ndarray):
-                self.units = h5_dset.attrs['units']
-                if isinstance(self.units[0], bytes):
-                    self.units = self.units.astype(str)
+                if h5_dset.attrs['units'].size == 1:
+                    self.units = h5_dset.attrs['units'][0]
+                    if isinstance(self.units, bytes):
+                        self.units = self.units.decode('ascii')
+                else:
+                    self.units = h5_dset.attrs['units']
+                    if isinstance(self.units[0], bytes):
+                        self.units = self.units.astype(str)
             else:
                 self.units = h5_dset.attrs['units']
                 if isinstance(self.units, bytes):
