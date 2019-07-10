@@ -33,6 +33,14 @@ def test_ckd_io(ckd_dir):
     # open object to read the S5P CKDs
     ckd = CKDio(ckd_dir=Path(ckd_dir))
 
+    # call all exported methods
+    for name in dir(ckd):
+        if name.startswith("__") or name == 'close':
+            continue
+
+        if callable(getattr(ckd, name)):
+            print(name, type(getattr(ckd, name)()))
+
     # open object for report
     plot = S5Pplot('s5p_ckd_report.pdf')
 

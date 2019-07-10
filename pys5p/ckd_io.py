@@ -13,12 +13,12 @@ product, where some CKD have a time-axis to correct any in-flight degradation.
 Therefore, the logic to find a CKD is implemented as follows:
 1) ckd_dir, defines the base directory to search for the CKD products
   (see below)
-2) ckd_file, defines the full path to (static) CKD product; 
+2) ckd_file, defines the full path to (static) CKD product;
   (version 1) any product with dynamic CKD has to be in the same directory
 
 Version 1:
 * Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
-* Dynamic CKD are stored in two files: 
+* Dynamic CKD are stored in two files:
   - UVN, use glob('*_ICM_CKDUVN_*')
   - SWIR, use glob('*_ICM_CKDSIR_*')
 
@@ -34,7 +34,7 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import h5py
 import numpy as np
@@ -62,7 +62,8 @@ class CKDio():
         self.ckd_file = None
         self.ckd_dyn_file = None
         self.fid = None
-        self.__header = Path('/METADATA/earth_exploirer_header/fixed_header')
+        self.__header = PosixPath('/METADATA', 'earth_explorer_header',
+                                  'fixed_header')
 
         # define path to CKD product
         if ckd_file is not None:
@@ -113,45 +114,52 @@ class CKDio():
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self) -> None:
         """
         Make sure that we close all resources
         """
         if self.fid is not None:
             self.fid.close()
 
-    def creation_time(self):
+    def creation_time(self) -> str:
         """
         Returns datetime when the L1b product was created
         """
-        attr = self.fid[self.__header / 'source'].attrs['Creator_Date'][0]
+        grpname = str(self.__header / 'source')
+        attr = self.fid[grpname].attrs['Creator_Date'][0]
         if attr is None:
             return None
 
-        return attr.decode('ascii')
+        if isinstance(attr, bytes):
+            return attr.decode('ascii')
+        return attr
 
-    def processor_version(self):
+    def processor_version(self) -> str:
         """
         Returns version of the CKD product
         """
-        attr = self.fid[self.__header / 'source'].attrs['Creator_Verion'][0]
+        grpname = str(self.__header / 'source')
+        attr = self.fid[grpname].attrs['Creator_Version'][0]
         if attr is None:
             return None
 
-        return attr.decode('ascii')
+        if isinstance(attr, bytes):
+            return attr.decode('ascii')
+        return attr
 
-    def validity_period(self):
+    def validity_period(self) -> tuple:
         """
         Return validity period of CKD product as a tuple of 2 datetime objects
         """
         from datetime import datetime
 
-        attr = self.fid[self.__header / 'validity_period'].attrs['Validity_Start']
+        grpname = str(self.__header / 'validity_period')
+        attr = self.fid[grpname].attrs['Validity_Start'][0]
         if attr is None:
             return None
         attr_bgn = attr.decode('ascii')
 
-        attr = self.fid[self.__header / 'validity_period'].attrs['Validity_Stop']
+        attr = self.fid[grpname].attrs['Validity_Stop'][0]
         if attr is None:
             return None
         attr_end = attr.decode('ascii')
@@ -160,7 +168,7 @@ class CKDio():
                 datetime.strptime(attr_end, '%Y%m%dT%H%M%S'))
 
     # ---------- static CKD's ----------
-    def get_param(self, ds_name, band='7'):
+    def get_param(self, ds_name=None, band='7'):
         """
         Returns value(s) of a CKD parameter from the Static CKD product.
         Datasets of size=1 are return as scalar
@@ -168,9 +176,9 @@ class CKDio():
         Parameters
         ----------
         ds_name  :  string
-           Name of the HDF5 dataset
+           Name of the HDF5 dataset, default='pixel_full_well'
         band     : string
-           Band identifier '1', '2', ..., '8'
+           Band identifier '1', '2', ..., '8', default='7'
 
         Returns
         -------
@@ -182,6 +190,9 @@ class CKDio():
          - pixel_full_well
          - pixel_fw_flag_thresh
         """
+        if ds_name is None:
+            ds_name = 'pixel_full_well'
+
         if not 1 <= int(band) <= 8:
             raise ValueError('band must be between and 1 and 8')
 
@@ -194,7 +205,7 @@ class CKDio():
 
         return self.fid[full_name][:]
 
-    def memory(self, bands='78'):
+    def memory(self, bands='78') -> dict:
         """
         Returns memory CKD, SWIR only
 
@@ -203,9 +214,9 @@ class CKDio():
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
         if '7' not in bands and '8' not in bands:
-            raise ValueError('Voltage to Charge only available for SWIR')
+            raise ValueError('Memory CKD only available for SWIR')
 
-        long_name = 'SWIR memory CKD'
+        long_name = 'SWIR memory CKD ({})'
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
                      'mem_qua_neg_swir', 'mem_qua_pos_swir']
         ckd = {}
@@ -214,7 +225,7 @@ class CKDio():
                 if key not in ckd:
                     ckd[key] = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
                                       datapoint=True, data_sel=np.s_[:-1, :])
-                    ckd[key].set_long_name(long_name)
+                    ckd[key].set_long_name(long_name.format(key))
                 else:
                     buff = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
                                   datapoint=True, data_sel=np.s_[:-1, :])
@@ -568,11 +579,11 @@ class CKDio():
         if '7' not in bands and '8' not in bands:
             raise ValueError('pixel quality CKD is only available for SWIR')
 
-        # try the Static CKD product, first
-        if '/BAND7/dpqf_threshold' in self.fid:
-            if threshold is None:
-                threshold = self.fid['/BAND7/dpqf_threshold'][:]
+        if threshold is None:
+            threshold = self.fid['/BAND7/dpqf_threshold'][:]
 
+        # try the Static CKD product, first
+        if '/BAND7/dpqf_map' in self.fid:
             dset = self.fid['/BAND7/dpqf_map']
             dpqf_b7 = dset[:-1, :]
             dset = self.fid['/BAND8/dpqf_map']
@@ -605,7 +616,7 @@ class CKDio():
 
         ckd = None
         long_name = 'SWIR pixel-quality CKD'
-        
+
         # try the Static CKD product, first
         for band in bands:
             dsname = '/BAND{}/dpqf_map'.format(band)
