@@ -679,7 +679,8 @@ class ICMio():
 
         return res
 
-    def get_msm_data(self, msm_dset, band='78', columns=None, fill_as_nan=True):
+    def get_msm_data(self, msm_dset, band='78', *, read_raw=False,
+                     columns=None, fill_as_nan=True):
         """
         Read datasets from a measurement selected by class-method "select"
 
@@ -691,6 +692,10 @@ class ICMio():
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
+        read_raw   : boolean
+            Perform raw read: without slicing or data conversion,
+            and ignore keywords: colums, fill_as_nan.
+            Default: False
         columns    : [i, j]
             Slice data on fastest axis (columns) as from index 'i' to 'j'
         fill_as_nan :  boolean
@@ -712,6 +717,19 @@ class ICMio():
         if band not in self.bands:
             raise ValueError('band not found in product')
 
+        data = []
+        if read_raw:
+            for ii in band:
+                for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+                    msm_path = str(self.__msm_path).replace('%', ii)
+                    ds_path = PurePosixPath(msm_path, dset_grp, msm_dset)
+                    if str(ds_path) not in self.fid:
+                        continue
+
+                    data.append(np.squeeze(self.fid[str(ds_path)]))
+
+            return data
+
         # skip row257 from the SWIR detector
         rows = None
         if int(band[0]) > 6:
@@ -722,7 +740,6 @@ class ICMio():
         row_list = ['width', 'pixel', 'pixel_window', 'ground_pixel']
         column_list = ['height', 'spectral_channel', 'spectral_channel_window']
 
-        data = []
         column_dim = None   # column dimension is unknown
         for ii in band:
             for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
