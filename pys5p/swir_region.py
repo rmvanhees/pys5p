@@ -35,14 +35,14 @@ def coords(mode='illuminated', band='78') -> slice:
         if band == '7':
             return np.s_[12:227, 20:500]
         if band == '8':
-            return np.s_[12:227, 500:980]
+            return np.s_[12:227, :480]
         # else
         return np.s_[12:227, 20:980]
 
     if band == '7':
         return np.s_[11:228, 16:500]
     if band == '8':
-        return np.s_[11:228, 500:991]
+        return np.s_[11:228, :491]
     # else
     return np.s_[11:228, 16:991]
 
