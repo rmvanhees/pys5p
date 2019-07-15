@@ -1925,8 +1925,8 @@ class S5Pplot():
                         ybuff1 = yerr1[np.isfinite(yerr1)]
                         ybuff2 = yerr2[np.isfinite(yerr2)]
                         if xlabel == 'orbit' \
-                           and ybuff1.size > 10 and ybuff2.size > 10:
-                            ni = (ybuff1.size + ybuff2.size) // 20
+                           and ybuff1.size > 5 * 15 and ybuff2.size > 5 * 15:
+                            ni = 2 * 15
                             ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
                                     max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
                     axarr[i_ax].locator_params(axis='y', nbins=4)
