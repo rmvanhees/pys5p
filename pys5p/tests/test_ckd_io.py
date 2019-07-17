@@ -26,12 +26,16 @@ from pys5p.s5p_plot import S5Pplot
 mpl.use('Agg')
 
 #-------------------------
-def test_ckd_io(ckd_dir):
+def test_ckd_io(ckd_path):
     """
     Read various Tropomi UVN and SWIR CKDs and show their contents
     """
     # open object to read the S5P CKDs
-    ckd = CKDio(ckd_dir=Path(ckd_dir))
+    if ckd_path.is_dir():
+        ckd = CKDio(ckd_dir=str(ckd_path))
+    else:
+        ckd = CKDio(ckd_file=str(ckd_path))
+    print(ckd.ckd_file.name)
 
     # call all exported methods
     for name in dir(ckd):
@@ -111,9 +115,13 @@ def main():
     parser = argparse.ArgumentParser(
         description='test of pys5p.ckd_io and pys5p.s5p_plot')
     parser.add_argument('--ckd_dir', default='/nfs/Tropomi/share/ckd')
+    parser.add_argument('--ckd_file', default=None)
     args = parser.parse_args()
 
-    test_ckd_io(args.ckd_dir)
+    if args.ckd_file is None:
+        test_ckd_io(Path(args.ckd_dir))
+    else:
+        test_ckd_io(Path(args.ckd_file))
 
 if __name__ == '__main__':
     main()
