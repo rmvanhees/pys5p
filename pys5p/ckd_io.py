@@ -43,7 +43,6 @@ from .s5p_msm import S5Pmsm
 
 # - global parameters ------------------------------
 
-# - local functions --------------------------------
 
 # - class definition -------------------------------
 class CKDio():

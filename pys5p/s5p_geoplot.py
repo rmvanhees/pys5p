@@ -461,7 +461,7 @@ class S5Pgeoplot():
             zunit = None
         else:
             zunit = msm.units
-            
+
         # define aspect for the location of fig_info
         self.aspect = -1
 
@@ -545,4 +545,76 @@ class S5Pgeoplot():
                 fig_info = OrderedDict({'lon0': lon_0})
             else:
                 fig_info.update({'lon0': lon_0})
+        self.close_page(fig, fig_info)
+
+    # --------------------------------------------------
+    def draw_tracks(self, lons, lats, icids, *, saa_region=None,
+                    title=None, fig_info=None):
+        """
+        Display footprints projected with (beter) TransverseMercator
+
+        Parameters
+        ----------
+        lats       :  ndarray [N, 2]
+           Latitude coordinates at start eand end of measurement
+        lons       :  ndarray [N, 2]
+           Longitude coordinates at start eand end of measurement
+        icids      :  ndarray [N]
+           ICID of measurements per (lon, lat)
+        saa_region :  ndarray
+           Show SAA region, defined as Patch (x, y)
+        title      :  string
+           Title of the figure. Default is None
+           Suggestion: use attribute "title" of data-product
+        fig_info   :  dictionary
+           OrderedDict holding meta-data to be displayed in the figure
+
+        The information provided in the parameter 'fig_info' will be displayed
+        in a small box.
+        """
+        import matplotlib.pyplot as plt
+
+        from matplotlib.patches import Polygon
+
+        from pys5p.sron_colormaps import get_line_colors
+
+        # get SRON colors
+        lcolors = get_line_colors()
+
+        # define plot layout
+        myproj = ccrs.EqualEarth()
+        fig, axx = plt.subplots(1, 1, figsize=(11.7, 8.3),
+                                subplot_kw={'projection': myproj})
+        axx.set_global()
+        axx.coastlines(resolution='110m')
+        axx.gridlines()
+
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.9), horizontalalignment='center')
+
+        # draw SAA region
+        if saa_region is not None:
+            saa_poly = Polygon(xy=saa_region, closed=True,
+                               alpha=1.0, facecolor=lcolors.grey,
+                               transform=ccrs.PlateCarree())
+            axx.add_patch(saa_poly)
+
+        # draw satellite position(s)
+        icid_found = []
+        for lon, lat, icid in zip(lons, lats, icids):
+            if icid not in icid_found:
+                indx_color = len(icid_found)
+            else:
+                indx_color = icid_found.index(icid) % 6
+            line, = plt.plot(lon, lat, linestyle='-', linewidth=3,
+                             color=lcolors[indx_color],
+                             transform=ccrs.PlateCarree())
+            if icid not in icid_found:
+                line.set_label('ICID: {}'.format(icid))
+                icid_found.append(icid)
+
+        # finalize figure
+        axx.legend(loc='lower left')
+        self.add_copyright(axx)
         self.close_page(fig, fig_info)
