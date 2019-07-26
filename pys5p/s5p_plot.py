@@ -2209,9 +2209,9 @@ class S5Pplot():
             if icid not in icid_found:
                 indx_color = len(icid_found)
             else:
-                indx_color = icid_found.index(icid) % 6
+                indx_color = icid_found.index(icid)
             line, = plt.plot(lon, lat, linestyle='-', linewidth=3,
-                             color=lcolors[indx_color],
+                             color=lcolors[indx_color % 6],
                              transform=ccrs.PlateCarree())
             if icid not in icid_found:
                 line.set_label('ICID: {}'.format(icid))
