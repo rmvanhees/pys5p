@@ -798,6 +798,58 @@ class ICMio():
         # return band in detector layout
         return np.concatenate(data, axis=column_dim)
 
+    def read_direct_msm(self, msm_dset, dest_sel=None,
+                        dest_dtype=None, fill_as_nan=False):
+        """
+        The faster implementation of get_msm_data()
+
+        Parameters
+        ----------
+        msm_dset    :  string
+            Name of measurement dataset
+        dest_sel    :  numpy slice
+            Selection must be the output of numpy.s_[<args>].
+        dest_dtype  :  numpy dtype
+            Perform type conversion
+        fill_as_nan :  boolean
+            Replace (float) FillValues with Nan's, when True
+
+        Returns
+        -------
+        out  :  list
+           list with data of all available bands
+        """
+        fillvalue = float.fromhex('0x1.ep+122')
+
+        if not self.__msm_path:
+            return None
+
+        if dest_sel is None:
+            dest_sel = np.s_[...]
+
+        data = []
+        for ii in self.bands:
+            msm_path = str(self.__msm_path).replace('%', ii)
+            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+                ds_path = str(PurePosixPath(msm_path, dset_grp, msm_dset))
+                if ds_path not in self.fid:
+                    continue
+
+                dset = self.fid[ds_path]
+                if dest_dtype is None:
+                    buff = dset[dest_sel]
+                else:
+                    with dset.astype(dest_dtype):
+                        buff = dset[dest_sel]
+
+                if fill_as_nan:
+                    if dset.attrs['_FillValue'] == fillvalue:
+                        buff[(buff == fillvalue)] = np.nan
+
+                data.append(buff)
+
+        return data
+
     # -------------------------
     def set_housekeeping_data(self, data, band=None) -> None:
         """
