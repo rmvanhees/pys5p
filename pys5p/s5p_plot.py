@@ -23,6 +23,7 @@ Suggestion for the name of the report/pdf-file
  * draw_trend2d
  * draw_trend1d
  * draw_line
+ * draw_tracks
 
 - Closing the S5Pplot object will write the report to disk
 
@@ -2141,7 +2142,7 @@ class S5Pplot():
     def draw_tracks(self, lons, lats, icids, *, saa_region=None,
                     title=None, fig_info=None):
         """
-        Display footprints projected with (beter) TransverseMercator
+        Display tracks of S5P on a world map using a Robinson projection
 
         Parameters
         ----------
@@ -2177,8 +2178,8 @@ class S5Pplot():
         self.aspect = 4
 
         # define plot layout
-        myproj = ccrs.EqualEarth()
-        fig, axx = plt.subplots(figsize=(15, 7),
+        myproj = ccrs.Robinson(central_longitude=11.5)
+        fig, axx = plt.subplots(figsize=(12.85, 6),
                                 subplot_kw={'projection': myproj})
         axx.set_global()
         axx.coastlines(resolution='110m')
