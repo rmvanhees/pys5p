@@ -157,6 +157,9 @@ class OCMio():
         return False  # any exception is raised by the with statement.
 
     def close(self):
+        """
+        Close resources
+        """
         self.band = None
         if self.fid is not None:
             self.fid.close()
@@ -374,6 +377,7 @@ class OCMio():
 
         return None
 
+    # -------------------------
     def get_msm_data(self, msm_dset, fill_as_nan=True,
                      frames=None, columns=None):
         """
@@ -397,7 +401,7 @@ class OCMio():
         Returns
         -------
         out   :   dictionary
-           Python dictionary with names of msm_groups as keys and their S5Pmsm's
+           Python dictionary with names of msm_groups as keys
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -454,5 +458,57 @@ class OCMio():
 
             # add data to dictionary
             res[msm_grp] = data
+
+        return res
+
+    # -------------------------
+    def read_direct_msm(self, msm_dset, dest_sel=None,
+                        dest_dtype=None, fill_as_nan=False):
+        """
+        The faster implementation of get_msm_data()
+
+        Parameters
+        ----------
+        msm_dset    :  string
+            Name of measurement dataset
+        dest_sel    :  numpy slice
+            Selection must be the output of numpy.s_[<args>].
+        dest_dtype  :  numpy dtype
+            Perform type conversion
+        fill_as_nan :  boolean
+            Replace (float) FillValues with Nan's, when True
+
+        Returns
+        -------
+        out   :   dictionary
+           Python dictionary with names of msm_groups as keys
+        """
+        fillvalue = float.fromhex('0x1.ep+122')
+
+        if not self.__msm_path:
+            return None
+
+        if dest_sel is None:
+            dest_sel = np.s_[...]
+
+        # combine data of all measurement groups in dictionary
+        res = {}
+        for msm_grp in sorted(self.__msm_path):
+            dset = self.fid[str(PurePosixPath(
+                'BAND{}'.format(self.band), msm_grp,
+                'OBSERVATIONS', msm_dset))]
+
+            if dest_dtype is None:
+                buff = dset[dest_sel]
+            else:
+                with dset.astype(dest_dtype):
+                    buff = dset[dest_sel]
+
+            if fill_as_nan:
+                if dset.attrs['_FillValue'] == fillvalue:
+                    buff[(buff == fillvalue)] = np.nan
+
+            # add data to dictionary
+            res[msm_grp] = buff
 
         return res
