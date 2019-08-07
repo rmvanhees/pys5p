@@ -10,12 +10,16 @@
 """ The pys5p package contains software to read S5p Tropomi L1B products.
     And contains plotting routines to display your data beautifully."""
 
-from .version import version as __version__
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    pass
 
-from .biweight import biweight
-from .get_data_dir import get_data_dir
 from .swir_texp import swir_exp_time
 
+from . import biweight
+from . import get_data_dir
 from . import ckd_io, icm_io, l1b_io, lv2_io, ocm_io
 from . import error_propagation
 from . import sron_colormaps, s5p_msm, s5p_plot #, s5p_geoplot

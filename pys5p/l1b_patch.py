@@ -12,6 +12,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from pathlib import Path
+from setuptools_scm import get_version
 
 import shutil
 
@@ -81,7 +82,6 @@ class L1Bpatch():
              - auxiliary datasets used by patch-routines
         """
         from datetime import datetime
-        from .version import version as __version__
 
         if not self.l1b_patched.is_file():
             return
@@ -92,7 +92,8 @@ class L1Bpatch():
         with h5py.File(self.l1b_patched, 'r+') as fid:
             sgrp = fid.require_group('/METADATA/SRON_METADATA')
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = __version__
+            sgrp.attrs['git_tag'] = get_version(root='..',
+                                                relative_to=__file__)
             if 'patched_datasets' not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
                 dset = sgrp.create_dataset('patched_datasets',

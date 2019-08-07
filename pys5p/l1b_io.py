@@ -12,12 +12,12 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from pathlib import PurePosixPath
+from setuptools_scm import get_version
 
 import h5py
 import numpy as np
 
 from .biweight import biweight
-from .version import version as __version__
 
 # - global parameters ------------------------------
 
@@ -130,7 +130,8 @@ class L1Bio():
 
             sgrp = self.fid.require_group("/METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = __version__
+            sgrp.attrs['git_tag'] = get_version(root='..',
+                                                relative_to=__file__)
             if 'patched_datasets' not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
                 dset = sgrp.create_dataset('patched_datasets',
