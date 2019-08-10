@@ -552,7 +552,8 @@ class S5Pplot():
         elif method == 'ratio_unc':
             zunit = None
             zlabel = 'uncertainty'
-        elif msm.long_name.find('uncertainty') >= 0:
+        elif msm.long_name is not None \
+             and msm.long_name.find('uncertainty') >= 0:
             if zunit is None:
                 zlabel = 'uncertainty'
             else:
