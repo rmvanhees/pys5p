@@ -452,9 +452,10 @@ class S5Pplot():
 
         # convert units from electrons to ke, Me, ...
         (zunit, dscale) = convert_units(msm.units, vmin, vmax)
-        vmin /= dscale
-        vmax /= dscale
-        self.data[np.isfinite(self.data)] /= dscale
+        if not issubclass(self.data.dtype.type, np.integer):
+            vmin /= dscale
+            vmax /= dscale
+            self.data[np.isfinite(self.data)] /= dscale
 
         # define colrbar and its normalisation
         lcolor = get_line_colors()
