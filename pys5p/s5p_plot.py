@@ -146,7 +146,7 @@ class S5Pplot():
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
-    def __init__(self, figname):
+    def __init__(self, figname, pdf_title=None):
         """
         Initialize multi-page PDF document or a single-page PNG
 
@@ -154,21 +154,25 @@ class S5Pplot():
         ----------
         figname   :  string
              name of PDF or PNG file (extension required)
+        pdf_title :  string
+             name of the PDF document
         """
         from pathlib import PurePath
 
-        self.data = None
         self.aspect = -1
+        self.data = None
         self.method = None
         self.info_pos = 'above'
+        self.__pdf = None
+        self.pdf_title = pdf_title 
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
             from matplotlib.backends.backend_pdf import PdfPages
 
+            if pdf_title is None:
+                self.pdf_title = 'Monitor report on Tropomi SWIR instrument'
             self.__pdf = PdfPages(figname)
-        else:
-            self.__pdf = None
 
     def __repr__(self):
         pass
@@ -196,7 +200,7 @@ class S5Pplot():
 
         if self.__pdf is not None:
             doc = self.__pdf.infodict()
-            doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
+            doc['Title'] = self.pdf_title
             doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
             doc['Keywords'] = 'PdfPages multipage keywords author title'
             self.__pdf.close()
