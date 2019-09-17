@@ -146,7 +146,7 @@ class S5Pplot():
     The PDF will have the following name:
         <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
     """
-    def __init__(self, figname, add_info=True):
+    def __init__(self, figname):
         """
         Initialize multi-page PDF document or a single-page PNG
 
@@ -154,15 +154,13 @@ class S5Pplot():
         ----------
         figname   :  string
              name of PDF or PNG file (extension required)
-        add_info  :  boolean
-             generate a legenda with info on the displayed data
         """
         from pathlib import PurePath
 
         self.data = None
         self.aspect = -1
         self.method = None
-        self.add_info = add_info
+        self.info_pos = 'above'
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
@@ -175,7 +173,7 @@ class S5Pplot():
     def __repr__(self):
         pass
 
-    def close_page(self, fig, fig_info):
+    def close_page(self, fig):
         """
         close current matplotlib figure or page in a PDF document
         """
@@ -183,19 +181,12 @@ class S5Pplot():
         if self.__pdf is None:
             from matplotlib import pyplot as plt
 
-            if self.add_info:
-                self.__fig_info(fig, fig_info)
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                plt.savefig(self.filename, transparant=True)
-                plt.close(fig)
+            plt.savefig(self.filename)
+            # plt.savefig(self.filename, transparant=True)
+            plt.close(fig)
         else:
-            if self.add_info:
-                self.__fig_info(fig, fig_info)
-                self.__pdf.savefig()
-            else:
-                self.__pdf.savefig(transparant=True)
+            self.__pdf.savefig()
+            # self.__pdf.savefig(transparant=True)
 
     def close(self):
         """
@@ -221,7 +212,7 @@ class S5Pplot():
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
 
-    def __fig_info(self, fig, dict_info, fontsize='small'):
+    def add_fig_info(self, fig, dict_info, fontsize='small'):
         """
         Add meta-information in the current figure
 
@@ -260,26 +251,44 @@ class S5Pplot():
             xpos = 0.9
             ypos = 0.925
 
-        fig.text(xpos, ypos, info_str,
-                 fontsize=fontsize, style='normal',
-                 verticalalignment='top',
-                 horizontalalignment='right',
-                 multialignment='left',
-                 bbox={'facecolor': 'white', 'pad': 5})
+        if self.info_pos == 'above':
+            fig.text(xpos, ypos, info_str,
+                     fontsize=fontsize, style='normal',
+                     verticalalignment='top',
+                     horizontalalignment='right',
+                     multialignment='left',
+                     bbox={'facecolor': 'white', 'pad': 5})
+            return
+
+        if self.info_pos == 'left':
+            fig.set_xticks([], [])
+            fig.set_yticks([], [])
+            for key in ('left', 'right', 'top', 'bottom'):
+                fig.spines[key].set_color('white')
+            fig.text(0.025, 0.975, info_str,
+                     fontsize=fontsize, style='normal',
+                     verticalalignment='top',
+                     horizontalalignment='left',
+                     multialignment='left', linespacing=1.5)
 
     # -------------------------
     def __fig_size(self):
+        """
+        Define figure size depended on image aspect-ratio
+        """
         dims = self.data.shape
         self.aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
 
+        fig_ext = 3.5 if self.info_pos == 'left' else 0
+
         if self.aspect == 1:
-            figsize = (10, 9)
+            figsize = (10 + fig_ext, 9)
         elif self.aspect == 2:
-            figsize = (12, 7)
+            figsize = (12 + fig_ext, 7)
         elif self.aspect == 3:
-            figsize = (14, 6.5)
+            figsize = (14 + fig_ext, 6.5)
         elif self.aspect == 4:
-            figsize = (15, 6)
+            figsize = (15 + fig_ext, 6)
         else:
             print(__name__ + '.draw_signal', dims, self.aspect)
             raise ValueError('*** FATAL: aspect ratio not implemented, exit')
@@ -356,7 +365,8 @@ class S5Pplot():
     # --------------------------------------------------
     def draw_signal(self, msm_in, ref_data=None, method='data',
                     add_medians=True, *, vperc=None, vrange=None,
-                    title=None, sub_title=None, fig_info=None):
+                    title=None, sub_title=None,
+                    fig_info=None, info_pos=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
@@ -391,6 +401,8 @@ class S5Pplot():
            Suggestion: use attribute "comment" of data-product
         fig_info  :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
+        info_pos  :  ('above', 'left', 'none')
+           Draw the info text-region left of the figure instead of above
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date and the data
@@ -410,6 +422,13 @@ class S5Pplot():
             if not isinstance(msm_in, S5Pmsm):
                 raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
             msm = msm_in
+
+        if info_pos is None:       # keep the default!
+            pass
+        elif info_pos in ('above', 'left', 'none'):
+            self.info_pos = info_pos
+        else:
+            raise KeyError('info should be above, left or none')
 
         if msm.value.ndim != 2:
             raise ValueError('input data must be two dimensional')
@@ -589,7 +608,7 @@ class S5Pplot():
             ax_medy.set_ylabel(ylabel)
 
         # add annotation and save figure
-        if self.add_info:
+        if self.info_pos != 'none':
             (median, spread) = biweight(self.data, spread=True)
             if zunit is None:
                 median_str = '{:.5g}'.format(median)
@@ -604,7 +623,13 @@ class S5Pplot():
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
 
-        self.close_page(fig, fig_info)
+            if self.info_pos == 'above':
+                self.add_fig_info(fig, fig_info)
+            elif self.info_pos == 'left':
+                ax_info = divider.append_axes("right", size=2.5, pad=.75)
+                self.add_fig_info(ax_info, fig_info)
+
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_quality(self, msm_in, ref_data=None, add_medians=True,
@@ -839,7 +864,8 @@ class S5Pplot():
             fig_info.update({'good to bad': np.sum(self.data == 8)})
             fig_info.update({'to worst': np.sum(self.data == 1)})
 
-        self.close_page(fig, fig_info)
+        self.add_fig_info(fig, fig_info)
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_cmp_swir(self, msm_in, model_in, model_label='reference',
@@ -1111,7 +1137,7 @@ class S5Pplot():
             ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
 
         # add annotation and save figure
-        if self.add_info:
+        if self.info_pos != 'none':
             (median, spread) = biweight(residual, spread=True)
             if zunit is None:
                 median_str = '{:.5g}'.format(median)
@@ -1125,8 +1151,9 @@ class S5Pplot():
             else:
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
+            self.add_fig_info(fig, fig_info)
 
-        self.close_page(fig, fig_info)
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_hist(self, msm_in, msm_err_in, *, vperc=None, vrange=None,
@@ -1257,7 +1284,7 @@ class S5Pplot():
             axx.set_ylabel('count')
 
             # update figure annotation
-            if self.add_info:
+            if self.info_pos != 'none':
                 (median, spread) = biweight(msm.value, spread=True)
                 if zunit is not None:
                     median_str = r'{:.5g} {}'.format(median / zscale, zunit)
@@ -1310,7 +1337,7 @@ class S5Pplot():
             axx.set_ylabel('count')
 
             # update figure annotation
-            if self.add_info:
+            if self.info_pos != 'none':
                 (median, spread) = biweight(msm_err.value, spread=True)
                 if zunit is not None:
                     median_str = r'{:.5g} {}'.format(median / uscale, uunit)
@@ -1321,9 +1348,10 @@ class S5Pplot():
 
                 fig_info.update({'unc_median': median_str})
                 fig_info.update({'unc_spread': spread_str})
+                self.add_fig_info(fig, fig_info)
 
-        # add annotation and save figure
-        self.close_page(fig, fig_info)
+        # add save figure
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_qhist(self, dpqm, dpqm_dark, dpqm_noise,
@@ -1420,7 +1448,8 @@ class S5Pplot():
             ipos += 5
 
         # add annotation and save figure
-        self.close_page(fig, fig_info)
+        self.add_fig_info(fig, fig_info)
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_trend2d(self, msm_in, *, time_axis=None, vperc=None, vrange=None,
@@ -1619,7 +1648,7 @@ class S5Pplot():
         ax_medy.set_ylabel(ylabel)
 
         # add annotation and save figure
-        if self.add_info:
+        if self.info_pos != 'none':
             (median, spread) = biweight(msm.value, spread=True)
             if zunit is not None:
                 median_str = r'{:.5g} {}'.format(median / dscale, zunit)
@@ -1635,8 +1664,10 @@ class S5Pplot():
                     fig_info.update({'orbit': [extent[0], extent[1]]})
                 fig_info.update({'median': median_str})
             fig_info.update({'spread': spread_str})
+            self.add_fig_info(fig, fig_info)
 
-        self.close_page(fig, fig_info)
+        # save figure
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_trend1d(self, msm1, hk_data=None, *, msm2=None, hk_keys=None,
@@ -1964,7 +1995,8 @@ class S5Pplot():
                           ha='center', va='center')
 
         # add annotation and save figure
-        self.close_page(fig, fig_info)
+        self.add_fig_info(fig, fig_info)
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_line(self, msm_in, *, color=0, symbol=None, llabel=None,
@@ -2030,7 +2062,8 @@ class S5Pplot():
             self.add_copyright(mpl_fig[1])
 
             # close page
-            self.close_page(mpl_fig[0], fig_info)
+            self.add_fig_info(mpl_fig[0], fig_info)
+            self.close_page(mpl_fig[0])
             return None
 
         # assert that we have some data to show
@@ -2196,7 +2229,7 @@ class S5Pplot():
         if saa_region is not None:
             if saa_region in ('ckd', 'CKD'):
                 from pys5p.ckd_io import CKDio
-                
+
                 with CKDio() as ckd:
                     res = ckd.saa()
                 saa_region = list(zip(res['lon'], res['lat']))
@@ -2223,4 +2256,5 @@ class S5Pplot():
         # finalize figure
         axx.legend(loc='lower left')
         self.add_copyright(axx)
-        self.close_page(fig, fig_info)
+        self.add_fig_info(fig, fig_info)
+        self.close_page(fig)
