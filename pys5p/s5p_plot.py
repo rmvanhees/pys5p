@@ -202,7 +202,7 @@ class S5Pplot():
             doc = self.__pdf.infodict()
             doc['Title'] = self.pdf_title
             doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
-            doc['Keywords'] = 'PdfPages multipage keywords author title'
+            # doc['Keywords'] = 'PdfPages multipage keywords author title'
             self.__pdf.close()
             plt.close('all')
 
@@ -264,7 +264,7 @@ class S5Pplot():
                      bbox={'facecolor': 'white', 'pad': 5})
             return
 
-        if self.info_pos == 'left':
+        if self.info_pos == 'right':
             fig.set_xticks([], [])
             fig.set_yticks([], [])
             for key in ('left', 'right', 'top', 'bottom'):
@@ -283,7 +283,7 @@ class S5Pplot():
         dims = self.data.shape
         self.aspect = min(4, max(1, int(np.round(dims[1] / dims[0]))))
 
-        fig_ext = 3.5 if self.info_pos == 'left' else 0
+        fig_ext = 3.5 if self.info_pos == 'right' else 0
 
         if self.aspect == 1:
             figsize = (10 + fig_ext, 9)
@@ -405,8 +405,8 @@ class S5Pplot():
            Suggestion: use attribute "comment" of data-product
         fig_info  :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
-        info_pos  :  ('above', 'left', 'none')
-           Draw the info text-region left of the figure instead of above
+        info_pos  :  ('above', 'right', 'none')
+           Draw the info text-region right of the figure instead of above
 
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date and the data
@@ -429,10 +429,10 @@ class S5Pplot():
 
         if info_pos is None:       # keep the default!
             pass
-        elif info_pos in ('above', 'left', 'none'):
+        elif info_pos in ('above', 'right', 'none'):
             self.info_pos = info_pos
         else:
-            raise KeyError('info should be above, left or none')
+            raise KeyError('info should be above, right or none')
 
         if msm.value.ndim != 2:
             raise ValueError('input data must be two dimensional')
@@ -629,7 +629,7 @@ class S5Pplot():
 
             if self.info_pos == 'above':
                 self.add_fig_info(fig, fig_info)
-            elif self.info_pos == 'left':
+            elif self.info_pos == 'right':
                 ax_info = divider.append_axes("right", size=2.5, pad=.75)
                 self.add_fig_info(ax_info, fig_info)
 
