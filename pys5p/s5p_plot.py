@@ -160,6 +160,7 @@ class S5Pplot():
         from pathlib import PurePath
 
         self.aspect = -1
+        self.cmap = None
         self.data = None
         self.method = None
         self.info_pos = 'above'
@@ -202,7 +203,7 @@ class S5Pplot():
             doc = self.__pdf.infodict()
             doc['Title'] = self.pdf_title
             doc['Author'] = '(c) SRON, Netherlands Institute for Space Research'
-            doc['Keywords'] = 'PdfPages multipage keywords author title'
+            # doc['Keywords'] = 'PdfPages multipage keywords author title'
             self.__pdf.close()
             plt.close('all')
 
@@ -216,6 +217,24 @@ class S5Pplot():
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
 
+    def set_cmap(self, cmap):
+        """
+        Define alternative color-map to overrule the default
+
+        Parameter
+        ---------
+         cmap :  matplotlib color-map
+
+        Note only implemented for method draw_signal()
+        """
+        self.cmap = cmap.copy()
+
+    def unset_cmap(self):
+        """
+        Unset user supplied color-map, and use default color-map
+        """
+        self.cmap = None
+        
     def add_fig_info(self, fig, dict_info, fontsize='small'):
         """
         Add meta-information in the current figure
@@ -504,6 +523,9 @@ class S5Pplot():
         else:
             raise ValueError
 
+        if self.cmap is not None:
+            cmap = self.cmap
+            
         norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # set label and range of X/Y axis
