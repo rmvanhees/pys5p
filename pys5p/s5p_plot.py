@@ -5,14 +5,8 @@ https://github.com/rmvanhees/pys5p.git
 
 The class S5Pplot contains generic plot functions
 
-Suggestion for the name of the report/pdf-file
-    <identifier>_<yyyymmdd>_<orbit>.pdf
-  where
-    identifier : name of L1B/ICM/OCM product or monitoring database
-    yyyymmdd   : coverage start-date or start-date of monitoring entry
-    orbit      : reference orbit
-
--- generate figures --
+Generate Figures
+----------------
 - Creating an S5Pplot object will open multi-page PDF file or single-page PNG
 - Each public function listed below can be used to create a (new) page
  * draw_signal
@@ -24,8 +18,27 @@ Suggestion for the name of the report/pdf-file
  * draw_trend1d
  * draw_line
  * draw_tracks
-
 - Closing the S5Pplot object will write the report to disk
+
+New: you can change the default color_maps by calling set_cmap(cmap)
+     and return to the default behavior by calling unset_cmap()
+     Currently, only implemented for draw_signal(...)
+
+Suggestion for the name of a report/PDF-file:
+    <identifier>_<yyyymmdd>_<orbit>.pdf
+  where
+    identifier : name of L1B/ICM/OCM product or monitoring database
+    yyyymmdd   : coverage start-date or start-date of monitoring entry
+    orbit      : reference orbit
+
+Examples
+--------
+>>> from pys5p.s5p_plot import S5Pplot
+>>> plot = S5Pplot('test_plot_class.pdf')
+>>> plot.draw_signal(np.mean(signal, axis=0), title='signal of my measurement')
+>>> plot.draw_trend2d(np.mean(signal, axis=2))
+>>> plot.draw_trend1d(np.mean(signal, axis=(1, 2)), hk_data, hk_keys)
+>>> plot.close()
 
 Copyright (c) 2017 SRON - Netherlands Institute for Space Research
    All Rights Reserved
