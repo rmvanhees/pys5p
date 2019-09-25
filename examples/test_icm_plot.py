@@ -45,17 +45,17 @@ def show_signals(args):
     print(icm.get_msm_attr('radiance_avg', 'units'))
 
     plot = S5Pplot('test_plot_icm_io.pdf')
-    plot.draw_signal(res, title='averaged radiance', 
+    plot.draw_signal(res, title='averaged radiance',
                      sub_title='orbit={}, ICID={}'.format(orbit, args.icid),
                      info_pos='left')
-    plot.draw_signal(res, title='averaged radiance', 
+    plot.draw_signal(res, title='averaged radiance',
                      sub_title='orbit={}, ICID={}'.format(orbit, args.icid),
                      info_pos='above')
 
-    plot.draw_signal(res[:, :255], title='averaged radiance (left)', 
+    plot.draw_signal(res[:, :255], title='averaged radiance (left)',
                      sub_title='orbit={}, ICID={}'.format(orbit, args.icid),
                      info_pos='left')
-    plot.draw_signal(res[:, :255], title='averaged radiance (left)', 
+    plot.draw_signal(res[:, :255], title='averaged radiance (left)',
                      sub_title='orbit={}, ICID={}'.format(orbit, args.icid),
                      info_pos='above')
 

@@ -65,7 +65,7 @@ def read_using_icm_io(args):
 
     plot.close()
     return result
-        
+
 # - main function --------------------------------------
 def main():
     """

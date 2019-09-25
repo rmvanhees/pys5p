@@ -20,6 +20,7 @@ import argparse
 
 from pathlib import Path
 
+import h5py
 import numpy as np
 
 from pys5p.l1b_io import L1BioRAD
@@ -77,8 +78,6 @@ def read_using_s5p_msm(args):
     """
     Perform read using s5p_msm  and use S5Pplot to create the figure
     """
-    import h5py
-
     l1b = L1BioRAD(args.input_file)
     orbit = l1b.get_orbit()
     l1b.select()

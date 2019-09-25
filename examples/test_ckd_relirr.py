@@ -16,8 +16,6 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-import argparse
-
 import numpy as np
 
 
