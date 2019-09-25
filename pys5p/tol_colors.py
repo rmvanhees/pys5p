@@ -28,9 +28,9 @@ def discretemap(colormap, hexclrs):
     clrs = to_rgba_array(hexclrs)
     clrs = np.vstack([clrs[0], clrs, clrs[-1]])
     cdict = {}
-    for ki, key in enumerate(('red', 'green', 'blue')):
-        cdict[key] = [(i/(len(clrs)-2.), clrs[i, ki], clrs[i+1, ki])
-                      for i in range(len(clrs)-1)]
+    for ii, key in enumerate(('red', 'green', 'blue')):
+        cdict[key] = [(jj / (len(clrs)-2.), clrs[jj, ii], clrs[jj+1, ii])
+                      for jj in range(len(clrs)-1)]
     return LinearSegmentedColormap(colormap, cdict)
 
 

@@ -18,8 +18,8 @@ License:  BSD-3-Clause
 """
 from pathlib import Path
 
-from ..get_data_dir import get_data_dir
-from ..l1b_io import L1BioENG
+from pys5p.get_data_dir import get_data_dir
+from pys5p.l1b_io import L1BioENG
 
 #--------------------------------------------------
 def test_rd_eng():

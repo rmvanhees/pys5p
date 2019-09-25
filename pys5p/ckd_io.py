@@ -475,7 +475,7 @@ class CKDio():
         saa_region['lat'] = self.fid['saa_latitude'][:]
         saa_region['lon'] = self.fid['saa_longitude'][:]
 
-        return saa_region 
+        return saa_region
 
     # ---------- external CKD's ----------
     def offset(self, bands='78'):

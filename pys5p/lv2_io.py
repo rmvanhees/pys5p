@@ -18,6 +18,7 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+import h5py
 import numpy as np
 
 # - global parameters ------------------------------
@@ -41,7 +42,7 @@ class LV2io():
            full path to S5P Tropomi level 2 product
         """
         from pathlib import Path
-        import h5py
+
         science_inst = ['SRON Netherlands Institute for Space Research']
 
         # initialize class-attributes

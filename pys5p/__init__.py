@@ -4,17 +4,13 @@
 #
 # Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
-# 
+#
 # License:  BSD-3-Clause
 
 """ The pys5p package contains software to read S5p Tropomi L1B products.
     And contains plotting routines to display your data beautifully."""
 
 from pkg_resources import get_distribution, DistributionNotFound
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    pass
 
 from .swir_texp import swir_exp_time
 
@@ -25,3 +21,8 @@ from . import error_propagation
 from . import s5p_msm, s5p_plot #, s5p_geoplot
 from . import swir_region
 from . import tol_colors
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    pass

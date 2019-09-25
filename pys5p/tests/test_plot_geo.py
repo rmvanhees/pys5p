@@ -26,9 +26,9 @@ def test_geo():
     Check classes L1BioCAL, L1BioRAD and S5Pplot.draw_geo
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..l1b_io import L1BioCAL, L1BioRAD
-    from ..s5p_plot import S5Pplot
+    from pys5p.get_data_dir import get_data_dir
+    from pys5p.l1b_io import L1BioCAL, L1BioRAD
+    from pys5p.s5p_geoplot import S5Pgeoplot
 
     # obtain path to directory pys5p-data
     try:
@@ -46,9 +46,9 @@ def test_geo():
     geo = l1b.get_geo_data(icid=4)
     l1b.close()
 
-    plot = S5Pplot('test_plot_geo.pdf')
-    plot.draw_geolocation(geo['latitude'], geo['longitude'],
-                          sequence=geo['sequence'])
+    plot = S5Pgeoplot('test_plot_geo.pdf')
+    plot.draw_geo_tiles(geo['longitude'], geo['latitude'],
+                        sequence=geo['sequence'])
 
     # test subsatellite mode
     filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_CA_*.nc'))
@@ -58,10 +58,10 @@ def test_geo():
     geo = l1b.get_geo_data()
     l1b.close()
 
-    plot.draw_geolocation(geo['satellite_latitude'],
-                          geo['satellite_longitude'],
-                          sequence=geo['sequence'],
-                          subsatellite=True)
+    plot.draw_geo_subsat(geo['satellite_longitude'],
+                         geo['satellite_latitude'])
+    #sequence=geo['sequence'],
+    #subsatellite=True)
     plot.close()
 
 if __name__ == '__main__':

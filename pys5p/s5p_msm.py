@@ -146,7 +146,8 @@ class S5Pmsm():
         for ii in range(h5_dset.ndim):
             if self.value.shape[ii] == 1:
                 continue
-            elif len(h5_dset.dims[ii]) != 1:   # bug in some KMNI HDF5 files
+
+            if len(h5_dset.dims[ii]) != 1:   # bug in some KMNI HDF5 files
                 keys.append(keys_default[ii])
                 dims.append(np.arange(self.value.shape[ii]))
             elif self.value.shape[ii] == h5_dset.shape[ii]:
@@ -254,9 +255,9 @@ class S5Pmsm():
         """
         return a deep copy of the current object
         """
-        import copy
+        from copy import deepcopy
 
-        return copy.deepcopy(self)
+        return deepcopy(self)
 
     def set_coverage(self, coverage, force=False):
         """

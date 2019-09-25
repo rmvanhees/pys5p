@@ -12,9 +12,9 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from pathlib import Path
-from setuptools_scm import get_version
-
 import shutil
+
+from setuptools_scm import get_version
 
 import h5py
 import numpy as np

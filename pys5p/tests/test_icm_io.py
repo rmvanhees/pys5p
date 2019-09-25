@@ -22,8 +22,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..get_data_dir import get_data_dir
-from ..icm_io import ICMio
+from pys5p.get_data_dir import get_data_dir
+from pys5p.icm_io import ICMio
 
 #--------------------------------------------------
 def test_rd_icm():
@@ -49,26 +49,27 @@ def test_rd_icm():
         print(icm.get_coverage_time())
 
         if icm.select('ANALOG_OFFSET_SWIR'):
-            #print(icm.get_ref_time())
-            #print(icm.get_delta_time())
-            #print(icm.get_instrument_settings())
-            #print(icm.get_housekeeping_data())
-            print('GEO: ', icm.get_geo_data().shape)
+            print(icm.get_ref_time())
+            print(icm.get_delta_time())
+            print(icm.get_instrument_settings())
+            print(icm.get_housekeeping_data())
+            for key in icm.get_geo_data():
+                print('GEO[{}]: '.format(key), icm.get_geo_data()[key].shape)
             res = icm.get_msm_data('analog_offset_swir_value')
             print('analog_offset_swir_value: ', res.shape)
             print(icm.get_msm_attr('analog_offset_swir_value', 'units'))
 
         if icm.select('BACKGROUND_MODE_1063',
                       msm_path='BAND%_CALIBRATION'):
-            #print(icm.get_ref_time())
-            #print(icm.get_delta_time())
-            #print(icm.get_instrument_settings())
-            #print(icm.get_housekeeping_data())
-            print('GEO: ', icm.get_geo_data().shape)
+            print(icm.get_ref_time())
+            print(icm.get_delta_time())
+            print(icm.get_instrument_settings())
+            print(icm.get_housekeeping_data())
+            for key in icm.get_geo_data():
+                print('GEO[{}]: '.format(key), icm.get_geo_data()[key].shape)
             res = icm.get_msm_data('signal_avg')
             print('signal_avg: ', res.shape)
             print(icm.get_msm_attr('signal_avg', 'units'))
-            print('GEO: ', icm.get_geo_data().shape)
             res = icm.get_msm_data('biweight_value')
             print('biweight_value: ', res.shape)
             print(icm.get_msm_attr('biweight_value', 'units'))
@@ -80,7 +81,8 @@ def test_rd_icm():
             #print(icm.get_delta_time())
             #print(icm.get_instrument_settings())
             #print(icm.get_housekeeping_data())
-            print('GEO: ', icm.get_geo_data().shape)
+            for key in icm.get_geo_data():
+                print('GEO[{}]: '.format(key), icm.get_geo_data()[key].shape)
             res = icm.get_msm_data('irradiance_avg')
             print('irradiance_avg: ', res.shape)
             print(icm.get_msm_attr('irradiance_avg', 'units'))
@@ -88,11 +90,12 @@ def test_rd_icm():
             print('measurement_quality: ', res[0].shape, np.sum(res == 0))
 
         if icm.select('EARTH_RADIANCE_MODE_0004'):
-            #print(icm.get_ref_time())
-            #print(icm.get_delta_time())
-            #print(icm.get_instrument_settings())
-            #print(icm.get_housekeeping_data())
-            print('GEO: ', icm.get_geo_data().shape)
+            print(icm.get_ref_time())
+            print(icm.get_delta_time())
+            print(icm.get_instrument_settings())
+            print(icm.get_housekeeping_data())
+            for key in icm.get_geo_data():
+                print('GEO[{}]: '.format(key), icm.get_geo_data()[key].shape)
             res = icm.get_msm_data('radiance_avg_row')
             print('radiance_avg_row: ', res.shape)
             print(icm.get_msm_attr('radiance_avg_row', 'units'))

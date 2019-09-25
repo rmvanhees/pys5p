@@ -17,8 +17,11 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 import sys
-
 from pathlib import Path
+
+from pys5p.get_data_dir import get_data_dir
+from pys5p.ocm_io import OCMio
+
 
 #--------------------------------------------------
 def test_rd_ocm(msm_dset='signal', print_data=False):
@@ -26,9 +29,6 @@ def test_rd_ocm(msm_dset='signal', print_data=False):
     Perform some simple checks on the OCMio class
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..ocm_io import OCMio
-
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()

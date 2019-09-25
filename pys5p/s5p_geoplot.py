@@ -246,7 +246,7 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
 
         # define aspect for the location of fig_info
@@ -348,7 +348,7 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         # define aspect for the location of fig_info
         self.aspect = -1
@@ -437,7 +437,7 @@ class S5Pgeoplot():
         in a small box. In addition, we display the creation date and the data
         (biweight) median & spread.
         """
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         from .s5p_msm import S5Pmsm
         from .tol_colors import tol_cmap

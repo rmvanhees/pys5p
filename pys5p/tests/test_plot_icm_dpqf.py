@@ -26,16 +26,16 @@ def test_icm_dpqf():
     Check class OCMio and S5Pplot.draw_quality
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..icm_io import ICMio
-    from ..s5p_plot import S5Pplot
+    from pys5p.get_data_dir import get_data_dir
+    from pys5p.icm_io import ICMio
+    from pys5p.s5p_plot import S5Pplot
 
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()
     except FileNotFoundError:
         return
-    filelist = list(Path(data_dir, 'ICM').glob('S5P_TEST_ICM_CA_SIR_*.h5'))
+    filelist = list(Path(data_dir, 'ICM').glob('S5P_OPER_ICM_CA_SIR_*.H5'))
     if not filelist:
         return
 

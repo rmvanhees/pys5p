@@ -16,6 +16,7 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+import argparse
 from pathlib import Path
 
 import matplotlib as mpl
@@ -109,8 +110,6 @@ def main():
     """
     main function when called from the command-line
     """
-    import argparse
-
     # parse command-line parameters
     parser = argparse.ArgumentParser(
         description='test of pys5p.ckd_io and pys5p.s5p_plot')

@@ -10,6 +10,8 @@ Copyright (c) 2019 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+import warnings
+
 import numpy as np
 
 
@@ -102,8 +104,6 @@ def biweight(data, axis=None, spread=False):
     out    :   ndarray
        biweight median and biweight spread if function argument "spread" is True
     """
-    import warnings
-
     if axis is None or data.ndim == 1:
         return __biweight(data, spread)
 

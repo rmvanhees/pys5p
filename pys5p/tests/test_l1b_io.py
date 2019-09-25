@@ -17,8 +17,9 @@ Copyright (c) 2016 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 import sys
-
 from pathlib import Path
+
+from pys5p.get_data_dir import get_data_dir
 
 #------------------------- TEST-modules and Tutorials -------------------------
 def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
@@ -26,8 +27,7 @@ def test_rd_calib(msm_type='BACKGROUND_RADIANCE_MODE_0005', msm_dset='signal'):
     Perform some simple checks on the L1BioCAL class
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..l1b_io import L1BioCAL
+    from pys5p.l1b_io import L1BioCAL
 
     # obtain path to directory pys5p-data
     try:
@@ -68,8 +68,7 @@ def test_rd_irrad(msm_type='STANDARD_MODE', msm_dset='irradiance'):
     Perform some simple checks on the L1BioIRR class
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..l1b_io import L1BioIRR
+    from pys5p.l1b_io import L1BioIRR
 
     # obtain path to directory pys5p-data
     try:
@@ -105,8 +104,7 @@ def test_rd_rad(icid=4, msm_dset='radiance'):
     Perform some simple checks on the L01BioRAD class
 
     """
-    from ..get_data_dir import get_data_dir
-    from ..l1b_io import L1BioRAD
+    from pys5p.l1b_io import L1BioRAD
 
     # obtain path to directory pys5p-data
     try:
