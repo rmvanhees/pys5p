@@ -439,8 +439,8 @@ class S5Pgeoplot():
         """
         import matplotlib.pyplot as plt
 
-        from .sron_colormaps import sron_cmap
         from .s5p_msm import S5Pmsm
+        from .tol_colors import tol_cmap
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -526,7 +526,7 @@ class S5Pgeoplot():
         # draw image and colorbar
         img = axx.pcolormesh(gridlon, gridlat, data,
                              vmin=vmin, vmax=vmax,
-                             cmap=sron_cmap('diverging_BuGnRd'),
+                             cmap=tol_cmap('sunset'),
                              transform=ccrs.PlateCarree())
         plt.draw()
         posn = axx.get_position()

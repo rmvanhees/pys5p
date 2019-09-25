@@ -45,6 +45,8 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+import warnings
+
 from collections import OrderedDict
 
 import matplotlib as mpl
@@ -178,7 +180,7 @@ class S5Pplot():
         self.method = None
         self.info_pos = 'above'
         self.__pdf = None
-        self.pdf_title = pdf_title 
+        self.pdf_title = pdf_title
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
@@ -240,14 +242,14 @@ class S5Pplot():
 
         Note only implemented for method draw_signal()
         """
-        self.cmap = cmap.copy()
+        self.cmap = cmap
 
     def unset_cmap(self):
         """
         Unset user supplied color-map, and use default color-map
         """
         self.cmap = None
-        
+
     def add_fig_info(self, fig, dict_info, fontsize='small'):
         """
         Add meta-information in the current figure
@@ -449,7 +451,7 @@ class S5Pplot():
         from matplotlib.ticker import MultipleLocator
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        from .sron_colormaps import sron_cmap, get_line_colors
+        from .tol_colors import tol_cmap, tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -512,33 +514,32 @@ class S5Pplot():
             vmax /= dscale
             self.data[np.isfinite(self.data)] /= dscale
 
-        # define colrbar and its normalisation
-        lcolor = get_line_colors()
+        # define colorbar and its normalisation
         mid_val = (vmin + vmax) / 2
         if method == 'diff':
-            cmap = sron_cmap('diverging_BuGnRd')
+            cmap = tol_cmap('sunset')
             if vmin < 0 < vmax:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
         elif method == 'ratio':
-            cmap = sron_cmap('diverging_BuGnRd')
+            cmap = tol_cmap('sunset')
             if vmin < 1 < vmax:
                 (tmp1, tmp2) = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
                 mid_val = 1.
         elif method in ('data', 'error'):
-            cmap = sron_cmap('rainbow_PiRd')
+            cmap = tol_cmap('rainbow_PuRd')
         elif method == 'ratio_unc':
-            cmap = sron_cmap('rainbow_PiRd')
+            cmap = tol_cmap('rainbow_PuRd')
         else:
             raise ValueError
 
         if self.cmap is not None:
             cmap = self.cmap
-            
+
         norm = MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
         # set label and range of X/Y axis
@@ -624,14 +625,15 @@ class S5Pplot():
                 zlabel = r'value [{}]'.format(zunit)
         plt.colorbar(img, cax=cax, label=zlabel)
         #
+        line_colors = tol_cset('bright')
         if add_medians:
             ax_medx = divider.append_axes("bottom", 1.2, pad=0.25,
                                           sharex=ax_img)
             data_row = biweight(self.data, axis=0)
             if xdata.size > 250:
-                ax_medx.plot(xdata, data_row, lw=0.75, color=lcolor.blue)
+                ax_medx.plot(xdata, data_row, lw=0.75, color=line_colors.blue)
             else:
-                ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.blue)
+                ax_medx.step(xdata, data_row, lw=0.75, color=line_colors.blue)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
@@ -639,9 +641,9 @@ class S5Pplot():
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = biweight(self.data, axis=1)
             if ydata.size > 250:
-                ax_medy.plot(data_col, ydata, lw=0.75, color=lcolor.blue)
+                ax_medy.plot(data_col, ydata, lw=0.75, color=line_colors.blue)
             else:
-                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.blue)
+                ax_medy.step(data_col, ydata, lw=0.75, color=line_colors.blue)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
@@ -724,7 +726,7 @@ class S5Pplot():
         from matplotlib.ticker import MultipleLocator
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        from .sron_colormaps import get_qfour_colors, get_qfive_colors
+        from .tol_colors import tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -755,6 +757,7 @@ class S5Pplot():
         self.__data_img(msm, ref_data)
 
         # define colors, data-range
+        cset = tol_cset('bright')
         thres_worst = int(10 * thres_worst)
         thres_bad = int(10 * thres_bad)
         if ref_data is None:
@@ -764,8 +767,9 @@ class S5Pplot():
                 if len(qlabels) != 4:
                     raise TypeError('keyword qlabels requires four labels')
 
-            lcolor = get_qfour_colors()
-            cmap = mpl.colors.ListedColormap(lcolor)
+            # define colors for resp. unusable, worst, bad and good
+            ctuple = (cset.grey, cset.red, cset.yellow, '#FFFFFF')
+            cmap = mpl.colors.ListedColormap(ctuple)
             bounds = [0, thres_worst, thres_bad, 10, 11]
             mbounds = [(bounds[1] + bounds[0]) / 2,
                        (bounds[2] + bounds[1]) / 2,
@@ -780,8 +784,9 @@ class S5Pplot():
                 if len(qlabels) != 5:
                     raise TypeError('keyword qlabels requires five labels')
 
-            lcolor = get_qfive_colors()
-            cmap = mpl.colors.ListedColormap(lcolor)
+            # define colors for resp. unusable, worst, bad, good and unchanged
+            ctuple = (cset.grey, cset.red, cset.yellow, cset.green, '#FFFFFF')
+            cmap = mpl.colors.ListedColormap(ctuple)
             bounds = [0, thres_worst, thres_bad, 10, 11, 12]
             mbounds = [(bounds[1] + bounds[0]) / 2,
                        (bounds[2] + bounds[1]) / 2,
@@ -859,12 +864,12 @@ class S5Pplot():
                                           sharex=ax_img)
             data_row = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=0)
-            ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.bad)
+            ax_medx.step(xdata, data_row, lw=0.75, color=cset.yellow)
             data_row = np.sum((self.data == thres_worst), axis=0)     # worst
-            ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.worst)
+            ax_medx.step(xdata, data_row, lw=0.75, color=cset.red)
             if ref_data is not None:
                 data_row = np.sum((self.data == 10), axis=0)          # good
-                ax_medx.step(xdata, data_row, lw=0.75, color=lcolor.good)
+                ax_medx.step(xdata, data_row, lw=0.75, color=cset.green)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
@@ -872,12 +877,12 @@ class S5Pplot():
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=1)
-            ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.bad)
+            ax_medy.step(data_col, ydata, lw=0.75, color=cset.yellow)
             data_col = np.sum((self.data == thres_worst), axis=1)     # worst
-            ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.worst)
+            ax_medy.step(data_col, ydata, lw=0.75, color=cset.red)
             if ref_data is not None:
                 data_col = np.sum((self.data == 10), axis=1)          # good
-                ax_medy.step(data_col, ydata, lw=0.75, color=lcolor.good)
+                ax_medy.step(data_col, ydata, lw=0.75, color=cset.green)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
@@ -950,13 +955,13 @@ class S5Pplot():
         from matplotlib.ticker import MultipleLocator
         from matplotlib.gridspec import GridSpec
 
-        from .sron_colormaps import sron_cmap, get_line_colors
+        from .tol_colors import tol_cmap, tol_cset
 
         # define aspect for the location of fig_info
         self.aspect = 4
 
         # define colors
-        line_colors = get_line_colors()
+        line_colors = tol_cset('bright')
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -1073,7 +1078,7 @@ class S5Pplot():
             ax1.set_title('(a) ' + sub_title)
         img = ax1.imshow(value, vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='equal', interpolation='none', origin='lower',
-                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+                         extent=extent, cmap=tol_cmap('rainbow_PuRd'))
         self.add_copyright(ax1)
         for xtl in ax1.get_xticklabels():
             xtl.set_visible(False)
@@ -1097,7 +1102,7 @@ class S5Pplot():
 
         # create centre-panel with residuals
         if add_residual:
-            cmap = sron_cmap('diverging_BuGnRd')
+            cmap = tol_cmap('sunset')
             mid_val = (rmin + rmax) / 2
             (rmin_c, rmax_c) = (rmin, rmax)
             if rmin < 0 < rmax:
@@ -1138,7 +1143,7 @@ class S5Pplot():
             img = ax3.imshow(model, vmin=vmin / dscale, vmax=vmax / dscale,
                              aspect='equal', interpolation='none',
                              origin='lower', extent=extent,
-                             cmap=sron_cmap('rainbow_PiRd'))
+                             cmap=tol_cmap('rainbow_PuRd'))
             self.add_copyright(ax3)
             if not add_hist:
                 ax3.set_xlabel('column')
@@ -1156,7 +1161,7 @@ class S5Pplot():
             ax4.hist(value[np.isfinite(value)].reshape(-1),
                      range=[vmin / dscale, vmax / dscale],
                      bins='auto', histtype='stepfilled',
-                     density=True, color=line_colors[0])
+                     density=True, color=line_colors.blue)
             if zunit is None:
                 ax4.set_xlabel('{}'.format(msm.name))
             else:
@@ -1168,7 +1173,7 @@ class S5Pplot():
             ax5.hist(residual[np.isfinite(residual)].reshape(-1),
                      range=[rmin / rscale, rmax / rscale],
                      bins='auto', histtype='stepfilled',
-                     density=True, color=line_colors[1])
+                     density=True, color=line_colors.cyan)
             if runit is None:
                 ax5.set_xlabel('residual')
             else:
@@ -1225,7 +1230,7 @@ class S5Pplot():
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from .sron_colormaps import get_line_colors
+        from .tol_colors import tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -1277,7 +1282,8 @@ class S5Pplot():
                             msm_err.value[indx].max())
             # print('vrange: ', umin, umax)
 
-        line_colors = get_line_colors()
+        # define colors
+        line_colors = tol_cset('bright')
         fig = plt.figure(figsize=(10, 7))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -1307,7 +1313,7 @@ class S5Pplot():
                            range=[np.floor(vmin / zscale),
                                   np.ceil(vmax / zscale)],
                            bins='auto', histtype='stepfilled',
-                           color=line_colors[0])
+                           color=line_colors.blue)
             self.add_copyright(axx)
             indx = np.where(res[0] > 0)[0]
             if indx[0] == 0:
@@ -1360,7 +1366,7 @@ class S5Pplot():
                            range=[np.floor(umin / uscale),
                                   np.ceil(umax / uscale)],
                            bins='auto', histtype='stepfilled',
-                           color=line_colors[0])
+                           color=line_colors.blue)
             self.add_copyright(axx)
             indx = np.where(res[0] > 0)[0]
             if indx[0] == 0:
@@ -1420,7 +1426,7 @@ class S5Pplot():
         from matplotlib import gridspec
 
         from . import swir_region
-        from .sron_colormaps import get_line_colors
+        from .tol_colors import tol_cset
 
         # assert that we have some data to show
         if isinstance(dpqm, np.ndarray):
@@ -1459,11 +1465,13 @@ class S5Pplot():
         if np.all(np.isnan(msm_noise.value)):
             raise ValueError('quality data must contain valid data')
 
+        # define colors
+        line_colors = tol_cset('bright')
+
         # define aspect for the location of fig_info
         self.aspect = -1
 
         # create figure
-        line_colors = get_line_colors()
         fig = plt.figure(figsize=(10, 9))
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -1479,7 +1487,7 @@ class S5Pplot():
             data = msm.value[swir_region.mask()]
             data[np.isnan(data)] = 0.
             axx.hist(data, bins=11, range=[-.1, 1.], histtype='stepfilled',
-                     color=line_colors[0])
+                     color=line_colors.blue)
             self.add_copyright(axx)
             axx.set_xlim([0, 1])
             axx.set_yscale('log', nonposy='clip')
@@ -1521,12 +1529,10 @@ class S5Pplot():
         in a small box. In addition, we display the creation date and the data
         median & spread.
         """
-        import warnings
-
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        from .sron_colormaps import sron_cmap, get_line_colors
+        from .tol_colors import tol_cmap, tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -1545,7 +1551,7 @@ class S5Pplot():
         self.aspect = 3
 
         # define colors
-        line_colors = get_line_colors()
+        line_colors = tol_cset('bright')
 
         # scale data to keep reduce number of significant digits small to
         # the axis-label and tickmarks readable
@@ -1630,7 +1636,7 @@ class S5Pplot():
         img = plt.imshow(data_full / dscale, interpolation='none',
                          vmin=vmin / dscale, vmax=vmax / dscale,
                          aspect='auto', origin='lower',
-                         extent=extent, cmap=sron_cmap('rainbow_PiRd'))
+                         extent=extent, cmap=tol_cmap('rainbow_PuRd'))
         self.add_copyright(ax_img)
         xticks = len(ax_img.get_xticklabels())
         for xtl in ax_img.get_xticklabels():
@@ -1666,7 +1672,7 @@ class S5Pplot():
         xvals = np.insert(xvals, 0, xvals[0])
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.step(xaxis, xvals, where='pre',
-                     lw=0.75, color=line_colors[0])
+                     lw=0.75, color=line_colors.blue)
         ax_medx.set_xlim([extent[0], extent[1]])
         ax_medx.locator_params(axis='x', nbins=xticks)
         ax_medx.grid(True)
@@ -1680,7 +1686,7 @@ class S5Pplot():
         yvals = np.insert(yvals, 0, yvals[0])
         ax_medy = divider.append_axes("left", 1.1, pad=0.25)
         ax_medy.step(yvals, yaxis, where='pre',
-                     lw=0.75, color=line_colors[0])
+                     lw=0.75, color=line_colors.blue)
         ax_medy.set_ylim([extent[2], extent[3]])
         ax_medy.locator_params(axis='y', nbins=yticks)
         ax_medy.grid(True)
@@ -1743,7 +1749,7 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
 
-        from .sron_colormaps import get_qfour_colors, get_line_colors
+        from .tol_colors import tol_cset
 
         # we require measurement data and/or house-keeping data
         if msm1 is None and hk_data is None:
@@ -1767,8 +1773,8 @@ class S5Pplot():
         # define aspect for the location of fig_info
         self.aspect = 3
 
-        # define colors and number of panels
-        lcolors = get_line_colors()
+        # define colors
+        line_colors = tol_cset('bright')
 
         # define number of pannels for measurement data
         if msm1 is None:
@@ -1821,13 +1827,13 @@ class S5Pplot():
         # 2) draw pixel-quality data, displayed in the upper-panel
         # 3) draw measurement data, displayed in the upper-panel
         i_ax = 0
+        cset = tol_cset('bright')
         if plot_mode == 'quality':
             (xlabel,) = msm1.coords._fields
             (xdata, gap_list) = get_xdata(msm1.coords[0][:].copy(), use_steps)
 
-            qcolors = get_qfour_colors()
-            qc_dict = {'bad': qcolors.bad,
-                       'worst': qcolors.worst}
+            qc_dict = {'bad': cset.yellow,
+                       'worst': cset.red}
             ql_dict = {'bad': 'bad (quality < 0.8)',
                        'worst': 'worst (quality < 0.1)'}
 
@@ -1879,10 +1885,10 @@ class S5Pplot():
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
                     axarr[i_ax].step(xdata, ydata, where='post',
-                                     lw=1.5, color=lcolors.blue)
+                                     lw=1.5, color=line_colors.blue)
                 else:
                     axarr[i_ax].plot(xdata, ydata,
-                                     lw=1.5, color=lcolors.blue)
+                                     lw=1.5, color=line_colors.blue)
 
                 if msm.error is not None:
                     yerr1 = msm.error[0].copy() / dscale
@@ -1937,22 +1943,22 @@ class S5Pplot():
                     if hk_unit == 'K':
                         hk_name = full_string.rsplit(' ', 1)[0]
                         hk_label = 'temperature [{}]'.format(hk_unit)
-                        lcolor = lcolors.blue
+                        lcolor = line_colors.blue
                         fcolor = '#BBCCEE'
                     elif hk_unit in ('A', 'mA'):
                         hk_name = full_string.rsplit(' ', 1)[0]
                         hk_label = 'current [{}]'.format(hk_unit)
-                        lcolor = lcolors.green
+                        lcolor = line_colors.green
                         fcolor = '#CCDDAA'
                     elif hk_unit == '%':
                         hk_name = full_string.rsplit(' ', 2)[0]
                         hk_label = 'duty cycle [{}]'.format(hk_unit)
-                        lcolor = lcolors.red
+                        lcolor = line_colors.red
                         fcolor = '#FFCCCC'
                     else:
                         hk_name = full_string
                         hk_label = 'value [{}]'.format(hk_unit)
-                        lcolor = lcolors.pink
+                        lcolor = line_colors.purple
                         fcolor = '#EEBBDD'
 
                     ydata = hk_data.value[key].copy()
@@ -2048,7 +2054,7 @@ class S5Pplot():
            Object holding measurement data and its HDF5 attributes.
            Special case msm is None then close figure
         color     :  integer, optional
-           index to color in sron_colormaps.get_line_colors. Default is zero
+           index to color in tol_colors.tol_cset('bright'). Default is zero
         symbol    :  string, optional
            matplotlib symbol to be used in figure. Default is None
         llabel    :  string, optional
@@ -2076,7 +2082,7 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
 
-        from .sron_colormaps import get_line_colors
+        from .tol_colors import tol_cset
 
         # add annotation and close figure
         if msm_in is None:
@@ -2140,8 +2146,8 @@ class S5Pplot():
         # define aspect for the location of fig_info
         self.aspect = 1
 
-        # define colors and number of panels
-        lcolors = get_line_colors()
+        # define colors
+        line_colors = tol_cset('bright')
 
         # initialize matplotlib using 'subplots'
         if mpl_fig is None:
@@ -2174,10 +2180,10 @@ class S5Pplot():
         if use_steps:
             ydata = np.append(ydata, ydata[-1])
             axarr.step(xdata, ydata, where='post', lw=1.5,
-                       color=lcolors[color], label=llabel)
+                       color=line_colors[color], label=llabel)
         else:
             axarr.plot(xdata, ydata, lw=1.5,
-                       color=lcolors[color], label=llabel)
+                       color=line_colors[color], label=llabel)
 
         if symbol is not None:
             pass
@@ -2238,15 +2244,14 @@ class S5Pplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        import matplotlib.pyplot as plt
-        import cartopy.crs as ccrs
-
+        from cartopy import crs as ccrs
+        from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
 
-        from pys5p.sron_colormaps import get_line_colors
+        from .tol_colors import tol_cset
 
-        # get SRON colors
-        lcolors = get_line_colors()
+        # define colors
+        line_colors = tol_cset('bright')
 
         # define aspect for the location of fig_info
         self.aspect = 4
@@ -2274,7 +2279,7 @@ class S5Pplot():
                 saa_region = list(zip(res['lon'], res['lat']))
 
             saa_poly = Polygon(xy=saa_region, closed=True,
-                               alpha=1.0, facecolor=lcolors.grey,
+                               alpha=1.0, facecolor=line_colors.grey,
                                transform=ccrs.PlateCarree())
             axx.add_patch(saa_poly)
 
@@ -2286,7 +2291,7 @@ class S5Pplot():
             else:
                 indx_color = icid_found.index(icid)
             line, = plt.plot(lon, lat, linestyle='-', linewidth=3,
-                             color=lcolors[indx_color % 6],
+                             color=line_colors[indx_color % 6],
                              transform=ccrs.PlateCarree())
             if icid not in icid_found:
                 line.set_label('ICID: {}'.format(icid))

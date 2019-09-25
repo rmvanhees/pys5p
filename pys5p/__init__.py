@@ -22,5 +22,6 @@ from . import biweight
 from . import get_data_dir
 from . import ckd_io, icm_io, l1b_io, lv2_io, ocm_io
 from . import error_propagation
-from . import sron_colormaps, s5p_msm, s5p_plot #, s5p_geoplot
+from . import s5p_msm, s5p_plot #, s5p_geoplot
 from . import swir_region
+from . import tol_colors

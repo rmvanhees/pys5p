@@ -279,3 +279,28 @@ def get_qfour_colors():
     qfour = namedtuple('Qfour', 'unusable worst bad good')
 
     return qfour('#BBBBBB', '#EE6677', '#CCBB44', '#FFFFFF')
+
+
+def main():
+    """
+    Show all available colormaps
+    """
+    from matplotlib import pyplot as plt
+
+    # Show colormaps tol_cmap(<scheme>).
+    obj = SRONcmaps()
+    gradient = np.linspace(0, 1, 256)
+    gradient = np.vstack((gradient, gradient))
+    fig, axes = plt.subplots(nrows=len(obj.namelist))
+    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.2, right=0.99)
+    for ax, name in zip(axes, obj.namelist):
+        pos = list(ax.get_position().bounds)
+        ax.set_axis_off()
+        ax.imshow(gradient, aspect=4, cmap=sron_cmap(name))
+        fig.text(pos[0] - 0.01, pos[1] + pos[3]/2.,
+                 name, va='center', ha='right', fontsize=10)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
