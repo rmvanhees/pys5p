@@ -27,10 +27,13 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from collections import namedtuple
+from copy import deepcopy
 from pathlib import PurePath
 
+from h5py import Dataset
 import numpy as np
 
+from .biweight import biweight
 
 # - local functions --------------------------------
 def pad_rows(arr1, arr2):
@@ -84,8 +87,6 @@ class S5Pmsm():
         fillvalue, coordinates, units, ...
 
         """
-        from h5py import Dataset
-
         # initialize object
         self.name = 'value'
         self.value = None
@@ -223,7 +224,7 @@ class S5Pmsm():
 
     def __from_ndarray(self, data, data_sel):
         """
-        initialize S5Pmsm object from h5py dataset
+        initialize S5Pmsm object from a ndarray
         """
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -232,32 +233,47 @@ class S5Pmsm():
             self.value = np.squeeze(data[data_sel])
 
         # define coordinates
-        if data.ndim == 1:
-            keys = ['column']
-            dims = [np.arange(self.value.shape[0])]
-        elif data.ndim == 2:
-            keys = ['row', 'column']
-            dims = [np.arange(self.value.shape[0]),
-                    np.arange(self.value.shape[1])]
-        elif data.ndim == 3:
-            keys = ['time', 'row', 'column']
-            dims = [np.arange(self.value.shape[0]),
-                    np.arange(self.value.shape[1]),
-                    np.arange(self.value.shape[2])]
-        else:
-            raise ValueError('not implemented for ndim > 3')
-
-        # add dimensions as a namedtuple
-        coords_namedtuple = namedtuple('Coords', keys)
-        self.coords = coords_namedtuple._make(dims)
+        dims = [np.arange(sz) for sz in self.value.shape]
+        try:
+            self.set_coords(dims, coords_name=None)
+        except ValueError:
+            raise
 
     def copy(self):
         """
         return a deep copy of the current object
         """
-        from copy import deepcopy
-
         return deepcopy(self)
+
+    def set_coords(self, coords_data, coords_name=None):
+        """
+        Set coordinates of data
+
+        Parameters
+        ----------
+        coords_data  :  list of ndarrays
+          list with coordinates data for each dimension
+        coords_name  :  list of strings
+          list with the names of each dimension
+        """
+        if coords_name is None:
+            if len(coords_data) == 1:
+                keys = ['column']
+            elif len(coords_data) == 2:
+                keys = ['row', 'column']
+            elif len(coords_data) == 3:
+                keys = ['time', 'row', 'column']
+            else:
+                raise ValueError('not implemented for ndim > 3')
+        else:
+            if isinstance(coords_name, str):
+                keys = [coords_name]
+            else:
+                keys = coords_name
+
+        # add dimensions as a namedtuple
+        coords_namedtuple = namedtuple('Coords', keys)
+        self.coords = coords_namedtuple._make(coords_data)
 
     def set_coverage(self, coverage, force=False):
         """
@@ -530,8 +546,6 @@ class S5Pmsm():
         S5Pmsm object with its data (value & error) replaced by its biweight
         medians along one axis. The coordinates are adjusted, accordingly.
         """
-        from .biweight import biweight
-
         if data_sel is None:
             if self.error is not None:
                 self.value = biweight(self.value, axis=axis)
