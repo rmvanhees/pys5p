@@ -2159,8 +2159,12 @@ class S5Pplot():
         # define x-axis and its label
         (xlabel,) = msm.coords._fields
         xdata = msm.coords[0][:].copy()
-        use_steps = xdata.size <= 256
-        (xdata, gap_list) = get_xdata(xdata, use_steps)
+        if np.issubdtype(xdata.dtype, np.integer):
+            use_steps = xdata.size <= 256
+            (xdata, gap_list) = get_xdata(xdata, use_steps)
+        else:
+            use_steps = False
+            gap_list = np.array([])
 
         # convert units from electrons to ke, Me, ...
         if msm.error is None:
