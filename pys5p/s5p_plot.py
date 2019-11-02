@@ -17,6 +17,7 @@ Generate Figures
  * draw_trend2d
  * draw_trend1d
  * draw_line
+ * draw_errorbar
  * draw_tracks
 - Closing the S5Pplot object will write the report to disk
 
@@ -2221,6 +2222,54 @@ class S5Pplot():
                 axarr.set_ylabel(r'value [{}]'.format(zunit))
 
         return (fig, axarr)
+
+    # --------------------------------------------------
+    def draw_errorbar(self, xpoints, ypoints, *,
+                      xlabel=None, ylabel=None, xlim=None, ylim=None,
+                      title=None, sub_title=None, fig_info=None):
+        """
+        Thin layer around the matplotlib function errorbar()
+
+        Parameters
+        ----------
+        """
+        from matplotlib import pyplot as plt
+
+        from .tol_colors import tol_cset
+
+        # define aspect for the location of fig_info
+        self.aspect = 1
+
+        # define colors
+        line_colors = tol_cset('bright')
+
+        # initialize matplotlib using 'subplots'
+        figsize = (10., 10)
+        (fig, axarr) = plt.subplots(1, figsize=figsize)
+
+        if title is not None:
+            fig.suptitle(title, fontsize='x-large',
+                         position=(0.5, 0.96), horizontalalignment='center')
+
+        if sub_title is not None:
+            axarr.set_title(sub_title, fontsize='large')
+
+        axarr.errorbar(xpoints['value'], ypoints['value'],
+                          xerr=xpoints['error'], yerr=ypoints['error'],
+                          marker='s', linestyle=None, color=line_colors.blue)
+        axarr.grid(True)
+        if xlim is not None:
+            axarr.set_xlim(xlim)
+        if ylim is not None:
+            axarr.set_ylim(ylim)
+        if xlabel is not None:
+            axarr.set_xlabel(xlabel)
+        if ylabel is not None:
+            axarr.set_ylabel(ylabel)
+
+        # add annotation and save figure
+        self.add_fig_info(fig, fig_info)
+        self.close_page(fig)
 
     # --------------------------------------------------
     def draw_tracks(self, lons, lats, icids, *, saa_region=None,
