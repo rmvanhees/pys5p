@@ -46,15 +46,22 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from collections import OrderedDict
+from datetime import datetime
+from pathlib import PurePath
 import warnings
 
-from collections import OrderedDict
-
+from cartopy import crs as ccrs
 import matplotlib as mpl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
+from . import swir_region
+from . import error_propagation
 from .biweight import biweight
+from .ckd_io import CKDio
 from .s5p_msm import S5Pmsm
+from .tol_colors import tol_cmap, tol_cset
 
 
 # - local functions --------------------------------
@@ -173,8 +180,6 @@ class S5Pplot():
         pdf_title :  string
              name of the PDF document
         """
-        from pathlib import PurePath
-
         self.aspect = -1
         self.cmap = None
         self.data = None
@@ -261,8 +266,6 @@ class S5Pplot():
         dict_info :  dictionary or sortedDict
            legenda parameters to be displayed in the figure
         """
-        from datetime import datetime
-
         info_str = ""
         if dict_info is not None:
             for key in dict_info:
@@ -336,9 +339,6 @@ class S5Pplot():
 
     # -------------------------
     def __data_img(self, msm, ref_img):
-        from . import swir_region
-        from . import error_propagation
-
         if self.method == 'data':
             self.data = msm.value.copy()
             return
@@ -450,9 +450,6 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
         from matplotlib.ticker import MultipleLocator
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-        from .tol_colors import tol_cmap, tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -725,9 +722,6 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
         from matplotlib.ticker import MultipleLocator
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-        from .tol_colors import tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -955,8 +949,6 @@ class S5Pplot():
         from matplotlib import pyplot as plt
         from matplotlib.ticker import MultipleLocator
         from matplotlib.gridspec import GridSpec
-
-        from .tol_colors import tol_cmap, tol_cset
 
         # define aspect for the location of fig_info
         self.aspect = 4
@@ -1231,8 +1223,6 @@ class S5Pplot():
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from .tol_colors import tol_cset
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -1426,9 +1416,6 @@ class S5Pplot():
         from matplotlib import pyplot as plt
         from matplotlib import gridspec
 
-        from . import swir_region
-        from .tol_colors import tol_cset
-
         # assert that we have some data to show
         if isinstance(dpqm, np.ndarray):
             msm_total = S5Pmsm(dpqm)
@@ -1531,9 +1518,6 @@ class S5Pplot():
         median & spread.
         """
         from matplotlib import pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-        from .tol_colors import tol_cmap, tol_cset
 
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
@@ -1749,8 +1733,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date of the figure.
         """
         from matplotlib import pyplot as plt
-
-        from .tol_colors import tol_cset
 
         # we require measurement data and/or house-keeping data
         if msm1 is None and hk_data is None:
@@ -2045,27 +2027,22 @@ class S5Pplot():
         self.close_page(fig)
 
     # --------------------------------------------------
-    def draw_line(self, msm_in, *, color=0, symbol=None, llabel=None,
-                  axis=None, method=None, mpl_fig=None,
+    def draw_line(self, xdata, ydata, *, color=0, mpl_fig=None, llabel=None,
+                  xlabel=None, ylabel=None, xlim=None, ylim=None,
                   title=None, sub_title=None, fig_info=None):
         """
         Parameters
         ----------
-        msm       :  pys5p.S5Pmsm, optional
-           Object holding measurement data and its HDF5 attributes.
+        xdata     :  ndarray
+           x-axis data
+           Special case msm is None then close figure
+        ydata     :  ndarray
+           y-axis data
            Special case msm is None then close figure
         color     :  integer, optional
            index to color in tol_colors.tol_cset('bright'). Default is zero
-        symbol    :  string, optional
-           matplotlib symbol to be used in figure. Default is None
         llabel    :  string, optional
            label for line, used in plot legenda
-        axis      :  integer, optional
-           default is None for one dimensional data and zero for data with
-                   more than 1 dimension
-        method    :  string, optional
-           method to average the data. Known methods are 'biweight', 'median'
-                   and 'mean'. Default is 'biweight'
         mpl_fig  :  tuple, optional
            tuple with matplotlib pointers to current figure
         title     :  string, optional
@@ -2083,10 +2060,8 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
 
-        from .tol_colors import tol_cset
-
         # add annotation and close figure
-        if msm_in is None:
+        if xdata is None:
             if mpl_fig is None:
                 raise ValueError('mpl_fig must be defined')
             if len(mpl_fig) != 2:
@@ -2112,38 +2087,6 @@ class S5Pplot():
             self.close_page(mpl_fig[0])
             return None
 
-        # assert that we have some data to show
-        if isinstance(msm_in, np.ndarray):
-            msm = S5Pmsm(msm_in)
-        else:
-            if not isinstance(msm_in, S5Pmsm):
-                raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
-            if msm_in.value.ndim > 1:
-                msm = msm_in.copy()     # we have to modify msm_in
-            else:
-                msm = msm_in            # no need to modify msm_in
-
-        if msm.value.ndim > 2:
-            raise ValueError('input data must be two dimensional or less')
-
-        if np.all(np.isnan(msm.value)):
-            raise ValueError('input data must contain valid data')
-
-        if msm_in.value.ndim > 1:
-            if axis is None:
-                axis = 0
-            if method is None:
-                method = 'biweight'
-
-            if method == 'biweight':
-                msm.biweight(axis=axis)
-            elif method == 'median':
-                msm.nanmedian(axis=axis)
-            elif method == 'mean':
-                msm.nanmean(axis=axis)
-            else:
-                raise ValueError('unknown method: {}'.format(method))
-
         # define aspect for the location of fig_info
         self.aspect = 1
 
@@ -2152,79 +2095,36 @@ class S5Pplot():
 
         # initialize matplotlib using 'subplots'
         if mpl_fig is None:
-            figsize = (10., 10)
-            (fig, axarr) = plt.subplots(1, figsize=figsize)
+            (fig, axarr) = plt.subplots(1, figsize=(9, 9))
         else:
             (fig, axarr) = mpl_fig
 
-        # define x-axis and its label
-        (xlabel,) = msm.coords._fields
-        xdata = msm.coords[0][:].copy()
-        if np.issubdtype(xdata.dtype, np.integer):
-            use_steps = xdata.size <= 256
-            (xdata, gap_list) = get_xdata(xdata, use_steps)
-        else:
-            use_steps = False
-            gap_list = np.array([])
-
-        # convert units from electrons to ke, Me, ...
-        if msm.error is None:
-            vmin = msm.value.min()
-            vmax = msm.value.max()
-        else:
-            vmin = msm.error[0].min()
-            vmax = msm.error[1].max()
-        (zunit, dscale) = convert_units(msm.units, vmin, vmax)
-
-        ydata = msm.value.copy() / dscale
-        for indx in reversed(gap_list):
-            ydata = np.insert(ydata, indx, np.nan)
-            ydata = np.insert(ydata, indx, np.nan)
-            ydata = np.insert(ydata, indx, ydata[indx-1])
-
+        use_steps = xdata.size <= 256
         if use_steps:
-            ydata = np.append(ydata, ydata[-1])
-            axarr.step(xdata, ydata, where='post', lw=1.5,
+            xx = np.append(xdata, xdata[-1])
+            yy = np.append(ydata, ydata[-1])
+            axarr.step(xx, yy, where='post', lw=1.5,
                        color=line_colors[color], label=llabel)
         else:
             axarr.plot(xdata, ydata, lw=1.5,
                        color=line_colors[color], label=llabel)
 
-        if symbol is not None:
-            pass
+        if mpl_fig is not None:
+            return (fig, axarr)
 
-        if msm.error is not None:
-            yerr1 = msm.error[0].copy() / dscale
-            yerr2 = msm.error[1].copy() / dscale
-            for indx in reversed(gap_list):
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
-                yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
-
-            if use_steps:
-                yerr1 = np.append(yerr1, yerr1[-1])
-                yerr2 = np.append(yerr2, yerr2[-1])
-                axarr.fill_between(xdata, yerr1, yerr2,
-                                   step='post', facecolor='#BBCCEE')
-            else:
-                axarr.fill_between(xdata, yerr1, yerr2, facecolor='#BBCCEE')
-
-        if mpl_fig is None:
-            axarr.set_xlim([xdata[0], xdata[-1]])
-            axarr.grid(True)
+        axarr.grid(True)
+        if xlim is not None:
+            axarr.set_xlim(xlim)
+        if ylim is not None:
+            axarr.set_ylim(ylim)
+        if xlabel is not None:
             axarr.set_xlabel(xlabel)
-            if zunit is None:
-                axarr.set_ylabel('value')
-            else:
-                axarr.set_ylabel(r'value [{}]'.format(zunit))
-
+        if ylabel is not None:
+            axarr.set_ylabel(ylabel)
         return (fig, axarr)
 
     # --------------------------------------------------
-    def draw_errorbar(self, xpoints, ypoints, *,
+    def draw_errorbar(self, xpoints, ypoints, *, color=0,
                       xlabel=None, ylabel=None, xlim=None, ylim=None,
                       title=None, sub_title=None, fig_info=None):
         """
@@ -2235,8 +2135,6 @@ class S5Pplot():
         """
         from matplotlib import pyplot as plt
 
-        from .tol_colors import tol_cset
-
         # define aspect for the location of fig_info
         self.aspect = 1
 
@@ -2244,8 +2142,7 @@ class S5Pplot():
         line_colors = tol_cset('bright')
 
         # initialize matplotlib using 'subplots'
-        figsize = (10., 10)
-        (fig, axarr) = plt.subplots(1, figsize=figsize)
+        (fig, axarr) = plt.subplots(1, figsize=(9., 9))
 
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
@@ -2255,8 +2152,8 @@ class S5Pplot():
             axarr.set_title(sub_title, fontsize='large')
 
         axarr.errorbar(xpoints['value'], ypoints['value'],
-                          xerr=xpoints['error'], yerr=ypoints['error'],
-                          marker='s', linestyle=None, color=line_colors.blue)
+                       xerr=xpoints['error'], yerr=ypoints['error'],
+                       marker='s', linestyle=None, color=line_colors[color])
         axarr.grid(True)
         if xlim is not None:
             axarr.set_xlim(xlim)
@@ -2297,11 +2194,8 @@ class S5Pplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        from cartopy import crs as ccrs
         from matplotlib import pyplot as plt
         from matplotlib.patches import Polygon
-
-        from .tol_colors import tol_cset
 
         # define colors
         line_colors = tol_cset('bright')
@@ -2325,8 +2219,6 @@ class S5Pplot():
         # draw SAA region
         if saa_region is not None:
             if saa_region in ('ckd', 'CKD'):
-                from pys5p.ckd_io import CKDio
-
                 with CKDio() as ckd:
                     res = ckd.saa()
                 saa_region = list(zip(res['lon'], res['lat']))
