@@ -5,7 +5,9 @@ def readme():
         return fp.read()
 
 setup(name='pys5p',
-      use_scm_version={"root": ".", "relative_to": __file__},
+      use_scm_version={"root": ".",
+                       "relative_to": __file__
+                       "fallback_version": "0.9.6"},
       setup_requires=['setuptools_scm'],
       description='Software package to access S5p Tropomi data products',
       long_description=readme(),
@@ -33,7 +35,7 @@ setup(name='pys5p',
           'scipy>=1.3',
           'h5py>=2.9',
           'matplotlib>=3.1',
-          'Cartopy>=0.17'
+          'Cartopy'
       ],
       test_suite='nose.collector',
       tests_require=['nose', 'nose-cover3'],
