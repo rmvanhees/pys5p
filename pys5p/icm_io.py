@@ -838,13 +838,16 @@ class ICMio():
                 dset = self.fid[ds_path]
                 if dest_dtype is None:
                     buff = dset[dest_sel]
+                    if fill_as_nan and '_FillValue' in dset.attrs:
+                        if np.issubdtype(buff.dtype, np.floating):
+                            fillvalue = dset.attrs['_FillValue'][0]
+                            buff[(buff == fillvalue)] = np.nan
                 else:
                     with dset.astype(dest_dtype):
                         buff = dset[dest_sel]
-
-                if fill_as_nan:
-                    if dset.attrs['_FillValue'] == fillvalue:
-                        buff[(buff == fillvalue)] = np.nan
+                    if fill_as_nan and '_FillValue' in dset.attrs:
+                        if np.issubdtype(buff.dtype, np.floating):
+                            buff[(buff == fillvalue)] = np.nan
 
                 data.append(buff)
 
