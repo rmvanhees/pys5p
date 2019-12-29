@@ -11,10 +11,13 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import PurePosixPath
+from datetime import datetime, timedelta
+from pathlib import Path, PurePosixPath
 
 import h5py
 import numpy as np
+
+from .biweight import biweight
 
 # - global parameters ------------------------------
 
@@ -49,8 +52,6 @@ def band2channel(dict_a, dict_b, mode=None):
     >>> data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
     >>>
     """
-    from pys5p.biweight import biweight
-
     if mode is None:
         mode = []
 
@@ -113,8 +114,6 @@ class OCMio():
            Full path to on-ground calibration measurement
 
         """
-        from pathlib import Path
-
         # initialize class-attributes
         self.filename = ocm_product
         self.__msm_path = None
@@ -208,8 +207,6 @@ class OCMio():
         """
         Returns reference start time of measurements
         """
-        from datetime import datetime, timedelta
-
         if not self.__msm_path:
             return {}
 

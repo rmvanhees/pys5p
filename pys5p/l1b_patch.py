@@ -11,6 +11,7 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from datetime import datetime
 from pathlib import Path
 import shutil
 
@@ -19,7 +20,9 @@ from setuptools_scm import get_version
 import h5py
 import numpy as np
 
-from pys5p.l1b_io import L1BioRAD
+from .l1b_io import L1BioRAD
+from . import swir_region
+
 
 # - global variables --------------------------------
 _MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'
@@ -81,8 +84,6 @@ class L1Bpatch():
              - list of patched datasets
              - auxiliary datasets used by patch-routines
         """
-        from datetime import datetime
-
         if not self.l1b_patched.is_file():
             return
 
@@ -130,8 +131,6 @@ class L1Bpatch():
         -------
         Nothing
         """
-        from pys5p import swir_region
-
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
 

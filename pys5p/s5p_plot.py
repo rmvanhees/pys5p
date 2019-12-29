@@ -53,6 +53,11 @@ import warnings
 
 from cartopy import crs as ccrs
 import matplotlib as mpl
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Polygon, Rectangle
+from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
@@ -190,8 +195,6 @@ class S5Pplot():
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
-            from matplotlib.backends.backend_pdf import PdfPages
-
             if pdf_title is None:
                 self.pdf_title = 'Monitor report on Tropomi SWIR instrument'
             self.__pdf = PdfPages(figname)
@@ -205,8 +208,6 @@ class S5Pplot():
         """
         # add annotation and save figure
         if self.__pdf is None:
-            from matplotlib import pyplot as plt
-
             plt.savefig(self.filename)
             # plt.savefig(self.filename, transparant=True)
             plt.close(fig)
@@ -218,8 +219,6 @@ class S5Pplot():
         """
         Close multipage PDF document
         """
-        from matplotlib import pyplot as plt
-
         if self.__pdf is not None:
             doc = self.__pdf.infodict()
             doc['Title'] = self.pdf_title
@@ -448,9 +447,6 @@ class S5Pplot():
         (biweight) median & spread.
 
         """
-        from matplotlib import pyplot as plt
-        from matplotlib.ticker import MultipleLocator
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -720,9 +716,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date and statistics
         on the number of bad and worst pixels.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib.ticker import MultipleLocator
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -946,10 +939,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date and the data
         median & spread.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib.ticker import MultipleLocator
-        from matplotlib.gridspec import GridSpec
-
         # define aspect for the location of fig_info
         self.aspect = 4
 
@@ -1220,9 +1209,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date, signal
         median & spread adn error meadian & spread.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib import gridspec
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -1279,7 +1265,7 @@ class S5Pplot():
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.45, 0.925), horizontalalignment='center')
-        gspec = gridspec.GridSpec(11, 1)
+        gspec = GridSpec(11, 1)
 
         # ---------- create first histogram ----------
         # convert units from electrons to ke, Me, ...
@@ -1413,9 +1399,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date, signal
         median & spread and error meadian & spread.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib import gridspec
-
         # assert that we have some data to show
         if isinstance(dpqm, np.ndarray):
             msm_total = S5Pmsm(dpqm)
@@ -1464,7 +1447,7 @@ class S5Pplot():
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
-        gspec = gridspec.GridSpec(15, 1)
+        gspec = GridSpec(15, 1)
 
         # draw histograms
         ipos = 1
@@ -1517,8 +1500,6 @@ class S5Pplot():
         in a small box. In addition, we display the creation date and the data
         median & spread.
         """
-        from matplotlib import pyplot as plt
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -1732,8 +1713,6 @@ class S5Pplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box. In addition, we display the creation date of the figure.
         """
-        from matplotlib import pyplot as plt
-
         # we require measurement data and/or house-keeping data
         if msm1 is None and hk_data is None:
             raise ValueError(
@@ -1744,8 +1723,6 @@ class S5Pplot():
             """
             Show only text in matplotlib legenda, no key
             """
-            from matplotlib.patches import Rectangle
-
             return Rectangle((0, 0), 0, 0, fill=False,
                              edgecolor='none', visible=False)
 
@@ -2058,8 +2035,6 @@ class S5Pplot():
         -------
         mpl_fig : tuple with matplotlib.figure.Figure and matplotlib.axes.Axes
         """
-        from matplotlib import pyplot as plt
-
         # add annotation and close figure
         if xdata is None:
             if mpl_fig is None:
@@ -2133,8 +2108,6 @@ class S5Pplot():
         Parameters
         ----------
         """
-        from matplotlib import pyplot as plt
-
         # define aspect for the location of fig_info
         self.aspect = 1
 
@@ -2194,9 +2167,6 @@ class S5Pplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib.patches import Polygon
-
         # define colors
         line_colors = tol_cset('bright')
 

@@ -64,6 +64,7 @@ class L1Bio:
     """
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
                    '/BAND%_RADIANCE')
+    geo_dset = 'satellite_latitude,satellite_longitude'
 
     def __init__(self, l1b_product, readwrite=False, verbose=False):
         """
@@ -426,8 +427,7 @@ class L1Bio:
 
         return np.squeeze(grp['housekeeping_data'])
 
-    def get_geo_data(self, band=None,
-                     geo_dset='satellite_latitude,satellite_longitude'):
+    def get_geo_data(self, geo_dset=None, band=None):
         """
         Returns data of selected datasets from the GEODATA group
 
@@ -447,6 +447,9 @@ class L1Bio:
         """
         if self.__msm_path is None:
             return None
+
+        if geo_dset is None:
+            geo_dset = self.geo_dset
 
         if band is None:
             band = self.bands[0]
@@ -501,7 +504,7 @@ class L1Bio:
 
         return None
 
-    def get_msm_data(self, msm_dset, band=None, 
+    def get_msm_data(self, msm_dset, band=None,
                      fill_as_nan=False, msm_to_row=None):
         """
         Reads data from dataset "msm_dset"
@@ -520,11 +523,9 @@ class L1Bio:
         msm_to_row : boolean
             Combine two bands using padding if necessary
 
-
         Returns
         -------
         out   :  values read from or written to dataset "msm_dset"
-
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -601,14 +602,90 @@ class L1BioIRR(L1Bio):
     class with methods to access Tropomi L1B irradiance products
     """
     band_groups = ('/BAND%_IRRADIANCE',)
+    geo_dset = 'latitude,longitude'
 
 
 # --------------------------------------------------
 class L1BioRAD(L1Bio):
     """
-    class with function to access Tropomi offline L1b radiance products
+    class with function to access Tropomi L1B radiance products
     """
     band_groups = ('/BAND%_RADIANCE',)
+    geo_dset = 'latitude,longitude'
+
+    def get_housekeeping_data(self, band=None, icid=None):
+        """
+        Returns housekeeping data of measurements
+
+        Parameters
+        ----------
+        icid :  integer
+           select housekeeping data of measurements with given ICID
+        """
+        res = L1Bio.get_housekeeping_data(self, band)
+
+        if icid is None:
+            return res
+
+        seq = self.sequence()
+        return res[seq['icid'] == icid]
+
+    def get_geo_data(self, geo_dset=None, band=None, icid=None):
+        """
+        Returns data of selected datasets from the GEODATA group
+
+        Parameters
+        ----------
+        geo_dset  :  string
+            Name(s) of datasets in the GEODATA group, comma separated
+            Default is 'latitude,longitude'
+        icid :  integer
+           select housekeeping data of measurements with given ICID
+
+        Returns
+        -------
+        out   :   array-like
+           Compound array with data of selected datasets from the GEODATA group
+        """
+        res = L1Bio.get_geo_data(self, geo_dset, band)
+
+        if icid is None:
+            return res
+
+        seq = self.sequence()
+        indx = seq['index'][seq['icid'] == icid]
+        res['sequence'][:, :] = res['sequence'][indx, :]
+        for name in geo_dset.split(','):
+            res[name][:, :] = res[name][indx, :]
+        return res
+
+    def get_msm_data(self, msm_dset, band=None,
+                     fill_as_nan=False, msm_to_row=None, icid=None):
+        """
+        Reads data from dataset "msm_dset"
+
+        Parameters
+        ----------
+        msm_dset :  string
+            Name of measurement dataset.
+        icid :  integer
+           select housekeeping data of measurements with given ICID
+        fill_as_nan :  boolean
+            Set data values equal (KNMI) FillValue to NaN
+        msm_to_row : boolean
+            Combine two bands using padding if necessary
+
+        Returns
+        -------
+        out   :  values read from or written to dataset "msm_dset"
+        """
+        res = L1Bio.get_msm_data(self, msm_dset, band, fill_as_nan, msm_to_row)
+
+        if icid is None:
+            return res
+
+        seq = self.sequence()
+        return res[seq['icid'] == icid, ...]
 
 
 # --------------------------------------------------

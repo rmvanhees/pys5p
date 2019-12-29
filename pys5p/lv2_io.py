@@ -18,10 +18,17 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from datetime import datetime, timedelta
+from pathlib import Path
+
 import h5py
+from netCDF4 import Dataset
 import numpy as np
 
+from .s5p_msm import S5Pmsm
+
 # - global parameters ------------------------------
+
 
 # - local functions --------------------------------
 
@@ -41,8 +48,6 @@ class LV2io():
         lv2_product :  string
            full path to S5P Tropomi level 2 product
         """
-        from pathlib import Path
-
         science_inst = ['SRON Netherlands Institute for Space Research']
 
         # initialize class-attributes
@@ -62,8 +67,6 @@ class LV2io():
             self.science_product = True
 
         if self.science_product:
-            from netCDF4 import Dataset
-
             self.fid.close()
             self.fid = Dataset(lv2_product, "r", format="NETCDF4")
 
@@ -211,8 +214,6 @@ class LV2io():
         """
         Returns reference start time of measurements
         """
-        from datetime import datetime, timedelta
-
         ref_time = datetime(2010, 1, 1, 0, 0, 0)
         ref_time += timedelta(seconds=int(self.fid['/PRODUCT/time'][0]))
         return ref_time
@@ -460,8 +461,6 @@ class LV2io():
 
         Return: S5Pmsm object
         """
-        from pys5p.s5p_msm import S5Pmsm
-
         if name not in self.fid['/PRODUCT']:
             raise ValueError('dataset {} for found'.format(name))
 
@@ -494,8 +493,6 @@ class LV2io():
 
         Return: S5Pmsm object
         """
-        from pys5p.s5p_msm import S5Pmsm
-
         msm = S5Pmsm(self.get_dataset(name, data_sel))
         buff = self.get_dataset('{}_precision'.format(name), data_sel)
         if buff is not None:
