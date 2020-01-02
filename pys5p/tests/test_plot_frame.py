@@ -20,6 +20,10 @@ from pathlib import Path
 
 import numpy as np
 
+from pys5p.get_data_dir import get_data_dir
+from pys5p.ocm_io import OCMio
+from pys5p.s5p_msm import S5Pmsm
+from pys5p.s5p_plot import S5Pplot
 
 
 #-------------------------
@@ -28,11 +32,6 @@ def test_frame():
     Check class OCMio and S5Pplot.draw_signal
 
     """
-    from pys5p.get_data_dir import get_data_dir
-    from pys5p.ocm_io import OCMio
-    from pys5p.s5p_msm import S5Pmsm
-    from pys5p.s5p_plot import S5Pplot
-
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()

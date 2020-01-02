@@ -10,16 +10,17 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from pathlib import PurePosixPath
+from datetime import datetime, timedelta
+from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
 
 import h5py
 import numpy as np
 
+
 # - global parameters ------------------------------
 
 # - local functions --------------------------------
-
 
 # - class definition -------------------------------
 class ICMio():
@@ -38,8 +39,6 @@ class ICMio():
         readwrite   :  boolean
            open product in read-write mode (default is False)
         """
-        from pathlib import Path
-
         # initialize class-attributes
         self.filename = icm_product
         self.__rw = readwrite
@@ -103,8 +102,6 @@ class ICMio():
 
         self.bands = None
         if self.__patched_msm:
-            from datetime import datetime
-
             sgrp = self.fid.require_group("METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = get_version(root='..',
@@ -223,6 +220,7 @@ class ICMio():
 
         res = self.fid.attrs['processor_version']
         if isinstance(res, bytes):
+            # pylint: disable=no-member
             return res.decode('ascii')
 
         return res
@@ -237,10 +235,12 @@ class ICMio():
 
         res1 = self.fid.attrs['time_coverage_start']
         if isinstance(res1, bytes):
+            # pylint: disable=no-member
             res1 = res1.decode('ascii')
 
         res2 = self.fid.attrs['time_coverage_end']
         if isinstance(res2, bytes):
+            # pylint: disable=no-member
             res2 = res2.decode('ascii')
 
         return (res1, res2)
@@ -282,8 +282,6 @@ class ICMio():
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
-        from datetime import datetime, timedelta
-
         ref_time = datetime(2010, 1, 1, 0, 0, 0)
         if not self.__msm_path:
             return ref_time

@@ -16,20 +16,19 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from pathlib import Path
 import sys
 
-from pathlib import Path
+from pys5p.get_data_dir import get_data_dir
+from pys5p.icm_io import ICMio
+from pys5p.s5p_plot import S5Pplot
+
 
 #-------------------------
 def test_icm_dpqf():
     """
     Check class OCMio and S5Pplot.draw_quality
-
     """
-    from pys5p.get_data_dir import get_data_dir
-    from pys5p.icm_io import ICMio
-    from pys5p.s5p_plot import S5Pplot
-
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()

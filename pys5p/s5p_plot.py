@@ -166,7 +166,6 @@ def convert_units(units, vmin, vmax):
 
 
 # - main function __--------------------------------
-# pylint: disable=too-many-arguments, too-many-locals
 class S5Pplot():
     """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports

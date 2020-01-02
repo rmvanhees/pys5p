@@ -65,6 +65,7 @@ class L1Bio:
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
                    '/BAND%_RADIANCE')
     geo_dset = 'satellite_latitude,satellite_longitude'
+    msm_type = None
 
     def __init__(self, l1b_product, readwrite=False, verbose=False):
         """
@@ -217,7 +218,7 @@ class L1Bio:
 
         return None
 
-    def select(self, msm_type):
+    def select(self, msm_type=None):
         """
         Select a calibration measurement as <processing class>_<ic_id>
 
@@ -234,6 +235,11 @@ class L1Bio:
         Updated object attributes:
          - bands               : available spectral bands
         """
+        if msm_type is None:
+            if self.msm_type is None:
+                raise ValueError('parameter msm_type is not defined')
+            msm_type = self.msm_type
+
         self.bands = ''
         for name in self.band_groups:
             for ii in '12345678':
@@ -269,7 +275,7 @@ class L1Bio:
         if self.__msm_path is None:
             return None
 
-        if band is None:
+        if band is None or len(band) > 1:
             band = self.bands[0]
 
         msm_path = self.__msm_path.replace('%', band)
@@ -442,7 +448,7 @@ class L1Bio:
 
         Returns
         -------
-        out   :   array-like
+        out   :   dict of numpy
            Compound array with data of selected datasets from the GEODATA group
         """
         if self.__msm_path is None:
@@ -457,14 +463,9 @@ class L1Bio:
         msm_path = self.__msm_path.replace('%', band)
         grp = self.fid[str(PurePosixPath(msm_path, 'GEODATA'))]
 
-        nscans = self.fid[msm_path]['scanline'].size
-        dtype = []
+        res = {}
         for name in geo_dset.split(','):
-            dtype.append((name, 'f4'))
-
-        res = np.empty((nscans,), dtype=dtype)
-        for name in geo_dset.split(','):
-            res[name][...] = grp[name][0, :]
+            res[name] = grp[name][0, ...]
 
         return res
 
@@ -602,7 +603,8 @@ class L1BioIRR(L1Bio):
     class with methods to access Tropomi L1B irradiance products
     """
     band_groups = ('/BAND%_IRRADIANCE',)
-    geo_dset = 'latitude,longitude'
+    geo_dset = 'earth_sun_distance'
+    msm_type = 'STANDARD_MODE'
 
 
 # --------------------------------------------------
@@ -612,80 +614,7 @@ class L1BioRAD(L1Bio):
     """
     band_groups = ('/BAND%_RADIANCE',)
     geo_dset = 'latitude,longitude'
-
-    def get_housekeeping_data(self, band=None, icid=None):
-        """
-        Returns housekeeping data of measurements
-
-        Parameters
-        ----------
-        icid :  integer
-           select housekeeping data of measurements with given ICID
-        """
-        res = L1Bio.get_housekeeping_data(self, band)
-
-        if icid is None:
-            return res
-
-        seq = self.sequence()
-        return res[seq['icid'] == icid]
-
-    def get_geo_data(self, geo_dset=None, band=None, icid=None):
-        """
-        Returns data of selected datasets from the GEODATA group
-
-        Parameters
-        ----------
-        geo_dset  :  string
-            Name(s) of datasets in the GEODATA group, comma separated
-            Default is 'latitude,longitude'
-        icid :  integer
-           select housekeeping data of measurements with given ICID
-
-        Returns
-        -------
-        out   :   array-like
-           Compound array with data of selected datasets from the GEODATA group
-        """
-        res = L1Bio.get_geo_data(self, geo_dset, band)
-
-        if icid is None:
-            return res
-
-        seq = self.sequence()
-        indx = seq['index'][seq['icid'] == icid]
-        res['sequence'][:, :] = res['sequence'][indx, :]
-        for name in geo_dset.split(','):
-            res[name][:, :] = res[name][indx, :]
-        return res
-
-    def get_msm_data(self, msm_dset, band=None,
-                     fill_as_nan=False, msm_to_row=None, icid=None):
-        """
-        Reads data from dataset "msm_dset"
-
-        Parameters
-        ----------
-        msm_dset :  string
-            Name of measurement dataset.
-        icid :  integer
-           select housekeeping data of measurements with given ICID
-        fill_as_nan :  boolean
-            Set data values equal (KNMI) FillValue to NaN
-        msm_to_row : boolean
-            Combine two bands using padding if necessary
-
-        Returns
-        -------
-        out   :  values read from or written to dataset "msm_dset"
-        """
-        res = L1Bio.get_msm_data(self, msm_dset, band, fill_as_nan, msm_to_row)
-
-        if icid is None:
-            return res
-
-        seq = self.sequence()
-        return res[seq['icid'] == icid, ...]
+    msm_type = 'STANDARD_MODE'
 
 
 # --------------------------------------------------

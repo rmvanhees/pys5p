@@ -25,6 +25,8 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from collections import OrderedDict
+from datetime import datetime
+from pathlib import PurePath
 
 import matplotlib as mpl
 import numpy as np
@@ -33,17 +35,23 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
                                    LATITUDE_FORMATTER)
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.patches import Polygon
 import shapely.geometry as sgeom
+
+from .s5p_msm import S5Pmsm
+from .tol_colors import tol_cmap
 
 
 # - main function ----------------------------------
-# pylint: disable=too-many-arguments, too-many-locals
 class BetterTransverseMercator(ccrs.Projection):
     """
     Implement improved transverse mercator projection
 
     By Paul Tol (SRON)
     """
+    # pylint: disable=no-member,too-many-arguments
     def __init__(self, central_latitude=0.0, central_longitude=0.0,
                  orientation=0, scale_factor=1.0,
                  false_easting=0.0, false_northing=0.0, globe=None):
@@ -114,8 +122,6 @@ class S5Pgeoplot():
         add_info  :  boolean
              generate a legenda with info on the displayed data
         """
-        from pathlib import PurePath
-
         self.data = None
         self.aspect = -1
         self.method = None
@@ -123,8 +129,6 @@ class S5Pgeoplot():
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
-            from matplotlib.backends.backend_pdf import PdfPages
-
             self.__pdf = PdfPages(figname)
         else:
             self.__pdf = None
@@ -138,8 +142,6 @@ class S5Pgeoplot():
         """
         # add annotation and save figure
         if self.__pdf is None:
-            from matplotlib import pyplot as plt
-
             if self.add_info:
                 self.__fig_info(fig, fig_info)
                 plt.savefig(self.filename)
@@ -158,8 +160,6 @@ class S5Pgeoplot():
         """
         Close multipage PDF document
         """
-        from matplotlib import pyplot as plt
-
         if self.__pdf is not None:
             doc = self.__pdf.infodict()
             doc['Author'] = '(c) SRON Netherlands Institute for Space Research'
@@ -187,8 +187,6 @@ class S5Pgeoplot():
         dict_info :  dictionary or sortedDict
            legenda parameters to be displayed in the figure
         """
-        from datetime import datetime
-
         info_str = ""
         if dict_info is not None:
             for key in dict_info:
@@ -246,9 +244,6 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        from matplotlib import pyplot as plt
-        from matplotlib.patches import Polygon
-
         # define aspect for the location of fig_info
         self.aspect = -1
 
@@ -348,8 +343,6 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        from matplotlib import pyplot as plt
-
         # define aspect for the location of fig_info
         self.aspect = -1
 
@@ -437,11 +430,6 @@ class S5Pgeoplot():
         in a small box. In addition, we display the creation date and the data
         (biweight) median & spread.
         """
-        from matplotlib import pyplot as plt
-
-        from .s5p_msm import S5Pmsm
-        from .tol_colors import tol_cmap
-
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)

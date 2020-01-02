@@ -16,8 +16,11 @@ All rights reserved.
 
 License:  Standard 3-clause BSD
 """
+from collections import namedtuple
+
 import numpy as np
 
+from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, to_rgba_array
 
 
@@ -295,8 +298,6 @@ def tol_cset(colorset=None):
       - cset._fields gives a tuple with all color names
       - list(cset) gives a list with all colors
     """
-    from collections import namedtuple
-
     namelist = ('bright', 'high-contrast', 'vibrant', 'muted', 'light')
     if colorset is None:
         return namelist
@@ -343,8 +344,6 @@ def main():
     """
     Show all available colormaps and colorsets
     """
-    from matplotlib import pyplot as plt
-
     # Change default colorset (for lines) and colormap (for maps).
 #    plt.rc('axes', prop_cycle=plt.cycler('color', list(tol_cset('bright'))))
 #    plt.cm.register_cmap('rainbow_PuRd', tol_cmap('rainbow_PuRd'))

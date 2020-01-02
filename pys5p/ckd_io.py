@@ -34,6 +34,7 @@ Copyright (c) 2018 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from datetime import datetime
 from pathlib import Path, PosixPath
 
 import h5py
@@ -150,8 +151,6 @@ class CKDio():
         """
         Return validity period of CKD product as a tuple of 2 datetime objects
         """
-        from datetime import datetime
-
         grpname = str(self.__header / 'validity_period')
         attr = self.fid[grpname].attrs['Validity_Start'][0]
         if attr is None:

@@ -16,9 +16,13 @@ Copyright (c) 2017 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+from pathlib import Path
 import sys
 
-from pathlib import Path
+from pys5p.get_data_dir import get_data_dir
+from pys5p.l1b_io import L1Bio, L1BioRAD
+from pys5p.s5p_geoplot import S5Pgeoplot
+
 
 #-------------------------
 def test_geo():
@@ -26,10 +30,6 @@ def test_geo():
     Check classes L1BioCAL, L1BioRAD and S5Pplot.draw_geo
 
     """
-    from pys5p.get_data_dir import get_data_dir
-    from pys5p.l1b_io import L1BioCAL, L1BioRAD
-    from pys5p.s5p_geoplot import S5Pgeoplot
-
     # obtain path to directory pys5p-data
     try:
         data_dir = get_data_dir()
@@ -40,28 +40,28 @@ def test_geo():
         return
 
     # test footprint mode
-    l1b = L1BioRAD(filelist[-1])
-    print(l1b, file=sys.stderr)
-    l1b.select()
-    geo = l1b.get_geo_data(icid=4)
-    l1b.close()
+    with L1BioRAD(filelist[-1]) as l1b:
+        print(l1b, file=sys.stderr)
+        l1b.select()
+        seq = l1b.sequence()
+        geo = l1b.get_geo_data()
 
+    # select measurements with ICID=14
+    indx = seq['index'][seq['icid'] == 14]
     plot = S5Pgeoplot('test_plot_geo.pdf')
-    plot.draw_geo_tiles(geo['longitude'], geo['latitude'],
-                        sequence=geo['sequence'])
+    plot.draw_geo_tiles(geo['longitude'][indx, :],
+                        geo['latitude'][indx, :],
+                        sequence=seq['sequence'][indx, None])
 
     # test subsatellite mode
     filelist = list(Path(data_dir, 'L1B').glob('S5P_OFFL_L1B_CA_*.nc'))
-    l1b = L1BioCAL(filelist[-1])
-    print(l1b, file=sys.stderr)
-    l1b.select('BACKGROUND_RADIANCE_MODE_0005')
-    geo = l1b.get_geo_data()
-    l1b.close()
+    with L1Bio(filelist[-1]) as l1b:
+        print(l1b, file=sys.stderr)
+        l1b.select('BACKGROUND_RADIANCE_MODE_0005')
+        geo = l1b.get_geo_data()
 
     plot.draw_geo_subsat(geo['satellite_longitude'],
                          geo['satellite_latitude'])
-    #sequence=geo['sequence'],
-    #subsatellite=True)
     plot.close()
 
 if __name__ == '__main__':

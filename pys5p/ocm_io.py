@@ -172,6 +172,7 @@ class OCMio():
         """
         res = self.fid.attrs['processor_version']
         if isinstance(res, bytes):
+            # pylint: disable=no-member
             res = res.decode('ascii')
         return res
 
@@ -181,10 +182,12 @@ class OCMio():
         """
         t_bgn = self.fid.attrs['time_coverage_start']
         if isinstance(t_bgn, bytes):
+            # pylint: disable=no-member
             t_bgn = t_bgn.decode('ascii')
 
         t_end = self.fid.attrs['time_coverage_end']
         if isinstance(t_end, bytes):
+            # pylint: disable=no-member
             t_end = t_end.decode('ascii')
         return (t_bgn, t_end)
 
