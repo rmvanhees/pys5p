@@ -33,7 +33,7 @@ setup(name='pys5p',
       install_requires=[
           'numpy>=1.17',
           'scipy>=1.3',
-          'h5py>=2.9',
+          'h5py>=2.10',
           'matplotlib>=3.1',
           'Cartopy'
       ],
