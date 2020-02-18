@@ -188,6 +188,7 @@ class S5Pplot():
         self.cmap = None
         self.data = None
         self.method = None
+        self.mpl_fig = None
         self.info_pos = 'above'
         self.__pdf = None
         self.pdf_title = pdf_title
@@ -624,9 +625,11 @@ class S5Pplot():
                                           sharex=ax_img)
             data_row = biweight(self.data, axis=0)
             if xdata.size > 250:
-                ax_medx.plot(xdata, data_row, lw=0.75, color=line_colors.blue)
+                ax_medx.plot(xdata, data_row, linewidth=0.75,
+                             color=line_colors.blue)
             else:
-                ax_medx.step(xdata, data_row, lw=0.75, color=line_colors.blue)
+                ax_medx.step(xdata, data_row, linewidth=0.75,
+                             color=line_colors.blue)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
@@ -634,9 +637,11 @@ class S5Pplot():
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = biweight(self.data, axis=1)
             if ydata.size > 250:
-                ax_medy.plot(data_col, ydata, lw=0.75, color=line_colors.blue)
+                ax_medy.plot(data_col, ydata, linewidth=0.75,
+                             color=line_colors.blue)
             else:
-                ax_medy.step(data_col, ydata, lw=0.75, color=line_colors.blue)
+                ax_medy.step(data_col, ydata, linewidth=0.75,
+                             color=line_colors.blue)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
@@ -851,12 +856,12 @@ class S5Pplot():
                                           sharex=ax_img)
             data_row = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=0)
-            ax_medx.step(xdata, data_row, lw=0.75, color=cset.yellow)
+            ax_medx.step(xdata, data_row, linewidth=0.75, color=cset.yellow)
             data_row = np.sum((self.data == thres_worst), axis=0)     # worst
-            ax_medx.step(xdata, data_row, lw=0.75, color=cset.red)
+            ax_medx.step(xdata, data_row, linewidth=0.75, color=cset.red)
             if ref_data is not None:
                 data_row = np.sum((self.data == 10), axis=0)          # good
-                ax_medx.step(xdata, data_row, lw=0.75, color=cset.green)
+                ax_medx.step(xdata, data_row, linewidth=0.75, color=cset.green)
             ax_medx.set_xlim([0, xdata.size])
             ax_medx.grid(True)
             ax_medx.set_xlabel(xlabel)
@@ -864,12 +869,12 @@ class S5Pplot():
             ax_medy = divider.append_axes("left", 1.1, pad=0.25, sharey=ax_img)
             data_col = np.sum(((self.data == thres_worst)             # bad
                                | (self.data == thres_bad)), axis=1)
-            ax_medy.step(data_col, ydata, lw=0.75, color=cset.yellow)
+            ax_medy.step(data_col, ydata, linewidth=0.75, color=cset.yellow)
             data_col = np.sum((self.data == thres_worst), axis=1)     # worst
-            ax_medy.step(data_col, ydata, lw=0.75, color=cset.red)
+            ax_medy.step(data_col, ydata, linewidth=0.75, color=cset.red)
             if ref_data is not None:
                 data_col = np.sum((self.data == 10), axis=1)          # good
-                ax_medy.step(data_col, ydata, lw=0.75, color=cset.green)
+                ax_medy.step(data_col, ydata, linewidth=0.75, color=cset.green)
             ax_medy.set_ylim([0, ydata.size])
             ax_medy.grid(True)
             ax_medy.set_ylabel(ylabel)
@@ -1148,7 +1153,7 @@ class S5Pplot():
             else:
                 ax4.set_xlabel(r'{} [{}]'.format(msm.name, zunit))
             ax4.set_ylabel('probability density')
-            ax4.grid(which='major', color='0.5', lw=0.75, ls='-')
+            ax4.grid(which='major', color='0.5', linewidth=0.75, ls='-')
 
             ax5 = plt.subplot(gspec[iplot, 1])
             ax5.hist(residual[np.isfinite(residual)].reshape(-1),
@@ -1159,7 +1164,7 @@ class S5Pplot():
                 ax5.set_xlabel('residual')
             else:
                 ax5.set_xlabel('residual [{}]'.format(runit))
-            ax5.grid(which='major', color='0.5', lw=0.75, ls='-')
+            ax5.grid(which='major', color='0.5', linewidth=0.75, ls='-')
 
         # add annotation and save figure
         if self.info_pos != 'none':
@@ -1637,7 +1642,7 @@ class S5Pplot():
         xvals = np.insert(xvals, 0, xvals[0])
         ax_medx = divider.append_axes("bottom", 1.2, pad=0.25)
         ax_medx.step(xaxis, xvals, where='pre',
-                     lw=0.75, color=line_colors.blue)
+                     linewidth=0.75, color=line_colors.blue)
         ax_medx.set_xlim([extent[0], extent[1]])
         ax_medx.locator_params(axis='x', nbins=xticks)
         ax_medx.grid(True)
@@ -1651,7 +1656,7 @@ class S5Pplot():
         yvals = np.insert(yvals, 0, yvals[0])
         ax_medy = divider.append_axes("left", 1.1, pad=0.25)
         ax_medy.step(yvals, yaxis, where='pre',
-                     lw=0.75, color=line_colors.blue)
+                     linewidth=0.75, color=line_colors.blue)
         ax_medy.set_ylim([extent[2], extent[3]])
         ax_medy.locator_params(axis='y', nbins=yticks)
         ax_medy.grid(True)
@@ -1806,10 +1811,10 @@ class S5Pplot():
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
                     axarr[i_ax].step(xdata, ydata, where='post',
-                                     lw=1.5, color=qc_dict[key])
+                                     linewidth=1.5, color=qc_dict[key])
                 else:
                     axarr[i_ax].plot(xdata, ydata,
-                                     lw=1.5, color=qc_dict[key])
+                                     linewidth=1.5, color=qc_dict[key])
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
@@ -1844,10 +1849,10 @@ class S5Pplot():
                 if use_steps:
                     ydata = np.append(ydata, ydata[-1])
                     axarr[i_ax].step(xdata, ydata, where='post',
-                                     lw=1.5, color=line_colors.blue)
+                                     linewidth=1.5, color=line_colors.blue)
                 else:
                     axarr[i_ax].plot(xdata, ydata,
-                                     lw=1.5, color=line_colors.blue)
+                                     linewidth=1.5, color=line_colors.blue)
 
                 if msm.error is not None:
                     yerr1 = msm.error[0].copy() / dscale
@@ -1943,11 +1948,11 @@ class S5Pplot():
                         ydata = np.append(ydata, ydata[-1])
                         yerr1 = np.append(yerr1, yerr1[-1])
                         yerr2 = np.append(yerr2, yerr2[-1])
-                        axarr[i_ax].step(xdata, ydata,
-                                         where='post', lw=1.5, color=lcolor)
+                        axarr[i_ax].step(xdata, ydata, where='post',
+                                         linewidth=1.5, color=lcolor)
                     else:
                         axarr[i_ax].plot(xdata, ydata,
-                                         lw=1.5, color=lcolor)
+                                         linewidth=1.5, color=lcolor)
                     # we are interested to see the last 2 days of the data,
                     # and any trend over the whole data, without outliers
                     ylim = None
@@ -2003,9 +2008,9 @@ class S5Pplot():
         self.close_page(fig)
 
     # --------------------------------------------------
-    def draw_line(self, xdata, ydata, *, color=0, mpl_fig=None, llabel=None,
+    def draw_line(self, xdata, ydata, *, color=0,
                   xlabel=None, ylabel=None, xlim=None, ylim=None,
-                  title=None, sub_title=None, fig_info=None):
+                  title=None, sub_title=None, fig_info=None, **kwargs):
         """
         Parameters
         ----------
@@ -2017,10 +2022,6 @@ class S5Pplot():
            Special case msm is None then close figure
         color     :  integer, optional
            index to color in tol_colors.tol_cset('bright'). Default is zero
-        llabel    :  string, optional
-           label for line, used in plot legenda
-        mpl_fig  :  tuple, optional
-           tuple with matplotlib pointers to current figure
         title     :  string, optional
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -2029,73 +2030,75 @@ class S5Pplot():
            Suggestion: use attribute "comment" of data-product
         fig_info  :  dictionary, optional
            OrderedDict holding meta-data to be displayed in the figure
+        **kwargs :   other keywords
+           Pass all other keyword arguments to matplotlib.pyplot.plot()
 
         Returns
         -------
-        mpl_fig : tuple with matplotlib.figure.Figure and matplotlib.axes.Axes
+        Nothing
         """
         # add annotation and close figure
         if xdata is None:
-            if mpl_fig is None:
-                raise ValueError('mpl_fig must be defined')
-            if len(mpl_fig) != 2:
-                raise TypeError('mpl_fig must contain both Figure and Axis')
+            if self.mpl_fig is None:
+                raise ValueError('No plot defined and no data provided')
 
             # draw titles (and put it at the same place)
             if title is not None:
-                mpl_fig[0].suptitle(title, fontsize='x-large',
-                                    position=(0.5, 0.95),
-                                    horizontalalignment='center')
+                self.mpl_fig[0].suptitle(title, fontsize='x-large',
+                                         position=(0.5, 0.95),
+                                         horizontalalignment='center')
             if sub_title is not None:
-                mpl_fig[1].set_title(sub_title, fontsize='large')
+                self.mpl_fig[1].set_title(sub_title, fontsize='large')
 
             # draw legenda in figure
-            if mpl_fig[1].get_legend_handles_labels()[1]:
-                mpl_fig[1].legend(fontsize='small', loc='upper left')
+            if self.mpl_fig[1].get_legend_handles_labels()[1]:
+                self.mpl_fig[1].legend(fontsize='small', loc='best')
 
             # draw copyright
-            self.add_copyright(mpl_fig[1])
+            self.add_copyright(self.mpl_fig[1])
 
             # close page
-            self.add_fig_info(mpl_fig[0], fig_info)
-            self.close_page(mpl_fig[0])
-            return None
+            self.add_fig_info(self.mpl_fig[0], fig_info)
+            self.close_page(self.mpl_fig[0])
+            self.mpl_fig = None
+            return
 
         # define aspect for the location of fig_info
         self.aspect = 1
 
         # define colors
         line_colors = tol_cset('bright')
+        c_max = len(line_colors)
 
         # initialize matplotlib using 'subplots'
-        if mpl_fig is None:
+        if self.mpl_fig is None:
             (fig, axarr) = plt.subplots(1, figsize=(9, 9))
         else:
-            (fig, axarr) = mpl_fig
+            (fig, axarr) = self.mpl_fig
 
-        use_steps = xdata.size <= 256
+        use_steps = False  # xdata.size <= 256
         if use_steps:
             xx = np.append(xdata, xdata[-1])
             yy = np.append(ydata, ydata[-1])
-            axarr.step(xx, yy, where='post', lw=1.5,
-                       color=line_colors[color], label=llabel)
+            axarr.step(xx, yy, where='post',
+                       color=line_colors[color % c_max], **kwargs)
         else:
-            axarr.plot(xdata, ydata, lw=1.5,
-                       color=line_colors[color], label=llabel)
+            axarr.plot(xdata, ydata, linewidth=1.5,
+                       color=line_colors[color % c_max], **kwargs)
 
-        if mpl_fig is not None:
-            return (fig, axarr)
+        if self.mpl_fig is None:
+            axarr.grid(True)
+            if xlim is not None:
+                axarr.set_xlim(xlim)
+            if ylim is not None:
+                axarr.set_ylim(ylim)
+            if xlabel is not None:
+                axarr.set_xlabel(xlabel)
+            if ylabel is not None:
+                axarr.set_ylabel(ylabel)
+            self.mpl_fig = (fig, axarr)
 
-        axarr.grid(True)
-        if xlim is not None:
-            axarr.set_xlim(xlim)
-        if ylim is not None:
-            axarr.set_ylim(ylim)
-        if xlabel is not None:
-            axarr.set_xlabel(xlabel)
-        if ylabel is not None:
-            axarr.set_ylabel(ylabel)
-        return (fig, axarr)
+        return
 
     # --------------------------------------------------
     def draw_errorbar(self, xpoints, ypoints, *, color=0,
@@ -2112,6 +2115,7 @@ class S5Pplot():
 
         # define colors
         line_colors = tol_cset('bright')
+        c_max = len(line_colors)
 
         # initialize matplotlib using 'subplots'
         (fig, axarr) = plt.subplots(1, figsize=(9., 9))
@@ -2125,7 +2129,8 @@ class S5Pplot():
 
         axarr.errorbar(xpoints['value'], ypoints['value'],
                        xerr=xpoints['error'], yerr=ypoints['error'],
-                       marker='s', linestyle=None, color=line_colors[color])
+                       marker='s', linestyle=None,
+                       color=line_colors[color % c_max])
         axarr.grid(True)
         if xlim is not None:
             axarr.set_xlim(xlim)
