@@ -2041,6 +2041,15 @@ class S5Pplot():
         Returns
         -------
         Nothing
+
+        Example
+        -------
+        >>> plot = S5Pplot(fig_name)
+        >>> for ii, xx, yy in enumerate(data_of_each_line):
+        >>>    plot.draw_line(xx, yy, color=ii, label=mylabel[ii],
+                           marker='o', linestyle='None')
+        >>> plot.draw_line(None, None, xlim=[0, 0.5], ylim=[-10, 10],
+                   xlabel=my_xlabel, ylabel=my_ylabel)
         """
         # add annotation and close figure
         if xdata is None:
