@@ -1187,7 +1187,7 @@ class S5Pplot():
 
     # --------------------------------------------------
     def draw_hist(self, msm_in, msm_err_in, *, vperc=None, vrange=None,
-                  clip=True, title=None, fig_info=None):
+                  clip=True, title=None, sub_title=None, fig_info=None):
         """
         Display signal & its errors as histograms
 
@@ -1206,6 +1206,9 @@ class S5Pplot():
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
+        sub_title :  string
+           Sub-title of the figure. Default is None
+           Suggestion: use attribute "comment" of data-product
         fig_info   :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
@@ -1216,6 +1219,7 @@ class S5Pplot():
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
+            msm.name = 'value'
         else:
             if not isinstance(msm_in, S5Pmsm):
                 raise TypeError('msm not an numpy.ndarray or pys5p.S5Pmsm')
@@ -1228,6 +1232,7 @@ class S5Pplot():
 
         if isinstance(msm_err_in, np.ndarray):
             msm_err = S5Pmsm(msm_err_in)
+            msm_err.name = 'uncertainty'
         else:
             if not isinstance(msm_err_in, S5Pmsm):
                 raise TypeError('msm_err not an numpy.ndarray or pys5p.S5Pmsm')
@@ -1289,7 +1294,7 @@ class S5Pplot():
 
             # create histogram
             axx = plt.subplot(gspec[1:5, 0])
-            axx.set_title('histograms', fontsize='large')
+            axx.set_title(sub_title, fontsize='large')
             res = axx.hist(values / zscale,
                            range=[np.floor(vmin / zscale),
                                   np.ceil(vmax / zscale)],
@@ -2042,6 +2047,17 @@ class S5Pplot():
             if self.mpl_fig is None:
                 raise ValueError('No plot defined and no data provided')
 
+            # finalize figure
+            self.mpl_fig[1].grid(True)
+            if xlim is not None:
+                self.mpl_fig[1].set_xlim(xlim)
+            if ylim is not None:
+                self.mpl_fig[1].set_ylim(ylim)
+            if xlabel is not None:
+                self.mpl_fig[1].set_xlabel(xlabel)
+            if ylabel is not None:
+                self.mpl_fig[1].set_ylabel(ylabel)
+
             # draw titles (and put it at the same place)
             if title is not None:
                 self.mpl_fig[0].suptitle(title, fontsize='x-large',
@@ -2083,19 +2099,10 @@ class S5Pplot():
             axarr.step(xx, yy, where='post',
                        color=line_colors[color % c_max], **kwargs)
         else:
-            axarr.plot(xdata, ydata, linewidth=1.5,
+            axarr.plot(xdata, ydata,
                        color=line_colors[color % c_max], **kwargs)
 
         if self.mpl_fig is None:
-            axarr.grid(True)
-            if xlim is not None:
-                axarr.set_xlim(xlim)
-            if ylim is not None:
-                axarr.set_ylim(ylim)
-            if xlabel is not None:
-                axarr.set_xlabel(xlabel)
-            if ylabel is not None:
-                axarr.set_ylabel(ylabel)
             self.mpl_fig = (fig, axarr)
 
         return
