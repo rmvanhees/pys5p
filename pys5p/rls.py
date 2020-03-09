@@ -31,21 +31,58 @@ def rls_fit(xx, yy, mask_in=None):
     Parameters
     ----------
     xx :  ndarray, shape (M,)
-      X-coordinates of the M sample points (xx[i], yy[..., i])
-      The array values have to be positive and increasing
+       X-coordinates of the M sample points (xx[i], yy[..., i])
+       The array values have to be positive and increasing
     yy :  ndarray, shape (..., M)
-      Y-coordinates of the sample points
+       Y-coordinates of the sample points
     mask : ndarray, shape (..., M), optional
-      mask for sample points to include in the fit
+       mask for sample points to include in the fit
 
     Returns
     -------
     c0, c1, std_c0, std_c1 : tuple of ndarrays
+       coefficients of the linear dependence and their standard deviations
+
+    Raises
+    ------
+    RuntimeError
+       if M < 2: too few points for a fit
+       if M_xx != M_yy: number of samples not equal for xx, yy
+       if yy.shape != mask.shape: arrays yy and mask do not have equal shapes
+
+    Notes
+    -----
+    The standard deviations can only be calculated when the number of samples
+    are larger than two, else the standard deviations are equal to zero.
+
+    The coefficients are set to NaN when the number of samples are less than 1.
+
+    The mask should be set to False for all NaN values in array yy.
+
+    Examples
+    --------
+    How to use this function:
+    >>> dimx = dimy = 2048
+    >>> texp = np.array([1e-3, 2e-3, 2.5e-3, 5e-3, 1e-2, 5e-2, 1e-1, .5, 1, 5])
+    >>> alpha = np.random.random_sample((dimy, dimx)) + 11
+    >>> beta = np.random.random_sample((dimy, dimx)) + 3
+    >>> data = alpha[..., np.newaxis] + texp * beta[..., np.newaxis]
+    >>> mask = np.full(data.shape, True)
+    >>> mask[50, 50, 1:] = False
+    >>> mask[100, 100, 2:] = False
+    >>> mask[200, 200, 5:] = False
+    >>> cc0, cc1, sc0, sc1 = rls_fit(texp, data, mask)
+    >>> mask_nan = np.isfinite(cc0)
+    >>> print('cc0 ', np.nanmean(cc0),
+    ...       np.abs(cc0[mask_nan] - alpha[mask_nan]).max())
+    cc0  11.49983030605162 7.105427357601002e-15
+    >>> print('sc0 ', np.nanmean(sc0))
+    sc0  5.0509648555957586e-08
     """
     if xx.size < 2:
-        raise RuntimeError('requires atleast 2 X-values')
+        raise RuntimeError('too few sample points for a fit')
     if xx.size != yy.shape[-1]:
-        raise RuntimeError('size of xx is not equal yy.shape[-1] ')
+        raise RuntimeError('number of samples not equal for xx, yy')
 
     # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
@@ -140,21 +177,33 @@ def rls_fit0(xx, yy, mask_in=None):
     Parameters
     ----------
     xx :  ndarray, shape (M,)
-      X-coordinates of the M sample points (xx[i], yy[..., i])
-      The array values have to be positive and increasing
+       X-coordinates of the M sample points (xx[i], yy[..., i])
+       The array values have to be positive and increasing
     yy :  ndarray, shape (..., M)
-      Y-coordinates of the sample points
+       Y-coordinates of the sample points
     mask : ndarray, shape (..., M), optional
-      mask for sample points to include in the fit
+       mask for sample points to include in the fit
 
     Returns
     -------
     c1, std_c1 : tuple of ndarrays
+       coefficient of the linear dependence and its standard deviation
+
+    Raises
+    ------
+    RuntimeError
+       if M < 2: too few points for a fit
+       if M_xx != M_yy: number of samples not equal for xx, yy
+       if yy.shape != mask.shape: arrays yy and mask do not have equal shapes
+
+    See also
+    --------
+       pys5p.rls.rls_fit
     """
     if xx.size < 2:
-        raise RuntimeError('requires atleast 2 X-values')
+        raise RuntimeError('too few points for a fit')
     if xx.size != yy.shape[-1]:
-        raise RuntimeError('size of xx is not equal yy.shape[-1]')
+        raise RuntimeError('number of samples not equal for xx, yy')
 
     # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
