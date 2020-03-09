@@ -44,12 +44,13 @@ def rls_fit(xx, yy, mask_in=None):
     """
     if xx.size < 2:
         raise RuntimeError('requires atleast 2 X-values')
-    if xx.size != yy.shape(-1):
-        raise RuntimeError('size of xx is not equal yy.shape(-1) ')
+    if xx.size != yy.shape[-1]:
+        raise RuntimeError('size of xx is not equal yy.shape[-1] ')
 
-    # use a view of yy with only two dimensions
+    # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
 
+    # ---------- no mask defined ----------
     if mask_in is None:
         wght = np.concatenate(([2 * (xx[1] - xx[0])],
                                xx[2:] - xx[0:-2],
@@ -75,17 +76,22 @@ def rls_fit(xx, yy, mask_in=None):
         cc1 = zz3 / zz1
 
         if xx.size == 2:
-            return (cc0, cc1, 0., 0.)
+            return (cc0.reshape(yy.shape[:-1]),
+                    cc1.reshape(yy.shape[:-1]), 0., 0.)
 
         fac = np.abs((q22 - q12 * cc0 - q11 * cc1)
                      / ((xx.size - 2) * zz1))
 
-        return (cc0, cc1, np.sqrt(q00 * fac), np.sqrt(q02 * fac))
+        return (cc0.reshape(yy.shape[:-1]),
+                cc1.reshape(yy.shape[:-1]),
+                np.sqrt(q00 * fac).reshape(yy.shape[:-1]),
+                np.sqrt(q02 * fac).reshape(yy.shape[:-1]))
 
     # ---------- mask is defined ----------
     if yy.shape != mask_in.shape:
         raise RuntimeError('arrays yy and mask do not have equal shapes')
     mask = mask_in.reshape(-1, xx.size)
+    num = np.sum(mask, axis=1)
 
     # generate weight factor per pixel
     wght = np.empty(data.shape, dtype=float)
@@ -95,16 +101,15 @@ def rls_fit(xx, yy, mask_in=None):
     wght[~mask] = 0.
     wx1 = wght / xx
     wx2 = wght / xx ** 2
-    num = np.sum(mask, axis=2)
 
     # calculate the Q elements
-    q00 = np.sum(wght, axis=2)
-    q01 = np.sum(wx1, axis=2)
-    q02 = np.sum(wx2, axis=2)
+    q00 = np.sum(wght, axis=1)
+    q01 = np.sum(wx1, axis=1)
+    q02 = np.sum(wx2, axis=1)
 
-    q11 = np.sum(wx1 * data, axis=2)
-    q12 = np.sum(wx2 * data, axis=2)
-    q22 = np.sum(wx2 * data ** 2, axis=2)
+    q11 = np.sum(wx1 * data, axis=1)
+    q12 = np.sum(wx2 * data, axis=1)
+    q22 = np.sum(wx2 * data ** 2, axis=1)
 
     # calculate the Z elements
     zz1 = q00 * q02 - q01 ** 2
@@ -120,7 +125,10 @@ def rls_fit(xx, yy, mask_in=None):
     cc1[num < 2] = np.nan
     fac[num <= 2] = 0
 
-    return (cc0, cc1, np.sqrt(q00 * fac), np.sqrt(q02 * fac))
+    return (cc0.reshape(yy.shape[:-1]),
+            cc1.reshape(yy.shape[:-1]),
+            np.sqrt(q00 * fac).reshape(yy.shape[:-1]),
+            np.sqrt(q02 * fac).reshape(yy.shape[:-1]))
 
 
 # --------------------------------------------------
@@ -145,12 +153,13 @@ def rls_fit0(xx, yy, mask_in=None):
     """
     if xx.size < 2:
         raise RuntimeError('requires atleast 2 X-values')
-    if xx.size != yy.shape(-1):
-        raise RuntimeError('size of xx is not equal yy.shape(-1) ')
+    if xx.size != yy.shape[-1]:
+        raise RuntimeError('size of xx is not equal yy.shape[-1]')
 
-    # use a view of yy with only two dimensions
+    # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
 
+    # ---------- no mask defined ----------
     if mask_in is None:
         wght = np.concatenate(([2 * (xx[1] - xx[0])],
                                xx[2:] - xx[0:-2],
@@ -165,12 +174,15 @@ def rls_fit0(xx, yy, mask_in=None):
 
         # calculate fit parameter and its variance
         cc1 = q11 / q00
-        return (cc1, np.sqrt(q22 / q00 - cc1 ** 2) / (xx.size - 1))
+        sc1 = (q22 / q00 - cc1 ** 2) / (xx.size - 1)
+        return (cc1.reshape(yy.shape[:-1]),
+                np.sqrt(sc1).reshape(yy.shape[:-1]))
 
     # ---------- mask is defined ----------
     if yy.shape != mask_in.shape:
         raise RuntimeError('arrays yy and mask do not have equal shapes')
     mask = mask_in.reshape(-1, xx.size)
+    num = np.sum(mask, axis=1)
 
     # generate weight factor per pixel
     wght = np.empty(data.shape, dtype=float)
@@ -180,12 +192,11 @@ def rls_fit0(xx, yy, mask_in=None):
     wght[~mask] = 0.
     wx1 = wght / xx
     wx2 = wght / xx ** 2
-    num = np.sum(mask, axis=2)
 
     # calculate the Q elements
-    q00 = np.sum(wght, axis=2)
-    q11 = np.sum(wx1 * data, axis=2)
-    q22 = np.sum(wx2 * data ** 2, axis=2)
+    q00 = np.sum(wght, axis=1)
+    q11 = np.sum(wx1 * data, axis=1)
+    q22 = np.sum(wx2 * data ** 2, axis=1)
 
     # calculate fit parameter and its variance
     cc1 = q11 / q00
@@ -193,4 +204,5 @@ def rls_fit0(xx, yy, mask_in=None):
     cc1[num < 2] = np.nan
     sc1[num < 2] = 0
 
-    return (cc1, np.sqrt(sc1))
+    return (cc1.reshape(yy.shape[:-1]),
+            np.sqrt(sc1).reshape(yy.shape[:-1]))
