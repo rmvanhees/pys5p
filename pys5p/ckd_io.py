@@ -245,7 +245,9 @@ class CKDio():
         if '7' not in bands and '8' not in bands:
             raise ValueError('DN2V factor is only available for SWIR')
 
-        ckd = S5Pmsm(self.fid['/BAND7/v2c_factor_swir'])
+        ckd = S5Pmsm(self.fid['/BAND7/dn2v_factor_swir'])
+        ckd8 = S5Pmsm(self.fid['/BAND8/dn2v_factor_swir'])
+        ckd.value[2:] =  ckd8.value[2:]
         ckd.set_long_name('SWIR DN2V factor')
         return ckd
 
