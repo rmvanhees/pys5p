@@ -153,6 +153,7 @@ def rls_fit(xx, yy, mask_in=None):
     zz2 = q00 * q12 - q01 * q11
     zz3 = q02 * q11 - q01 * q12
 
+    zz1[zz1 == 0] = float.fromhex('0x1.ep-122')
     cc0 = zz2 / zz1
     cc1 = zz3 / zz1
 
