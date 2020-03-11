@@ -2058,14 +2058,18 @@ class S5Pplot():
 
             # finalize figure
             self.mpl_fig[1].grid(True)
-            if xlim is not None:
-                self.mpl_fig[1].set_xlim(xlim)
-            if ylim is not None:
-                self.mpl_fig[1].set_ylim(ylim)
             if xlabel is not None:
                 self.mpl_fig[1].set_xlabel(xlabel)
             if ylabel is not None:
                 self.mpl_fig[1].set_ylabel(ylabel)
+            if xlim is not None:
+                self.mpl_fig[1].set_xlim(xlim)
+            if ylim is not None:
+                self.mpl_fig[1].set_ylim(ylim)
+            if 'xscale' in kwargs:
+                self.mpl_fig[1].set_xscale(kwargs['xscale'])
+            if 'yscale' in kwargs:
+                self.mpl_fig[1].set_ylabel(kwargs['yscale'])
 
             # draw titles (and put it at the same place)
             if title is not None:
