@@ -23,7 +23,10 @@ import numpy as np
 
 # pylint: disable=invalid-unary-operand-type
 # - local functions --------------------------------
-def rls_fit(xx, yy, mask_in=None):
+
+
+# - main functions _--------------------------------
+def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     """
     Fast implementation of the RLS regression finding linear dependence
       y(x) = c0 + c1 * x
@@ -37,6 +40,8 @@ def rls_fit(xx, yy, mask_in=None):
        Y-coordinates of the sample points
     mask : ndarray, shape (..., M), optional
        mask for sample points to include in the fit
+    return_chi2 : boolean, optional
+       if True, also return the reduced chi2-square
 
     Returns
     -------
@@ -55,7 +60,7 @@ def rls_fit(xx, yy, mask_in=None):
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
 
-    The coefficients are set to NaN when the number of samples are less than 1.
+    The coefficients are set to NaN when the number of samples are less than 2.
 
     The mask should be set to False for all NaN values in array yy.
 
@@ -113,16 +118,21 @@ def rls_fit(xx, yy, mask_in=None):
         cc1 = zz3 / zz1
 
         if xx.size == 2:
-            return (cc0.reshape(yy.shape[:-1]),
-                    cc1.reshape(yy.shape[:-1]), 0., 0.)
+            sc0 = np.zeros(cc0.shape[0], dtype=float)
+            sc1 = np.zeros(cc1.shape[0], dtype=float)
+        else:
+            chi2 = np.abs(q22 - q12 * cc0 - q11 * cc1) / (xx.size - 2)
 
-        fac = np.abs((q22 - q12 * cc0 - q11 * cc1)
-                     / ((xx.size - 2) * zz1))
+            sc0 = np.sqrt(q00 * chi2 / zz1)
+            sc1 = np.sqrt(q02 * chi2 / zz1)
 
-        return (cc0.reshape(yy.shape[:-1]),
-                cc1.reshape(yy.shape[:-1]),
-                np.sqrt(q00 * fac).reshape(yy.shape[:-1]),
-                np.sqrt(q02 * fac).reshape(yy.shape[:-1]))
+        if return_chi2:
+            return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
+                    sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]),
+                    chi2)
+
+        return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
+                sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]))
 
     # ---------- mask is defined ----------
     if yy.shape != mask_in.shape:
@@ -155,22 +165,26 @@ def rls_fit(xx, yy, mask_in=None):
 
     zz1[zz1 == 0] = float.fromhex('0x1.ep-122')
     cc0 = zz2 / zz1
-    cc1 = zz3 / zz1
-
-    fac = np.abs((q22 - q12 * cc0 - q11 * cc1)
-                 / (np.clip(num - 2, 1, None) * zz1))
     cc0[num < 2] = np.nan
+    cc1 = zz3 / zz1
     cc1[num < 2] = np.nan
-    fac[num <= 2] = 0
 
-    return (cc0.reshape(yy.shape[:-1]),
-            cc1.reshape(yy.shape[:-1]),
-            np.sqrt(q00 * fac).reshape(yy.shape[:-1]),
-            np.sqrt(q02 * fac).reshape(yy.shape[:-1]))
+    chi2 = np.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
+    chi2[num <= 2] = 0
+    sc0 = np.sqrt(q00 * chi2 / zz1)
+    sc1 = np.sqrt(q02 * chi2 / zz1)
+
+    if return_chi2:
+        return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
+                sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]),
+                chi2)
+
+    return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
+            sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]))
 
 
 # --------------------------------------------------
-def rls_fit0(xx, yy, mask_in=None):
+def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
     """
     Fast implementation of RLS regression finding linear dependence
       y(x) = c1 * x
@@ -184,6 +198,8 @@ def rls_fit0(xx, yy, mask_in=None):
        Y-coordinates of the sample points
     mask : ndarray, shape (..., M), optional
        mask for sample points to include in the fit
+    return_chi2 : boolean, optional
+       if True, also return the reduced chi-squared
 
     Returns
     -------
@@ -225,6 +241,12 @@ def rls_fit0(xx, yy, mask_in=None):
         # calculate fit parameter and its variance
         cc1 = q11 / q00
         sc1 = (q22 / q00 - cc1 ** 2) / (xx.size - 1)
+
+        if return_chi2:
+            return (cc1.reshape(yy.shape[:-1]),
+                    np.sqrt(sc1).reshape(yy.shape[:-1]),
+                    np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1))
+
         return (cc1.reshape(yy.shape[:-1]),
                 np.sqrt(sc1).reshape(yy.shape[:-1]))
 
@@ -253,6 +275,11 @@ def rls_fit0(xx, yy, mask_in=None):
     sc1 = (q22 / q00 - cc1 ** 2) / np.clip(num - 1, 1, None)
     cc1[num < 2] = np.nan
     sc1[num < 2] = 0
+
+    if return_chi2:
+        return (cc1.reshape(yy.shape[:-1]),
+                np.sqrt(sc1).reshape(yy.shape[:-1]),
+                np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1))
 
     return (cc1.reshape(yy.shape[:-1]),
             np.sqrt(sc1).reshape(yy.shape[:-1]))
