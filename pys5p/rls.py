@@ -129,7 +129,7 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
         if return_chi2:
             return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
                     sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]),
-                    chi2)
+                    chi2.reshape(yy.shape[:-1]))
 
         return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
                 sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]))
@@ -177,7 +177,7 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     if return_chi2:
         return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
                 sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]),
-                chi2)
+                chi2.reshape(yy.shape[:-1]))
 
     return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
             sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]))
@@ -243,9 +243,10 @@ def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
         sc1 = (q22 / q00 - cc1 ** 2) / (xx.size - 1)
 
         if return_chi2:
+            chi2 = np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1)
             return (cc1.reshape(yy.shape[:-1]),
                     np.sqrt(sc1).reshape(yy.shape[:-1]),
-                    np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1))
+                    chi2.reshape(yy.shape[:-1]))
 
         return (cc1.reshape(yy.shape[:-1]),
                 np.sqrt(sc1).reshape(yy.shape[:-1]))
@@ -277,9 +278,10 @@ def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
     sc1[num < 2] = 0
 
     if return_chi2:
+        chi2 = np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1)
         return (cc1.reshape(yy.shape[:-1]),
                 np.sqrt(sc1).reshape(yy.shape[:-1]),
-                np.abs(q22 - q00 * cc1 ** 2) / (xx.size - 1))
+                chi2.reshape(yy.shape[:-1]))
 
     return (cc1.reshape(yy.shape[:-1]),
             np.sqrt(sc1).reshape(yy.shape[:-1]))
