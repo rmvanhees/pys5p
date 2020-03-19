@@ -26,7 +26,7 @@ import numpy as np
 
 
 # - main functions _--------------------------------
-def rls_fit(xx, yy, mask_in=None, return_chi2=False):
+def rls_fit(xx, yy, samples_not_saturated=None, return_chi2=False):
     """
     Fast implementation of the RLS regression finding linear dependence
       y(x) = c0 + c1 * x
@@ -38,8 +38,8 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
        The array values have to be positive and increasing
     yy :  ndarray, shape (..., M)
        Y-coordinates of the sample points
-    mask : ndarray, shape (..., M), optional
-       mask for sample points to include in the fit
+    samples_not_saturated : ndarray, optional
+       number of sample points to include in the fit, startinge from the first
     return_chi2 : boolean, optional
        if True, also return the reduced chi2-square
 
@@ -53,7 +53,8 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     RuntimeError
        if M < 2: too few points for a fit
        if M_xx != M_yy: number of samples not equal for xx, yy
-       if yy.shape != mask.shape: arrays yy and mask do not have equal shapes
+       if yy.shape[:-1] != samples_not_saturated.shape:
+          arrays yy and mask do not have equal shapes
 
     Notes
     -----
@@ -61,8 +62,6 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     are larger than two, else the standard deviations are equal to zero.
 
     The coefficients are set to NaN when the number of samples are less than 2.
-
-    The mask should be set to False for all NaN values in array yy.
 
     Examples
     --------
@@ -72,11 +71,7 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     >>> alpha = np.random.random_sample((dimy, dimx)) + 11
     >>> beta = np.random.random_sample((dimy, dimx)) + 3
     >>> data = alpha[..., np.newaxis] + texp * beta[..., np.newaxis]
-    >>> mask = np.full(data.shape, True)
-    >>> mask[50, 50, 1:] = False
-    >>> mask[100, 100, 2:] = False
-    >>> mask[200, 200, 5:] = False
-    >>> cc0, cc1, sc0, sc1 = rls_fit(texp, data, mask)
+    >>> cc0, cc1, sc0, sc1 = rls_fit(texp, data)
     >>> mask_nan = np.isfinite(cc0)
     >>> print('cc0 ', np.nanmean(cc0),
     ...       np.abs(cc0[mask_nan] - alpha[mask_nan]).max())
@@ -92,8 +87,8 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
     # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
 
-    # ---------- no mask defined ----------
-    if mask_in is None:
+    # ---------- include all data samples ----------
+    if samples_not_saturated is None:
         wght = np.concatenate(([2 * (xx[1] - xx[0])],
                                xx[2:] - xx[0:-2],
                                [2 * (xx[-1] - xx[-2])]))
@@ -134,11 +129,14 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
         return (cc0.reshape(yy.shape[:-1]), cc1.reshape(yy.shape[:-1]),
                 sc0.reshape(yy.shape[:-1]), sc1.reshape(yy.shape[:-1]))
 
-    # ---------- mask is defined ----------
-    if yy.shape != mask_in.shape:
+    # ---------- exclude several of the last data samples ----------
+    if yy.shape[:-1] != samples_not_saturated.shape:
         raise RuntimeError('arrays yy and mask do not have equal shapes')
-    mask = mask_in.reshape(-1, xx.size)
-    num = np.sum(mask, axis=1)
+    buff = (np.arange(yy.size) % xx.size).reshape(yy.shape)
+    mask = buff <= samples_not_saturated[:, :, np.newaxis]
+    del buff
+    mask = mask.reshape(-1, xx.size)
+    num = samples_not_saturated.reshape(-1)
 
     # generate weight factor per pixel
     wght = np.empty(data.shape, dtype=float)
@@ -184,7 +182,7 @@ def rls_fit(xx, yy, mask_in=None, return_chi2=False):
 
 
 # --------------------------------------------------
-def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
+def rls_fit0(xx, yy, samples_not_saturated=None, return_chi2=False):
     """
     Fast implementation of RLS regression finding linear dependence
       y(x) = c1 * x
@@ -196,8 +194,8 @@ def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
        The array values have to be positive and increasing
     yy :  ndarray, shape (..., M)
        Y-coordinates of the sample points
-    mask : ndarray, shape (..., M), optional
-       mask for sample points to include in the fit
+    samples_not_saturated : ndarray, optional
+       number of sample points to include in the fit, startinge from the first
     return_chi2 : boolean, optional
        if True, also return the reduced chi-squared
 
@@ -225,8 +223,8 @@ def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
     # perform all computations on 2 dimensional arrays
     data = yy.reshape(-1, xx.size)
 
-    # ---------- no mask defined ----------
-    if mask_in is None:
+    # ---------- include all data samples ----------
+    if samples_not_saturated is None:
         wght = np.concatenate(([2 * (xx[1] - xx[0])],
                                xx[2:] - xx[0:-2],
                                [2 * (xx[-1] - xx[-2])]))
@@ -251,11 +249,14 @@ def rls_fit0(xx, yy, mask_in=None, return_chi2=False):
         return (cc1.reshape(yy.shape[:-1]),
                 np.sqrt(sc1).reshape(yy.shape[:-1]))
 
-    # ---------- mask is defined ----------
-    if yy.shape != mask_in.shape:
+    # ---------- exclude several of the last data samples ----------
+    if yy.shape[:-1] != samples_not_saturated.shape:
         raise RuntimeError('arrays yy and mask do not have equal shapes')
-    mask = mask_in.reshape(-1, xx.size)
-    num = np.sum(mask, axis=1)
+    buff = (np.arange(yy.size) % xx.size).reshape(yy.shape)
+    mask = buff <= samples_not_saturated[:, :, np.newaxis]
+    del buff
+    mask = mask.reshape(-1, xx.size)
+    num = samples_not_saturated.reshape(-1)
 
     # generate weight factor per pixel
     wght = np.empty(data.shape, dtype=float)
