@@ -51,7 +51,12 @@ from datetime import datetime
 from pathlib import PurePath
 import warnings
 
-from cartopy import crs as ccrs
+try:
+    from cartopy import crs as ccrs
+except ModuleNotFoundError:
+    FOUND_CARTOPY = False
+else:
+    FOUND_CARTOPY = True
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -2191,6 +2196,9 @@ class S5Pplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
+        if not FOUND_CARTOPY:
+            raise RuntimeError('You need Cartopy to run this function')
+
         # define colors
         line_colors = tol_cset('bright')
 

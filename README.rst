@@ -1,5 +1,6 @@
 pyS5p
-^^^^^
+=====
+
 The pyS5p package contains software to read S5p Tropomi L1b products.
 Furthermore, pyS5p contains plotting routines to display your data beautifully.
 
@@ -10,7 +11,11 @@ For more information on the Sentinel 5 precursor mission visit:
 For more information on the Tropomi L1b products visit:
    * http://www.tropomi.eu/documents/level-0-1b-products
 
-The software requires python3, h5py, numpy
+The software requires Python3.7+ with python modules: h5py, numpy, matplotlib
+
+The python mocule Cartopy is required to run:
+ * class S5Pgeoplot
+ * method S5P.plot::draw_tracks
 
 The software is intended for SRON internal usage.
 

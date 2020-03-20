@@ -41,7 +41,7 @@ def rls_fit(xx, yy, samples_not_saturated=None, return_chi2=False):
     samples_not_saturated : ndarray, optional
        number of sample points to include in the fit, startinge from the first
     return_chi2 : boolean, optional
-       if True, also return the reduced chi2-square
+       if True, also return the reduced chi-square
 
     Returns
     -------

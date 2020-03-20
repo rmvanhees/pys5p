@@ -31,10 +31,13 @@ from pathlib import PurePath
 import matplotlib as mpl
 import numpy as np
 
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
-                                   LATITUDE_FORMATTER)
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
+                                       LATITUDE_FORMATTER)
+except ModuleNotFoundError:
+    raise ModuleNotFoundError('This module require module Cartopy')
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Polygon

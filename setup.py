@@ -34,8 +34,7 @@ setup(name='pys5p',
           'numpy>=1.17',
           'scipy>=1.3',
           'h5py>=2.10',
-          'matplotlib>=3.1',
-          'Cartopy'
+          'matplotlib>=3.1'
       ],
       test_suite='nose.collector',
       tests_require=['nose', 'nose-cover3'],
