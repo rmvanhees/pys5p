@@ -307,8 +307,8 @@ class S5Pplot():
             return
 
         if self.info_pos == 'right':
-            fig.set_xticks([], [])
-            fig.set_yticks([], [])
+            fig.set_xticks([])       # remove all X-axis tick locations
+            fig.set_yticks([])       # remove all Y-axis tick locations
             for key in ('left', 'right', 'top', 'bottom'):
                 fig.spines[key].set_color('white')
             fig.text(0.025, 0.975, info_str,
