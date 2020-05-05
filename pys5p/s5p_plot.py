@@ -406,8 +406,8 @@ class S5Pplot():
             raise RuntimeError('unknown method: {}'.format(self.method))
 
     # --------------------------------------------------
-    def draw_signal(self, msm_in, ref_data=None, method='data',
-                    add_medians=True, *, vperc=None, vrange=None,
+    def draw_signal(self, msm_in, ref_data=None, method='data', *,
+                    add_medians=True, extent=None, vperc=None, vrange=None,
                     title=None, sub_title=None,
                     fig_info=None, info_pos=None):
         """
@@ -545,7 +545,8 @@ class S5Pplot():
         (ylabel, xlabel) = msm.coords._fields
         ydata = msm.coords[0]
         xdata = msm.coords[1]
-        extent = [0, len(xdata), 0, len(ydata)]
+        if extent is None:
+            extent = [0, len(xdata), 0, len(ydata)]
 
         # inititalize figure (and its size & aspect-ratio)
         fig, ax_img = plt.subplots(figsize=self.__fig_size())
