@@ -289,7 +289,7 @@ class S5Pplot():
                     info_str += "{} : {}".format(key, dict_info[key])
                 info_str += '\n'
                 info_lines += 1
-        print('info_lines: ', info_lines)
+        # print('info_lines: ', info_lines)
         info_str += 'created : {}'.format(
             datetime.utcnow().isoformat(timespec='seconds'))
 
