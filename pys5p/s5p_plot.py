@@ -260,17 +260,27 @@ class S5Pplot():
         """
         self.cmap = None
 
-    def add_fig_info(self, fig, dict_info, fontsize='small'):
+    def add_fig_info(self, fig, dict_info):
         """
         Add meta-information in the current figure
 
         Parameters
         ----------
-        fig       :  Matplotlib figure instance
+        fig :  Matplotlib figure instance
         dict_info :  dictionary or sortedDict
-           legenda parameters to be displayed in the figure
+           Legend parameters to be displayed in the figure
         """
+        # fontsize : int or float or
+        #            {'xx-small', 'x-small', 'small', 'medium',
+        #             'large', 'x-large', 'xx-large'}
+        #   Controls the font size of the legend. If the value is numeric the
+        #   size will be the absolute font size in points. String values are
+        #   relative to the current default font size. This argument is only
+        #   used if prop is not specified.
+        fontsize = 'small'
+        
         info_str = ""
+        info_lines = 1
         if dict_info is not None:
             for key in dict_info:
                 if isinstance(dict_info[key], (float, np.float32)):
@@ -278,40 +288,53 @@ class S5Pplot():
                 else:
                     info_str += "{} : {}".format(key, dict_info[key])
                 info_str += '\n'
+                info_lines += 1
+        print('info_lines: ', info_lines)
         info_str += 'created : {}'.format(
             datetime.utcnow().isoformat(timespec='seconds'))
 
-        if self.aspect == 4:
-            xpos = 0.9
-            ypos = 0.975
-        elif self.aspect == 3:
-            xpos = 0.95
-            ypos = 0.975
-        elif self.aspect == 2:
-            xpos = 0.925
-            ypos = 0.97
-        elif self.aspect == 1:
-            xpos = 0.91
-            ypos = 0.98
-        else:
-            xpos = 0.9
-            ypos = 0.925
-
         if self.info_pos == 'above':
+            if self.aspect == 1:
+                xpos = 0.91
+                ypos = 0.98
+            elif self.aspect == 2:
+                xpos = 0.925
+                ypos = 0.97
+            elif self.aspect == 3:
+                xpos = 0.95
+                ypos = 0.975
+            elif self.aspect == 4:
+                xpos = 0.9
+                ypos = 0.975
+            else:
+                xpos = 0.9
+                ypos = 0.925
+
             fig.text(xpos, ypos, info_str,
                      fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
                      bbox={'facecolor': 'white', 'pad': 5})
-            return
-
-        if self.info_pos == 'right':
+        else:             # info_pos == 'right':
+            xpos = 0.025
+            ypos = 1.075
+            if self.aspect == 1:
+                if info_lines > 51:
+                    fontsize = 5.25
+            elif self.aspect == 2:
+                if info_lines > 40:
+                    ypos = 1.1
+                    fontsize = 'xx-small'
+            else:
+                if info_lines > 35:
+                    fontsize = 'xx-small'
+                
             fig.set_xticks([])       # remove all X-axis tick locations
             fig.set_yticks([])       # remove all Y-axis tick locations
             for key in ('left', 'right', 'top', 'bottom'):
                 fig.spines[key].set_color('white')
-            fig.text(0.025, 0.975, info_str,
+            fig.text(xpos, ypos, info_str,
                      fontsize=fontsize, style='normal',
                      verticalalignment='top',
                      horizontalalignment='left',
