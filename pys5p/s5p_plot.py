@@ -580,9 +580,9 @@ class S5Pplot():
         # the image plot:
         if sub_title is not None:
             ax_img.set_title(sub_title, fontsize='large')
-        img = ax_img.imshow(self.data, vmin=vmin, vmax=vmax, norm=norm,
+        img = ax_img.imshow(self.data, cmap=cmap, norm=norm,
                             interpolation='none', origin='lower',
-                            aspect='equal', extent=extent, cmap=cmap)
+                            aspect='equal', extent=extent)
         self.add_copyright(ax_img)
         if add_medians:
             for xtl in ax_img.get_xticklabels():
@@ -832,9 +832,9 @@ class S5Pplot():
         # the image plot:
         if sub_title is not None:
             ax_img.set_title(sub_title, fontsize='large')
-        img = ax_img.imshow(self.data, vmin=vmin, vmax=vmax, norm=norm,
+        img = ax_img.imshow(self.data, cmap=cmap, norm=norm,
                             interpolation='none', origin='lower',
-                            aspect='equal', extent=extent, cmap=cmap)
+                            aspect='equal', extent=extent)
         self.add_copyright(ax_img)
         if add_medians:
             for xtl in ax_img.get_xticklabels():
@@ -1130,10 +1130,9 @@ class S5Pplot():
             ax2 = plt.subplot(gspec[iplot, :], sharex=ax1)
             if sub_title is not None:
                 ax2.set_title('(b) residual')
-            img = ax2.imshow(residual, vmin=rmin_c, vmax=rmax_c,
+            img = ax2.imshow(residual, cmap=cmap, norm=norm,
                              aspect='equal', interpolation='none',
-                             origin='lower', extent=extent,
-                             cmap=cmap, norm=norm)
+                             origin='lower', extent=extent)
             self.add_copyright(ax2)
             if add_model:
                 for xtl in ax2.get_xticklabels():
