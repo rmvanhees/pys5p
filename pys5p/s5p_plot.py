@@ -1498,7 +1498,7 @@ class S5Pplot():
                      color=line_colors.blue)
             self.add_copyright(axx)
             axx.set_xlim([0, 1])
-            axx.set_yscale('log', nonposy='clip')
+            axx.set_yscale('log', nonpositive='clip')
             axx.set_ylabel('count')
             ipos += 5
 
