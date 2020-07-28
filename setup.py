@@ -7,7 +7,7 @@ def readme():
 setup(name='pys5p',
       use_scm_version={"root": ".",
                        "relative_to": __file__,
-                       "fallback_version": "1.0.1"},
+                       "fallback_version": "1.0.4"},
       setup_requires=['setuptools_scm'],
       description='Software package to access S5p Tropomi data products',
       long_description=readme(),
