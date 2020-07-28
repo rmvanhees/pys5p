@@ -1,7 +1,7 @@
 from setuptools import setup
 
 def readme():
-    with open('README.rst') as fp:
+    with open('README.md') as fp:
         return fp.read()
 
 setup(name='pys5p',
