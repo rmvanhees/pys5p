@@ -278,7 +278,7 @@ class S5Pplot():
         #   relative to the current default font size. This argument is only
         #   used if prop is not specified.
         fontsize = 'small'
-        
+
         info_str = ""
         info_lines = 1
         if dict_info is not None:
@@ -329,7 +329,7 @@ class S5Pplot():
             else:
                 if info_lines > 35:
                     fontsize = 'xx-small'
-                
+
             fig.set_xticks([])       # remove all X-axis tick locations
             fig.set_yticks([])       # remove all Y-axis tick locations
             for key in ('left', 'right', 'top', 'bottom'):
@@ -815,7 +815,7 @@ class S5Pplot():
                        (bounds[4] + bounds[3]) / 2,
                        (bounds[5] + bounds[4]) / 2]
             norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-        (vmin, vmax) = (bounds[0], bounds[-1])
+        # (vmin, vmax) = (bounds[0], bounds[-1])
 
         # set label and range of X/Y axis
         (ylabel, xlabel) = msm.coords._fields
