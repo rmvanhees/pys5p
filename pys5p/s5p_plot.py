@@ -1414,22 +1414,26 @@ class S5Pplot():
 
     # --------------------------------------------------
     def draw_qhist(self, dpqm, dpqm_dark, dpqm_noise,
-                   *, title=None, fig_info=None):
+                   *, title=None, density=True, fig_info=None):
         """
         Display pixel quality as histograms
 
         Parameters
         ----------
-        dpqm       :  numpy.ndarray or pys5p.S5Pmsm
+        dpqm :  numpy.ndarray or pys5p.S5Pmsm
            pixel-quality data and attributes
-        dpqm_dark  :  numpy.ndarray or pys5p.S5Pmsm
+        dpqm_dark :  numpy.ndarray or pys5p.S5Pmsm
            pixel-quality dark-flux submask
         dpqm_noise :  numpy.ndarray or pys5p.S5Pmsm
            pixel-quality noise submask
-        title      :  string
+        title :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
-        fig_info   :  dictionary
+        density : bool
+           If True, draw and return a probability density: each bin will
+           display the bin's raw count divided by the total number of counts
+           and the bin width (see matplotlib.pyplot.hist). Default is True
+        fig_info :  dictionary
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
@@ -1490,17 +1494,20 @@ class S5Pplot():
         ipos = 1
         for msm in [msm_total, msm_dark, msm_noise]:
             axx = plt.subplot(gspec[ipos:ipos+4, 0])
-            axx.set_title(r'histogram of {}'.format(msm.long_name),
-                          fontsize='medium')
             data = msm.value[swir_region.mask()]
             data[np.isnan(data)] = 0.
             axx.hist(data, bins=11, range=[-.1, 1.], histtype='stepfilled',
-                     color=line_colors.blue)
-            self.add_copyright(axx)
+                     density=density, color=line_colors.blue)
+            axx.set_title(r'histogram of {}'.format(msm.long_name),
+                          fontsize='medium')
             axx.set_xlim([0, 1])
+            axx.set_ylim([1e-4, 10])
             axx.set_yscale('log', nonpositive='clip')
-            axx.set_ylabel('count')
+            axx.set_ylabel('density')
+            axx.grid(which='major', color='0.1', linewidth=0.25, ls='solid')
+            self.add_copyright(axx)
             ipos += 5
+        axx.set_xlabel('pixel quality')
 
         # add annotation and save figure
         self.add_fig_info(fig, fig_info)
