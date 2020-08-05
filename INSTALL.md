@@ -1,20 +1,40 @@
 Installing pyS5p
 ================
 
-Building from source
+Python Distributions
+--------------------
+If you use a Python Distribution, the installation of pyS5p can be done on
+the command line via:
+
+>  `conda install pys5p`
+
+for [Anaconda](https://www.anaconda.com/)/[MiniConda](http://conda.pydata.org/miniconda.html).
+
+
+Wheels
+------
+I you have an existing Python installation, pyS5p can be installed via pip
+from PyPI:
+
+>  `pip install pys5p`
+
+
+Source installation
 --------------------
 
-The latest release of pyS5p is available from:
-https://github.com/rmvanhees/pys5p
+The latest release of pyS5p is available from
+[gitHub](https://github.com/rmvanhees/pys5p).
 
 Once you have satisfied the requirements detailed below, simply run:
 
-> python3 setup.py install
-or
-> python3 setup.py install --user
+>  `pip install .`
 
-Requirements
-~~~~~~~~~~~~
+or
+
+>  'pip install . --user`
+
+### Requirements
+
 These external packages are required to install pyS5p or gain access to
 significant pyS5p functionality.
 
@@ -37,7 +57,7 @@ available in Linux package managers such as aptitude and yum.
 **matplotlib** 3.1 or later (http://matplotlib.org/)
     Python package for 2D plotting.  This package is required for any graphical capability.
 
-**PROJ.4** 6.1 or later (https://trac.osgeo.org/proj/)
+**PROJ.4** 7.0 or later (https://trac.osgeo.org/proj/)
     Cartographic Projections library.
 
 **GEOS** 3.7 or later (https://trac.osgeo.org/geos/)
@@ -51,11 +71,3 @@ available in Linux package managers such as aptitude and yum.
     
 **setuptools-scm** 3.1 or later (https://github.com/pypa/setuptools_scm/)
     The blessed package to manage your versions by scm tags
-
-Testing Dependencies
-~~~~~~~~~~~~~~~~~~~~
-These packages are required for the full pyS5p test suite to run.
-
-**nose** 1.3 or later (https://pypi.python.org/pypi/nose/)
-    Nose extends unittest to make testing easier
-
