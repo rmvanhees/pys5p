@@ -1413,19 +1413,14 @@ class S5Pplot():
         self.close_page(fig)
 
     # --------------------------------------------------
-    def draw_qhist(self, dpqm, dpqm_dark, dpqm_noise,
-                   *, title=None, density=True, fig_info=None):
+    def draw_qhist(self, data_dict, *, title=None, density=True, fig_info=None):
         """
         Display pixel quality as histograms
 
         Parameters
         ----------
-        dpqm :  numpy.ndarray or pys5p.S5Pmsm
-           pixel-quality data and attributes
-        dpqm_dark :  numpy.ndarray or pys5p.S5Pmsm
-           pixel-quality dark-flux submask
-        dpqm_noise :  numpy.ndarray or pys5p.S5Pmsm
-           pixel-quality noise submask
+        data_dict : dict
+           Dictionary containing pixel quality and its submasks
         title :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -1440,62 +1435,41 @@ class S5Pplot():
         in a small box. In addition, we display the creation date, signal
         median & spread and error meadian & spread.
         """
-        # assert that we have some data to show
-        if isinstance(dpqm, np.ndarray):
-            msm_total = S5Pmsm(dpqm)
-        else:
-            if not isinstance(dpqm, S5Pmsm):
-                raise TypeError('dpqm not an numpy.ndarray or pys5p.S5Pmsm')
-            msm_total = dpqm
-
-        if msm_total.value.ndim != 2:
-            raise ValueError('quality data must be two dimensional')
-        if np.all(np.isnan(msm_total.value)):
-            raise ValueError('quality data must contain valid data')
-
-        if isinstance(dpqm_dark, np.ndarray):
-            msm_dark = S5Pmsm(dpqm_dark)
-        else:
-            if not isinstance(dpqm_dark, S5Pmsm):
-                raise TypeError('dpqm_dark not an ndarray or pys5p.S5Pmsm')
-            msm_dark = dpqm_dark
-
-        if msm_dark.value.ndim != 2:
-            raise ValueError('quality data must be two dimensional')
-        if np.all(np.isnan(msm_dark.value)):
-            raise ValueError('quality data must contain valid data')
-
-        if isinstance(dpqm_noise, np.ndarray):
-            msm_noise = S5Pmsm(dpqm_noise)
-        else:
-            if not isinstance(dpqm_noise, S5Pmsm):
-                raise TypeError('dpqm_noise not an ndarray or pys5p.S5Pmsm')
-            msm_noise = dpqm_noise
-
-        if msm_noise.value.ndim != 2:
-            raise ValueError('quality data must be two dimensional')
-        if np.all(np.isnan(msm_noise.value)):
-            raise ValueError('quality data must contain valid data')
-
         # define colors
         line_colors = tol_cset('bright')
 
         # define aspect for the location of fig_info
         self.aspect = -1
 
+        # set figure size and specify grid
+        figsize = (10, 3 * len(data_dict))
+        gspec = GridSpec(5 * len(data_dict), 1)
+
         # create figure
-        fig = plt.figure(figsize=(10, 9))
+        fig = plt.figure(figsize=figsize)
         if title is not None:
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, 0.96), horizontalalignment='center')
-        gspec = GridSpec(15, 1)
 
         # draw histograms
         ipos = 1
-        for msm in [msm_total, msm_dark, msm_noise]:
-            axx = plt.subplot(gspec[ipos:ipos+4, 0])
+        for key in data_dict:
+            if isinstance(data_dict[key], np.ndarray):
+                msm = S5Pmsm(data_dict[key])
+            else:
+                if not isinstance(data_dict[key], S5Pmsm):
+                    raise TypeError('data not an numpy.ndarray or pys5p.S5Pmsm')
+                msm = data_dict[key]
+
+            if msm.value.ndim != 2:
+                raise ValueError('quality data must be two dimensional')
+            if np.all(np.isnan(msm.value)):
+                raise ValueError('quality data must contain valid data')
+
             data = msm.value[swir_region.mask()]
             data[np.isnan(data)] = 0.
+
+            axx = plt.subplot(gspec[ipos:ipos+4, 0])
             axx.hist(data, bins=11, range=[-.1, 1.], histtype='stepfilled',
                      density=density, color=line_colors.blue)
             axx.set_title(r'histogram of {}'.format(msm.long_name),
@@ -1504,7 +1478,7 @@ class S5Pplot():
             axx.set_ylim([1e-4, 10])
             axx.set_yscale('log', nonpositive='clip')
             axx.set_ylabel('density')
-            axx.grid(which='major', color='0.1', linewidth=0.25, ls='solid')
+            axx.grid(which='major', color='#BBBBBB', lw=0.75, ls=(0, (1, 5)))
             self.add_copyright(axx)
             ipos += 5
         axx.set_xlabel('pixel quality')
