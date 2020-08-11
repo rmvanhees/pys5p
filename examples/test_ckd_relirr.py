@@ -11,7 +11,7 @@ Note
 ----
 Please use the code as tutorial
 
-Copyright (c) 2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

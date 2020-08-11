@@ -12,7 +12,7 @@ There are two definitions of the usable area on the SWIR detector:
 
 Note row 257 of the SWIR detector is neglected
 
-Copyright (c) 2017 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

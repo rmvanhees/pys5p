@@ -7,7 +7,7 @@ Calculates the exact pixel exposure time of the SWIR measurements
 
 Requires parameters int_delay and int_holt from the instrument_settings
 
-Copyright (c) 2019 SRON - Netherlands Institute for Space Research
+Copyright (c) 2019-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

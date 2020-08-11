@@ -13,7 +13,7 @@ Thus should be fixed when more up-to-date netCDF software is used to generate
 the products. Currently, the Python netCDF4 module is used to read the science
 products.
 
-Copyright (c) 2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

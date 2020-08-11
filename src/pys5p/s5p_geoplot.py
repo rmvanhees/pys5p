@@ -19,7 +19,7 @@ Suggestion for the name of the report/pdf-file
 
 - Closing the S5Pplot object will write the report to disk
 
-Copyright (c) 2018 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

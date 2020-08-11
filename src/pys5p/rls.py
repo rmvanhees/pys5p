@@ -13,7 +13,7 @@ the fit result. Weight factors are determined such to effectively spread the
 data points evenly over the whole range of x, making the result less
 sensitive to the actual spacing between the data points.
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2019-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
