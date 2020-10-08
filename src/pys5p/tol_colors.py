@@ -51,7 +51,7 @@ class TOLcmaps():
             'sunset_discrete', 'sunset', 'BuRd_discrete', 'BuRd',
             'PRGn_discrete', 'PRGn', 'YlOrBr_discrete', 'YlOrBr', 'WhOrBr',
             'iridescent', 'rainbow_PuRd', 'rainbow_PuBr', 'rainbow_WhRd',
-            'rainbow_WhBr', 'rainbow_discrete')
+            'rainbow_WhBr', 'rainbow_WhBr_condense', 'rainbow_discrete')
 
         self.funcdict = dict(
             zip(self.namelist,
@@ -60,7 +60,7 @@ class TOLcmaps():
                  self.__YlOrBr_discrete, self.__YlOrBr, self.__WhOrBr,
                  self.__iridescent, self.__rainbow_PuRd, self.__rainbow_PuBr,
                  self.__rainbow_WhRd, self.__rainbow_WhBr,
-                 self.__rainbow_discrete)))
+                 self.__rainbow_WhBr_condense, self.__rainbow_discrete)))
 
     def __sunset_discrete(self):
         """
@@ -209,6 +209,33 @@ class TOLcmaps():
         self.cmap = LinearSegmentedColormap.from_list(self.cname, clrs)
         self.cmap.set_bad('#666666')
 
+    def __rainbow_WhBr_condense(self):
+        """
+        Define colormap 'rainbow_WhBr_condense'.
+        """
+        clrs = ['#E8ECFB', '#E4E5F7', '#E1DFF3', '#DDD8EF', '#D9D0EA',
+                '#D5C8E5', '#D1C1E1', '#CCB8DB', '#C7B0D6', '#C3A8D1',
+                '#BEA0CC', '#BA97C7', '#B58FC2', '#B087BD', '#AC80B8',
+                '#A778B4', '#A371AF', '#9F6AAB', '#9B62A7', '#965CA2',
+                '#91559E', '#8C4E99', '#824D9A', '#794C9A', '#6F4C9B',
+                '#6A509F', '#6555A4', '#6059A9', '#5C5EAE', '#5963B3',
+                '#5568B8', '#526EBC', '#5073C0', '#4E79C5', '#4E7FC5',
+                '#4D84C6', '#4D8AC6', '#4D8EC3', '#4D92C0', '#4E96BC',
+                '#5099B9', '#529CB6', '#549EB3', '#56A1AF', '#58A3AC',
+                '#59A5A9', '#5CA7A5', '#5EA9A1', '#60AB9E', '#63AD99',
+                '#66AF94', '#69B190', '#6EB38A', '#73B584', '#77B77D',
+                '#7EB976', '#85BA6F', '#8CBC68', '#95BD61', '#9DBD5B',
+                '#A6BE54', '#AEBD50', '#B6BD4C', '#BEBC48', '#C4BA45',
+                '#CAB843', '#D1B541', '#D5B23F', '#D9AE3E', '#DDAA3C',
+                '#DFA63B', '#E1A13A', '#E49C39', '#E59738', '#E69137',
+                '#E78C35', '#E68534', '#E67F33', '#E67932', '#E57130',
+                '#E56A2F', '#E4632D', '#E25A2C', '#E1512A', '#DF4828',
+                '#DE3B26', '#DC2F24', '#DA2222', '#CF2221', '#C42220',
+                '#B8221E', '#AC221D', '#A1211C', '#95211B', '#892019',
+                '#7E1F18', '#721E17', '#681C15', '#5D1B14', '#521A13']
+        self.cmap = discretemap(self.cname, clrs)
+        self.cmap.set_bad('#666666')
+
     def __rainbow_discrete(self, lut=None):
         """
         Define colormap 'rainbow_discrete'.
@@ -352,7 +379,7 @@ def main():
     # Show colorsets tol_cset(<scheme>).
     schemes = tol_cset()
     fig, axes = plt.subplots(ncols=len(schemes))
-    fig.subplots_adjust(top=0.92, bottom=0.02, left=0.02, right=0.92)
+    fig.subplots_adjust(top=0.92, bottom=0.02, left=0.0, right=0.91)
     for ax, scheme in zip(axes, schemes):
         cset = tol_cset(scheme)
         names = cset._fields
@@ -369,7 +396,7 @@ def main():
     gradient = np.linspace(0, 1, 256)
     gradient = np.vstack((gradient, gradient))
     fig, axes = plt.subplots(nrows=len(schemes))
-    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.2, right=0.99)
+    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.29, right=0.99)
     for ax, scheme in zip(axes, schemes):
         pos = list(ax.get_position().bounds)
         ax.set_axis_off()
