@@ -197,6 +197,7 @@ class S5Pplot():
         self.info_pos = 'above'
         self.__pdf = None
         self.pdf_title = pdf_title
+        self.time_axis = False
 
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
@@ -2030,10 +2031,9 @@ class S5Pplot():
         ----------
         xdata     :  ndarray
            x-axis data
-           Special case msm is None then close figure
+           Special case if xdata is None then close figure
         ydata     :  ndarray
            y-axis data
-           Special case msm is None then close figure
         color     :  integer, optional
            index to color in tol_colors.tol_cset('bright'). Default is zero
         title     :  string, optional
@@ -2051,14 +2051,28 @@ class S5Pplot():
         -------
         Nothing
 
-        Example
-        -------
+        Examples
+        --------
+        General example:
         >>> plot = S5Pplot(fig_name)
         >>> for ii, xx, yy in enumerate(data_of_each_line):
         >>>    plot.draw_line(xx, yy, color=ii, label=mylabel[ii],
-                           marker='o', linestyle='None')
+        >>>                   marker='o', linestyle='None')
         >>> plot.draw_line(None, None, xlim=[0, 0.5], ylim=[-10, 10],
-                   xlabel=my_xlabel, ylabel=my_ylabel)
+        >>>                xlabel=my_xlabel, ylabel=my_ylabel)
+        >>> plot.close()
+
+        Using a time-axis:
+        >>> from datetime import datetime, timedelta
+        >>> tt0 = (datetime(year=2020, month=10, day=1)
+        >>>        + timedelta(seconds=sec_in_day))
+        >>> tt = [tt0 + xx * t_step for xx in range(yy.size)]
+        >>> plot = S5Pplot(fig_name)
+        >>> plot.draw_line(tt, yy, color=1, label=mylabel,
+        >>>                marker='o', linestyle='None')
+        >>> plot.draw_line(None, None, ylim=[-10, 10],
+        >>>                xlabel=my_xlabel, ylabel=my_ylabel)
+        >>> plot.close()
         """
         # add annotation and close figure
         if xdata is None:
@@ -2066,6 +2080,11 @@ class S5Pplot():
                 raise ValueError('No plot defined and no data provided')
 
             # finalize figure
+            if self.time_axis:
+                plt.gcf().autofmt_xdate()
+                my_fmt = mpl.dates.DateFormatter('%H:%M:%S')
+                plt.gca().xaxis.set_major_formatter(my_fmt)
+
             self.mpl_fig[1].grid(True)
             if xlabel is not None:
                 self.mpl_fig[1].set_xlabel(xlabel)
@@ -2101,20 +2120,33 @@ class S5Pplot():
             self.mpl_fig = None
             return
 
-        # define aspect for the location of fig_info
-        self.aspect = 1
-
         # define colors
         line_colors = tol_cset('bright')
         c_max = len(line_colors)
 
         # initialize matplotlib using 'subplots'
+        # define aspect for the location of fig_info
         if self.mpl_fig is None:
-            (fig, axarr) = plt.subplots(1, figsize=(9, 9))
+            if len(xdata) <= 256:
+                self.aspect = 1
+                figsize = (9, 9)
+            elif 256 > len(xdata) <= 512:
+                self.aspect = 1
+                figsize = (12, 9)
+            elif 512 > len(xdata) <= 768:
+                self.aspect = 1
+                figsize = (15, 9)
+            else:
+                self.aspect = 2
+                figsize = (18, 9)
+
+            (fig, axarr) = plt.subplots(1, figsize=figsize)
+            if isinstance(xdata[0], datetime):
+                self.time_axis = True
         else:
             (fig, axarr) = self.mpl_fig
 
-        use_steps = False  # xdata.size <= 256
+        use_steps = False
         if use_steps:
             xx = np.append(xdata, xdata[-1])
             yy = np.append(ydata, ydata[-1])
