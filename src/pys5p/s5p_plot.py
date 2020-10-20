@@ -12,12 +12,8 @@ Generate Figures
  * draw_signal
  * draw_quality
  * draw_cmp_swir
- * draw_hist
- * draw_qhist
- * draw_trend2d
  * draw_trend1d
  * draw_lines
- * draw_errorbar
  * draw_tracks
 - Closing the S5Pplot object will write the report to disk
 
@@ -37,7 +33,6 @@ Examples
 >>> from pys5p.s5p_plot import S5Pplot
 >>> plot = S5Pplot('test_plot_class.pdf')
 >>> plot.draw_signal(np.mean(signal, axis=0), title='signal of my measurement')
->>> plot.draw_trend2d(np.mean(signal, axis=2))
 >>> plot.draw_trend1d(np.mean(signal, axis=(1, 2)), hk_data, hk_keys)
 >>> plot.close()
 
@@ -68,7 +63,6 @@ from . import swir_region
 from .biweight import biweight
 from .ckd_io import CKDio
 from .lib import plotlib
-from .s5p_msm import S5Pmsm
 from .tol_colors import tol_cmap, tol_cset
 
 
@@ -472,8 +466,8 @@ class S5Pplot():
         cset = tol_cset('bright')
 
         i_ax = 0
-        use_steps = msm_1.value.size <= 256
         if plot_mode == 'quality':
+            use_steps = msm_1.value.size <= 256
             (xdata, gap_list) = plotlib.get_xdata(msm_1.coords[0][:].copy(),
                                                   use_steps)
 
@@ -522,6 +516,7 @@ class S5Pplot():
                 self.set_zunit(msm.units)
                 dscale = self.convert_zunit(vmin, vmax)
 
+                use_steps = msm.value.size <= 256
                 (xdata, gap_list) = plotlib.get_xdata(msm.coords[0][:].copy(),
                                                       use_steps)
                 ydata = msm.value.copy() / dscale
@@ -583,6 +578,8 @@ class S5Pplot():
         xdata = hk_data.coords[0][:].copy()
         use_steps = xdata.size <= 256
         (xdata, gap_list) = plotlib.get_xdata(xdata, use_steps)
+        if xlabel == 'time':
+            xdata = xdata.astype(np.float) / 3600
 
         for key in hk_keys:
             if key not in hk_data.value.dtype.names:
@@ -728,9 +725,10 @@ class S5Pplot():
             data_row = np.sum((img_data == 1), axis=0)          # worst
             ax_medx.step(coords['X']['data'], data_row, linewidth=0.75,
                          color=cset.red)
-            data_row = np.sum((img_data == 4), axis=0)          # good
-            ax_medx.step(coords['X']['data'], data_row, linewidth=0.75,
-                         color=cset.green)
+            if quality['compare']:
+                data_row = np.sum((img_data == 4), axis=0)      # to_good
+                ax_medx.step(coords['X']['data'], data_row, linewidth=0.75,
+                             color=cset.green)
         ax_medx.set_xlim([0, len(coords['X']['data'])])
         ax_medx.grid(True)
         ax_medx.set_xlabel(coords['X']['label'])
@@ -753,9 +751,10 @@ class S5Pplot():
             data_col = np.sum(img_data == 1, axis=1)            # worst
             ax_medy.step(data_col, coords['Y']['data'], linewidth=0.75,
                          color=cset.red)
-            data_col = np.sum(img_data == 4, axis=1)            # good
-            ax_medy.step(data_col, coords['Y']['data'], linewidth=0.75,
-                         color=cset.green)
+            if quality['compare']:
+                data_col = np.sum(img_data == 4, axis=1)        # to_good
+                ax_medy.step(data_col, coords['Y']['data'], linewidth=0.75,
+                             color=cset.green)
         ax_medy.set_ylim([0, len(coords['Y']['data'])])
         ax_medy.grid(True)
         ax_medy.set_ylabel(coords['Y']['label'])
@@ -901,11 +900,6 @@ class S5Pplot():
         if method not in ('data', 'error', 'diff', 'ratio', 'ratio_unc'):
             raise RuntimeError('unknown method: {}'.format(method))
 
-        if isinstance(data_in, S5Pmsm) \
-           and data_in.long_name is not None \
-           and data_in.long_name.find('uncertainty') >= 0:
-            method = 'error'
-
         if info_pos is not None:
             if info_pos not in ('above', 'right', 'none'):
                 raise KeyError('info should be above, right or none')
@@ -1039,7 +1033,8 @@ class S5Pplot():
         else:
             info_pos = 'above'
 
-        qthres = {'worst': thres_worst, 'bad': thres_bad}
+        qthres = {'worst': thres_worst, 'bad': thres_bad,
+                  'compare': ref_data is not None}
         try:
             qdata = self.set_fig_quality(qthres, data_in, ref_data)
         except Exception as exc:
@@ -1339,7 +1334,6 @@ class S5Pplot():
             plot_mode = 'house-keeping'
             (xlabel,) = hk_data.coords._fields
             if xlabel == 'time':
-                xdata = xdata.astype(np.float) / 3600
                 xlabel += ' [hours]'
             npanels = 0
         elif (msm1.value.dtype.names is not None
@@ -1395,6 +1389,12 @@ class S5Pplot():
             self.__add_hkdata(i_ax, axarr, hk_data, hk_keys)
 
         axarr[-1].set_xlabel(xlabel)
+        if xlabel == 'time [hours]':
+            minor_locator = MultipleLocator(1)
+            major_locator = MultipleLocator(3)
+            axarr[0].xaxis.set_major_locator(major_locator)
+            axarr[0].xaxis.set_minor_locator(minor_locator)
+
         if npanels > 1:
             plt.setp([a.get_xticklabels()
                       for a in fig.axes[:-1]], visible=False)
