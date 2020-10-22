@@ -11,6 +11,7 @@ Copyright (c) 2020 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from collections import OrderedDict
+from copy import deepcopy
 from datetime import datetime
 
 import matplotlib as mpl
@@ -63,6 +64,12 @@ class FIGinfo:
     def __len__(self) -> int:
         return len(self.fig_info)
 
+    def copy(self):
+        """
+        return a deep copy of the current object
+        """
+        return deepcopy(self)
+
     def set_location(self, loc: str) -> None:
         """
         Set the location of the fig_info box
@@ -84,18 +91,19 @@ class FIGinfo:
         Parameters
         ----------
         key : str
-          Name of the fig_info key
+          Name of the fig_info key.
         value : Any python variable
-          Value of the fig_info key
+          Value of the fig_info key. A tuple will be formatted as *value.
         fmt : str
-          Convert value to a string, using the string format method
+          Convert value to a string, using the string format method.
+          Default: '{}'.
         """
         if isinstance(value, tuple):
             self.fig_info.update({key: fmt.format(*value)})
         else:
             self.fig_info.update({key: fmt.format(value)})
 
-    def as_str(self):
+    def as_str(self) -> str:
         """
         Return figure information as one long string
         """
@@ -118,7 +126,7 @@ def blank_legend_key():
                                  edgecolor='none', visible=False)
 
 
-def check_data2d(method, data):
+def check_data2d(method: str, data) -> None:
     """
     Make sure that the input data is 2-dimensional and contains valid data
     """
@@ -226,7 +234,7 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
     return msm
 
 
-def get_fig_coords(data_in):
+def get_fig_coords(data_in) -> dict:
     """
     get labels of the X/Y axis
 
@@ -248,7 +256,7 @@ def get_fig_coords(data_in):
             'Y': {'label': ylabel, 'data': ydata}}
 
 
-def get_xdata(xdata, use_steps):
+def get_xdata(xdata, use_steps: bool) -> tuple:
     """
     The X-coordinate from the data in object msm is checked for data gaps.
     The data of the X-coordinate is extended to avoid interpolation over
