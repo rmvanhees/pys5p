@@ -39,6 +39,77 @@ class MidpointNormalize(mpl.colors.Normalize):
         return np.ma.masked_array(np.interp(value, xx, yy), np.isnan(value))
 
 
+# define a class to handle the figure information
+class FIGinfo:
+    """
+    The figure information constists of key, value combinations which are
+    to be displayed 'above' or 'right' from the main image.
+
+    The box with the figure information can only hold a limited number of keys:
+      'above' :  The figure information is displayed in a small box. This box
+                 grows with the number of lines and will overlap with the main
+                 image or its colorbar at about 7+ entries.
+      'right' :  Depending on the aspect ratio of the main image, the number of
+                 lines are limited to 51 (aspect-ratio=1), 40 (aspect-ratio=2),
+                 or 35 (aspect-ratio > 2).
+    """
+    def __init__(self, loc='above') -> None:
+        self.fig_info = OrderedDict()
+        self.set_location(loc)
+
+    def __bool__(self) -> bool:
+        return bool(self.fig_info)
+
+    def __len__(self) -> int:
+        return len(self.fig_info)
+
+    def set_location(self, loc: str) -> None:
+        """
+        Set the location of the fig_info box
+
+        Parameters
+        ----------
+        loc : str
+          Location of the fig_info box
+        """
+        if loc not in ('above', 'right', 'none'):
+            raise KeyError('location should be: above, right or none')
+
+        self.location = loc
+
+    def add(self, key: str, value, fmt='{}') -> None:
+        """
+        Extent fig_info with a new line
+
+        Parameters
+        ----------
+        key : str
+          Name of the fig_info key
+        value : Any python variable
+          Value of the fig_info key
+        fmt : str
+          Convert value to a string, using the string format method
+        """
+        if isinstance(value, tuple):
+            self.fig_info.update({key: fmt.format(*value)})
+        else:
+            self.fig_info.update({key: fmt.format(value)})
+
+    def as_str(self):
+        """
+        Return figure information as one long string
+        """
+        info_str = ""
+        for key in self.fig_info:
+            info_str += "{} : {}\n".format(key, self.fig_info[key])
+
+        # add timestamp
+        info_str += 'created : {}'.format(
+            datetime.utcnow().isoformat(timespec='seconds'))
+
+        return info_str
+
+
 def blank_legend_key():
     """
     Show only text in matplotlib legenda, no key
@@ -155,26 +226,6 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
     return msm
 
 
-def fill_fig_info(fig_info, key: str, value: str):
-    """
-    Fill ordered dictionary with annotation for the current figure
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    Examples
-    --------
-    """
-    if fig_info is None:
-        return OrderedDict({key: value})
-
-    fig_info.update({key: value})
-    return fig_info
-
-
 def get_fig_coords(data_in):
     """
     get labels of the X/Y axis
@@ -195,30 +246,6 @@ def get_fig_coords(data_in):
 
     return {'X': {'label': xlabel, 'data': xdata},
             'Y': {'label': ylabel, 'data': ydata}}
-
-
-def fig_info_as_str(dict_info, count=False):
-    """
-    Return fig_info as a string
-    """
-    info_str = ""
-    info_lines = 1
-    if dict_info is not None:
-        for key in dict_info:
-            if isinstance(dict_info[key], (float, np.float32)):
-                info_str += "{} : {:.5g}".format(key, dict_info[key])
-            else:
-                info_str += "{} : {}".format(key, dict_info[key])
-            info_str += '\n'
-            info_lines += 1
-    # add timestamp
-    info_str += 'created : {}'.format(
-        datetime.utcnow().isoformat(timespec='seconds'))
-
-    if count:
-        return (info_str, count)
-
-    return info_str
 
 
 def get_xdata(xdata, use_steps):
