@@ -150,12 +150,18 @@ class S5Pplot():
         """
         self.__cmap = None
 
-    @property
-    def cmap(self):
+    def get_cmap(self, method='data'):
         """
         Returns matplotlib colormap
         """
-        return self.__cmap
+        if self.__cmap is not None:
+            return self.__cmap
+
+        if method == 'diff':
+            return tol_cmap('sunset')
+        if method == 'ratio':
+            return tol_cmap('sunset')
+        return tol_cmap('rainbow_PuRd')
 
     def set_zunit(self, units):
         """
@@ -329,8 +335,6 @@ class S5Pplot():
         if fig_info is None or fig_info.location == 'none':
             return
 
-        print(len(fig_info), fig.get_figwidth(), fig.get_figheight())
-
         if fig_info.location == 'above':
             xpos = 1 - 0.4 / fig.get_figwidth()
             ypos = 1 - 0.25 / fig.get_figheight()
@@ -354,7 +358,6 @@ class S5Pplot():
             fontsize = 'xx-small'
         else:
             fontsize = 5.25
-        print('fontsize: ', fontsize, line_height)
 
         ax_info = self.__divider.append_axes("right", size=2.5, pad=.75)
         ax_info.set_xticks([])       # remove all X-axis tick locations
@@ -746,16 +749,6 @@ class S5Pplot():
         """
         Determine range of image data and normalize colormap accordingly
         """
-        cmap = tol_cmap('rainbow_PuRd')
-        if method == 'diff':
-            cmap = tol_cmap('sunset')
-        elif method == 'ratio':
-            cmap = tol_cmap('sunset')
-
-        # set colormap
-        if self.cmap is None:
-            self.set_cmap(cmap)
-
         # define data-range
         if vrange is None:
             (vmin, vmax) = np.nanpercentile(img_data, vperc)
@@ -926,9 +919,9 @@ class S5Pplot():
         if extent is None:
             extent = [0, len(coords['X']['data']),
                       0, len(coords['Y']['data'])]
-        ax_img = ax_fig.imshow(img_data, cmap=self.cmap, norm=norm,
+        ax_img = ax_fig.imshow(img_data, cmap=self.get_cmap(method),
                                interpolation='none', origin='lower',
-                               aspect='equal', extent=extent)
+                               aspect='equal', extent=extent, norm=norm)
         self.__add_copyright(ax_fig)
 
         # define ticks locations for X & Y valid for most detectors
@@ -1193,9 +1186,10 @@ class S5Pplot():
             if sub_title is not None:
                 ax_fig.set_title(bullet[ipanel] + sub_title, fontsize='large')
 
-            ax_img = ax_fig.imshow(data, cmap=self.cmap, norm=norm,
+            method = 'diff' if sub_title == 'residual' else 'data'
+            ax_img = ax_fig.imshow(data, cmap=self.get_cmap(method),
                                    interpolation='none', origin='lower',
-                                   aspect='equal', extent=extent)
+                                   aspect='equal', extent=extent, norm=norm,)
             self.__add_copyright(ax_fig)
 
             # define ticks locations for X & Y valid for most detectors

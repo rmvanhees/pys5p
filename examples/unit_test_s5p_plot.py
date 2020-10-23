@@ -30,6 +30,7 @@ def main():
 
     # ---------- UNIT TEST: draw_signal ----------
     if check_draw_signal:
+        print('Run unit tests on S5Pplot::draw_signal')
         delta = 0.01
         xx = yy = np.arange(-5.0, 5.0, delta)
         xmesh, ymesh = np.meshgrid(xx, yy)
@@ -37,7 +38,11 @@ def main():
         zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
         data = (zz1 - zz2) * 2
 
-        plot.draw_signal(data,
+        msm = S5Pmsm(data)
+        msm.set_units('Volt')
+        msm.set_long_name('bogus data')
+
+        plot.draw_signal(msm,
                          title='Unit test of S5Pplot [draw_signal]',
                          sub_title='aspect=1; fig_pos=above')
 
@@ -45,10 +50,12 @@ def main():
                          title='Unit test of S5Pplot [draw_signal]',
                          sub_title='aspect=2; fig_pos=above')
 
+        plot.set_zunit('electron.s-1')
         plot.draw_signal(data[500-125:500+125, 500-375:500+375],
                          title='Unit test of S5Pplot [draw_signal]',
                          sub_title='aspect=3; fig_pos=above')
 
+        plot.unset_zunit()
         plot.draw_signal(data[500-128:500+128, :],
                          title='Unit test of S5Pplot [draw_signal]',
                          sub_title='aspect=4; fig_pos=above')
@@ -85,6 +92,7 @@ def main():
 
     # ---------- UNIT TEST: draw_quality ----------
     if check_draw_quality:
+        print('Run unit tests on S5Pplot::draw_quality')
         row = np.linspace(0, 1., 1000)
         ref_data = np.repeat(row[None, :], 256, axis=0)
 
@@ -106,6 +114,7 @@ def main():
 
     # ---------- UNIT TEST: draw_cmp_images ----------
     if check_draw_cmp_images:
+        print('Run unit tests on S5Pplot::draw_cmp_swir')
         delta = 0.01
         xx = yy = np.arange(-5.0, 5.0, delta)
         xmesh, ymesh = np.meshgrid(xx, yy)
@@ -128,6 +137,7 @@ def main():
 
     # ---------- UNIT TEST: draw_lines ----------
     if check_draw_trend1d:
+        print('Run unit tests on S5Pplot::draw_trend1d')
         xx = np.arange(200) / 100
         hk_params = (
             ('temp_det4', 'hk_det_ts2',
@@ -163,6 +173,7 @@ def main():
 
     # ---------- UNIT TEST: draw_lines ----------
     if check_draw_lines:
+        print('Run unit tests on S5Pplot::draw_lines')
         xx = np.arange(200) / 100
         plot.draw_lines(xx, np.sin(xx * np.pi), color=0,
                         label='sinus', marker='o', linestyle='-')
