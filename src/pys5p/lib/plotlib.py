@@ -51,11 +51,11 @@ class FIGinfo:
                  grows with the number of lines and will overlap with the main
                  image or its colorbar at about 7+ entries.
       'right' :  Depending on the aspect ratio of the main image, the number of
-                 lines are limited to 51 (aspect-ratio=1), 40 (aspect-ratio=2),
-                 or 35 (aspect-ratio > 2).
+                 lines are limited to 70 (aspect-ratio=1), 50 (aspect-ratio=2),
+                 or 40 (aspect-ratio > 2).
     """
-    def __init__(self, loc='above') -> None:
-        self.fig_info = OrderedDict()
+    def __init__(self, loc='above', info_dict=None) -> None:
+        self.fig_info = OrderedDict() if info_dict is None else info_dict
         self.set_location(loc)
 
     def __bool__(self) -> bool:

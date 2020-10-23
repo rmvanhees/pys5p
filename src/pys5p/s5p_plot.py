@@ -351,13 +351,22 @@ class S5Pplot():
         xpos = 1 - 3.75 / fig.get_figwidth()
         ypos = 1 - 1.25 / fig.get_figheight()
 
-        line_height = 0.7 * fig.get_figheight() / len(fig_info)
-        if line_height > 0.13:
-            fontsize = 'x-small'
-        elif line_height > 0.1:
-            fontsize = 'xx-small'
+        # height=95:  9-45 8-50 7-58 6-67
+        # height=74:  9-31 8-36 7-40 6-47
+        # height=635: 9-25 8-29 7-33 6-38
+        # height=60:  9-23 8-26 7-30 6-37
+        font_sizes = [9, 8, 7, 6, 5.25]
+        if fig.get_figheight() == 9.5:
+            mx_lines = np.array([45, 50, 58, 67, 999])
+        elif fig.get_figheight() == 7.4:
+            mx_lines = np.array([31, 36, 40, 47, 999])
+        elif fig.get_figheight() == 6.35:
+            mx_lines = np.array([25, 29, 33, 38, 999])
+        elif fig.get_figheight() == 6.:
+            mx_lines = np.array([23, 26, 30, 37, 999])
         else:
-            fontsize = 5.25
+            raise KeyError('unknown figure height')
+        fontsize = font_sizes[np.where(mx_lines > len(fig_info))[0].min()]
 
         ax_info = self.__divider.append_axes("right", size=2.5, pad=.75)
         ax_info.set_xticks([])       # remove all X-axis tick locations
@@ -682,11 +691,11 @@ class S5Pplot():
         aspect = min(4, max(1, int(round(data_dims[1] / data_dims[0]))))
 
         if aspect == 1:
-            figsize = (11 + fig_ext, 10)
+            figsize = (11 + fig_ext, 9.5)
         elif aspect == 2:
-            figsize = (12 + fig_ext, 7.5)
+            figsize = (12 + fig_ext, 7.4)
         elif aspect == 3:
-            figsize = (13 + fig_ext, 6.5)
+            figsize = (13 + fig_ext, 6.35)
         elif aspect == 4:
             figsize = (14 + fig_ext, 6)
         else:
