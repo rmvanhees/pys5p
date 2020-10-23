@@ -102,6 +102,18 @@ class S5Pmsm():
         else:
             self.__from_ndarray(dset, data_sel)
 
+    def __repr__(self) -> str:
+        res = []
+        for attr in self.__dict__:
+            if attr.startswith('__'):
+                continue
+            if isinstance(self.__dict__[attr], np.ndarray):
+                value = self.__dict__[attr].shape
+            else:
+                value = self.__dict__[attr]
+            res.append('{}: {}'.format(attr, value))
+        return '\n'.join(res)
+
     def __from_h5_dset(self, h5_dset, data_sel, datapoint):
         """
         initialize S5Pmsm object from h5py dataset
