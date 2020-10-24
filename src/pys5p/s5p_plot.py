@@ -5,38 +5,6 @@ https://github.com/rmvanhees/pys5p.git
 
 The class S5Pplot contains generic plot functions
 
-Generate Figures
-----------------
-- Creating an S5Pplot object will open multi-page PDF file or single-page PNG
-- Each public function listed below can be used to create a (new) page
- * draw_signal
- * draw_quality
- * draw_cmp_swir
- * draw_trend1d
- * draw_lines
- * draw_qhist
- * draw_tracks
-- Closing the S5Pplot object will write the report to disk
-
-New: you can change the default color_maps by calling set_cmap(cmap)
-     and return to the default behavior by calling unset_cmap()
-     Currently, only implemented for draw_signal(...)
-
-Suggestion for the name of a report/PDF-file:
-    <identifier>_<yyyymmdd>_<orbit>.pdf
-  where
-    identifier : name of L1B/ICM/OCM product or monitoring database
-    yyyymmdd   : coverage start-date or start-date of monitoring entry
-    orbit      : reference orbit
-
-Examples
---------
->>> from pys5p.s5p_plot import S5Pplot
->>> plot = S5Pplot('test_plot_class.pdf')
->>> plot.draw_signal(np.mean(signal, axis=0), title='signal of my measurement')
->>> plot.draw_trend1d(np.mean(signal, axis=(1, 2)), hk_data, hk_keys)
->>> plot.close()
-
 Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
@@ -73,8 +41,96 @@ class S5Pplot():
     """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports
 
-    The PDF will have the following name:
-        <dbname>_<startDateTime of monitor entry>_<orbit of monitor entry>.pdf
+    Attributes
+    ----------
+    figname : str
+       Name of the PDF or PNG file
+
+    Methods
+    -------
+    close()
+       Close PNG or (multipage) PDF document.
+    set_cmap(cmap)
+       Define alternative color-map to overrule the default.
+    unset_cmap()
+       Unset user supplied color-map, and use default color-map.
+    get_cmap(method='data')
+       Returns matplotlib colormap.
+    set_zunit(units)
+       Provide units of data to be displayed.
+    unset_zunit()
+       Unset user supplied unit definition of data.
+    zunit
+       Returns value of zunit (property).
+    draw_signal(data_in, ref_data=None, method='data', add_medians=True,
+                vperc=None, vrange=None, title=None, sub_title=None,
+                extent=None, fig_info=None)
+       Display 2D array data as image and averaged column/row signal plots.
+    draw_quality(data_in, ref_data=None, add_medians=True, qlabels=None,
+                 thres_worst=0.1, thres_bad=0.8, title=None, sub_title=None,
+                 extent=None, fig_info=None)
+       Display pixel-quality 2D array data as image and column/row statistics.
+    draw_cmp_swir(data_in, ref_data, model_label='reference',
+                  vperc=None, vrange=None, add_residual=True, add_model=True,
+                  title=None, sub_title=None, extent=None, fig_info=None)
+       Display signal vs model (or CKD) comparison in three panels.
+       Top panel shows data, middle panel shows residuals (data - model)
+       and lower panel shows model.
+    draw_trend1d(msm1, hk_data=None, msm2=None, hk_keys=None,
+                 title=None, sub_title=None, fig_info=None)
+       Display trends of measurement and house-keeping data.
+    draw_lines(xdata, ydata, color=0, xlabel=None, ylabel=None,
+               xlim=None, ylim=None, title=None, sub_title=None,
+               fig_info=None, **kwargs)
+       Display multiple 1D-data sets sharing the same x-axis
+    draw_qhist(data_dict, title=None, density=True, fig_info=None)
+       Display pixel-quality data as histograms.
+    draw_tracks(lons, lats, icids, saa_region=None, title=None, fig_info=None)
+       Display tracks of S5P on a world map using a Robinson projection.
+
+    Notes
+    -----
+    Generate Figures
+    - Creating an S5Pplot object will open multi-page PDF file
+      or single-page PNG
+    - Each public function listed below can be used to create a (new) page
+      * draw_signal
+      * draw_quality
+      * draw_cmp_swir
+      * draw_trend1d
+      * draw_lines
+      * draw_qhist
+      * draw_tracks
+    - Closing the S5Pplot object will write the report to disk
+
+    Suggestion for the name of a report/PDF-file:
+       <identifier>_<yyyymmdd>_<orbit>.pdf
+    where
+       identifier : name of L1B/ICM/OCM product or monitoring database
+       yyyymmdd   : coverage start-date or start-date of monitoring entry
+       orbit      : reference orbit
+    
+    Examples
+    --------
+    >>> from pys5p.s5p_plot import S5Pplot
+    >>> plot = S5Pplot('test_plot_class.pdf')
+
+    Create the same plot twice, using ndarray/set_zunit or S5Pmsm
+
+    >>> plot.set_zunit('V')
+    >>> plot.draw_signal(np.mean(signal, axis=0), title='Offset signal')
+    >>> plot.unset_zunit()
+    >>> msm = S5Pmsm(np.mean(signal, axis=0))
+    >>> msm.set_units('V')
+
+    Create plot with matplotlib colormap 'RdPu' 
+
+    >>> plot.set_cmap(plt.get_cmap('RdPu'))
+    >>> plot.draw_signal(msm, title='signal of my measurement')
+    >>> plot.unset_cmap()
+
+    >>> plot.draw_trend1d(np.mean(signal, axis=(1, 2)), hk_data, hk_keys)
+    >>> plot.close()
     """
     def __init__(self, figname, pdf_title=None):
         """
@@ -91,6 +147,7 @@ class S5Pplot():
         self.filename = figname
         if PurePath(figname).suffix.lower() == '.pdf':
             self.__pdf = PdfPages(figname)
+            # add annotation
             doc = self.__pdf.infodict()
             if pdf_title is None:
                 doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
@@ -113,7 +170,7 @@ class S5Pplot():
         """
         close current matplotlib figure or page in a PDF document
         """
-        # add annotation and save figure
+        # add save figure
         if self.__pdf is None:
             plt.savefig(self.filename)
             # plt.savefig(self.filename, transparant=True)
@@ -125,7 +182,7 @@ class S5Pplot():
 
     def close(self):
         """
-        Close multipage PDF document
+        Close PNG or (multipage) PDF document
         """
         if self.__pdf is None:
             return
@@ -182,14 +239,19 @@ class S5Pplot():
         """
         return self.__zunit
 
-    def convert_zunit(self, vmin, vmax):
+    def __adjust_zunit(self, vmin: float, vmax: float):
         """
-        Convert units electron or Volt to resp. 'e' and 'V'
-        Scale data-range to [-1000, 0] or [0, 1000] based on data-range
+        Adjust units: electron to 'e' and Volt to 'V'
+        and scale data range to <-1000, 1000>.
+
+        Parameters
+        ----------
+        vmin, vmax : float
+           image-data range
 
         Returns
         -------
-        float: dscale
+        float : dscale
         """
         if self.zunit is None or self.zunit == '1':
             return 1.
@@ -442,7 +504,7 @@ class S5Pplot():
                     vmin = msm.error[0].min()
                     vmax = msm.error[1].max()
                 self.set_zunit(msm.units)
-                dscale = self.convert_zunit(vmin, vmax)
+                dscale = self.__adjust_zunit(vmin, vmax)
 
                 use_steps = msm.value.size <= 256
                 (xdata, gap_list) = get_xdata(msm.coords[0][:], use_steps)
@@ -705,7 +767,7 @@ class S5Pplot():
         return figsize
 
     # -------------------------
-    def set_fig_data2d(self, method: str, data_in, ref_data=None):
+    def __get_fig_data2d(self, method: str, data_in, ref_data=None):
         """
         Determine image data to be displayed
         """
@@ -754,7 +816,7 @@ class S5Pplot():
 
         return img_data
 
-    def scale_data2d(self, method: str, img_data, vperc, vrange):
+    def __scale_data2d(self, method: str, img_data, vperc, vrange):
         """
         Determine range of image data and normalize colormap accordingly
         """
@@ -765,7 +827,7 @@ class S5Pplot():
             (vmin, vmax) = vrange
 
         # convert units from electrons to ke, Me, ...
-        dscale = self.convert_zunit(vmin, vmax)
+        dscale = self.__adjust_zunit(vmin, vmax)
         if not issubclass(img_data.dtype.type, np.integer):
             vmin /= dscale
             vmax /= dscale
@@ -789,7 +851,7 @@ class S5Pplot():
 
     # -------------------------
     @staticmethod
-    def set_fig_quality(qthres, data, ref_data=None):
+    def __set_fig_quality(qthres, data, ref_data=None):
         """
         Check pixel-quality data and convert to quality classes
 
@@ -907,11 +969,11 @@ class S5Pplot():
                 raise TypeError('keyword vrange requires two values')
 
         try:
-            img_data = self.set_fig_data2d(method, data_in, ref_data)
+            img_data = self.__get_fig_data2d(method, data_in, ref_data)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
-        norm = self.scale_data2d(method, img_data, vperc, vrange)
+        norm = self.__scale_data2d(method, img_data, vperc, vrange)
 
         # inititalize figure
         fig, ax_fig = plt.subplots(figsize=self.__fig_sz_img(fig_info,
@@ -962,7 +1024,7 @@ class S5Pplot():
                      qlabels=None, title=None, sub_title=None,
                      extent=None, fig_info=None):
         """
-        Display 2D array data as image and averaged column/row signal plots
+        Display pixel-quality 2D array data as image and column/row statistics
 
         Parameters
         ----------
@@ -1016,7 +1078,7 @@ class S5Pplot():
         qthres = {'worst': thres_worst, 'bad': thres_bad,
                   'compare': ref_data is not None}
         try:
-            qdata = self.set_fig_quality(qthres, data_in, ref_data)
+            qdata = self.__set_fig_quality(qthres, data_in, ref_data)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
@@ -1154,20 +1216,20 @@ class S5Pplot():
                 raise TypeError('keyword vrange requires two values')
 
         try:
-            img_diff = self.set_fig_data2d('diff', data_in, ref_data)
+            img_diff = self.__get_fig_data2d('diff', data_in, ref_data)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
         (median, spread) = biweight(img_diff, spread=True)
         rrange = (median - 5 * spread, median + 5 * spread)
-        rnorm = self.scale_data2d('diff', img_diff, None, rrange)
+        rnorm = self.__scale_data2d('diff', img_diff, None, rrange)
 
         try:
-            img_data = self.set_fig_data2d('data', data_in, None)
+            img_data = self.__get_fig_data2d('data', data_in, None)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
-        vnorm = self.scale_data2d('data', img_data, vperc, vrange)
+        vnorm = self.__scale_data2d('data', img_data, vperc, vrange)
 
         # inititalize figure
         npanel = True + add_residual + add_model
@@ -1359,6 +1421,8 @@ class S5Pplot():
                    xlabel=None, ylabel=None, xlim=None, ylim=None,
                    title=None, sub_title=None, fig_info=None, **kwargs):
         """
+        Display multiple 1D-data sets sharing the same x-axis.
+
         Parameters
         ----------
         xdata     :  ndarray
@@ -1493,7 +1557,7 @@ class S5Pplot():
     def draw_qhist(self, data_dict, *,
                    title=None, density=True, fig_info=None):
         """
-        Display pixel quality as histograms
+        Display pixel-quality data as histograms.
 
         Parameters
         ----------
