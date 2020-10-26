@@ -11,8 +11,6 @@ Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from collections import OrderedDict
-from datetime import datetime
 from pathlib import PurePath
 
 import matplotlib as mpl
@@ -23,8 +21,8 @@ try:
     import cartopy.feature as cfeature
     from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
                                        LATITUDE_FORMATTER)
-except ModuleNotFoundError:
-    raise ModuleNotFoundError('This module require module Cartopy')
+except Exception as exc:
+    raise RuntimeError('This module require module Cartopy') from exc
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Polygon
@@ -104,10 +102,11 @@ class S5Pgeoplot():
 
     Attributes
     ----------
-    data : ndarray
-    aspect : int
-    method : string
     add_info : bool
+    aspect : int
+    data : ndarray
+    filename : string
+    method : string
 
     Methods
     -------
@@ -125,7 +124,7 @@ class S5Pgeoplot():
     Examples
     --------
     """
-    def __init__(self, figname, add_info=True):
+    def __init__(self, figname, pdf_title=None):
         """
         Initialize multi-page PDF document or a single-page PNG
 
@@ -133,57 +132,62 @@ class S5Pgeoplot():
         ----------
         figname   :  string
              name of PDF or PNG file (extension required)
-        add_info  :  boolean
-             generate a legenda with info on the displayed data
+        pdf_title :  string
+             Title of the PDF document (attribute of the PDF document)
+             Default: 'Monitor report on Tropomi SWIR instrument'
         """
-        self.data = None
-        self.aspect = -1
-        self.method = None
-        self.add_info = add_info
-
         self.filename = figname
+
         if PurePath(figname).suffix.lower() == '.pdf':
             self.__pdf = PdfPages(figname)
+            # add annotation
+            doc = self.__pdf.infodict()
+            if pdf_title is None:
+                doc['Title'] = 'Monitor report on Tropomi SWIR instrument'
+            else:
+                doc['Title'] = pdf_title
+            doc['Author'] = '(c) SRON Netherlands Institute for Space Research'
         else:
             self.__pdf = None
+
+        # define colors
+        self.cset = {
+            'water': '#ddeeff',
+            'land': '#e1c999',
+            'grid': '#bbbbbb',
+            's5p': '#ee6677'}
+
+        #self.data = None
+        #self.method = None
 
     def __repr__(self):
         pass
 
-    def close_page(self, fig, fig_info):
+    def __close_this_page(self, fig):
         """
-        close current matplotlib figure or page in a PDF document
+        Close current matplotlib figure or page in a PDF document
         """
-        # add annotation and save figure
+        # add save figure
         if self.__pdf is None:
-            if self.add_info:
-                self.__fig_info(fig, fig_info)
-                plt.savefig(self.filename)
-                plt.close(fig)
-            else:
-                plt.savefig(self.filename, transparant=True)
-                plt.close(fig)
+            plt.savefig(self.filename)
+            # plt.savefig(self.filename, transparant=True)
+            plt.close(fig)
         else:
-            if self.add_info:
-                self.__fig_info(fig, fig_info)
-                self.__pdf.savefig()
-            else:
-                self.__pdf.savefig(transparant=True)
+            self.__pdf.savefig(transparant=True)
 
     def close(self):
         """
         Close multipage PDF document
         """
-        if self.__pdf is not None:
-            doc = self.__pdf.infodict()
-            doc['Author'] = '(c) SRON Netherlands Institute for Space Research'
-            doc['Keywords'] = 'PdfPages multipage keywords author title'
-            self.__pdf.close()
-            plt.close('all')
+        if self.__pdf is None:
+            return
+
+        self.__pdf.close()
+        plt.close('all')
 
     # --------------------------------------------------
     @staticmethod
-    def add_copyright(axx):
+    def __add_copyright(axx):
         """
         Display SRON copyright in current figure
         """
@@ -191,49 +195,51 @@ class S5Pgeoplot():
                  verticalalignment='bottom', rotation='vertical',
                  fontsize='xx-small', transform=axx.transAxes)
 
-    def __fig_info(self, fig, dict_info, fontsize='small'):
+    @staticmethod
+    def __add_fig_box(fig, fig_info) -> None:
         """
         Add meta-information in the current figure
 
         Parameters
         ----------
-        fig       :  Matplotlib figure instance
-        dict_info :  dictionary or sortedDict
-           legenda parameters to be displayed in the figure
+        fig :  Matplotlib figure instance
+        fig_info :  FIGinfo
+           instance of pys5p.lib.plotlib.FIGinfo to be displayed
         """
-        info_str = ""
-        if dict_info is not None:
-            for key in dict_info:
-                if isinstance(dict_info[key], (float, np.float32)):
-                    info_str += "{} : {:.5g}".format(key, dict_info[key])
-                else:
-                    info_str += "{} : {}".format(key, dict_info[key])
-                info_str += '\n'
-        info_str += 'created : {}'.format(
-            datetime.utcnow().isoformat(timespec='seconds'))
+        if fig_info is None or fig_info.location == 'none':
+            return
 
-        if self.aspect == 4:
-            xpos = 0.9
-            ypos = 0.975
-        elif self.aspect == 3:
-            xpos = 0.95
-            ypos = 0.975
-        elif self.aspect == 2:
-            xpos = 1.
-            ypos = 1.
-        elif self.aspect == 1:
-            xpos = 0.91
-            ypos = 0.98
-        else:
-            xpos = 0.9
-            ypos = 0.925
+        xpos = 1 - 0.4 / fig.get_figwidth()
+        ypos = 1 - 0.25 / fig.get_figheight()
 
-        fig.text(xpos, ypos, info_str,
-                 fontsize=fontsize, style='normal',
+        fig.text(xpos, ypos, fig_info.as_str(),
+                 fontsize='small', style='normal',
                  verticalalignment='top',
                  horizontalalignment='right',
                  multialignment='left',
                  bbox={'facecolor': 'white', 'pad': 5})
+
+    def __draw_worldmap(self, axx, whole_globe=True) -> None:
+        """
+        Draw worldmap
+        """
+        if whole_globe:
+            sphere_radius = 6370997.0
+            parallel_half = 0.883 * sphere_radius
+            meridian_half = 2.360 * sphere_radius
+            axx.set_xlim(-parallel_half, parallel_half)
+            axx.set_ylim(-meridian_half, meridian_half)
+
+        axx.outline_patch.set_visible(False)
+        axx.background_patch.set_facecolor(self.cset['water'])
+        axx.add_feature(cfeature.LAND, edgecolor='none',
+                        facecolor=self.cset['land'])
+        glx = axx.gridlines(linestyle='-', linewidth=0.5,
+                            color=self.cset['grid'])
+        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
+        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
+        glx.xformatter = LONGITUDE_FORMATTER
+        glx.yformatter = LATITUDE_FORMATTER
 
     # --------------------------------------------------
     def draw_geo_tiles(self, lons, lats, *, sequence=None,
@@ -258,19 +264,10 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        # define aspect for the location of fig_info
-        self.aspect = -1
-
-        # define colors
-        watercolor = '#ddeeff'
-        landcolor = '#e1c999'
-        gridcolor = '#bbbbbb'
-        s5p_color = '#ee6677'
+        if fig_info is None:
+            fig_info = FIGinfo()
 
         # determine central longitude
-        sphere_radius = 6370997.0
-        parallel_half = 0.883 * sphere_radius
-        meridian_half = 2.360 * sphere_radius
         if lons.max() - lons.min() > 180:
             if np.sum(lons > 0) > np.sum(lons < 0):
                 lons[lons < 0] += 360
@@ -288,16 +285,7 @@ class S5Pgeoplot():
         axx = plt.axes(projection=BetterTransverseMercator(
             central_longitude=lon_0, orientation=1,
             globe=ccrs.Globe(ellipse='sphere')))
-        axx.set_xlim(-meridian_half, meridian_half)
-        axx.set_ylim(-parallel_half, parallel_half)
-        axx.outline_patch.set_visible(False)
-        axx.background_patch.set_facecolor(watercolor)
-        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
-        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
-        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
-        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
-        glx.xformatter = LONGITUDE_FORMATTER
-        glx.yformatter = LATITUDE_FORMATTER
+        self.__draw_worldmap(axx)
 
         # draw footprint
         if sequence is None:
@@ -307,7 +295,7 @@ class S5Pgeoplot():
                                   lons[-1, ::-1], lons[1:-1:-1, 0]])
 
             poly = Polygon(xy=list(zip(lon, lat)), closed=True,
-                           alpha=0.6, facecolor=s5p_color,
+                           alpha=0.6, facecolor=self.cset['s5p'],
                            transform=ccrs.PlateCarree())
             axx.add_patch(poly)
         else:
@@ -325,16 +313,14 @@ class S5Pgeoplot():
                                       lons[indx_rev, 0]])
 
                 poly = Polygon(xy=list(zip(lon, lat)), closed=True,
-                               alpha=0.6, facecolor=s5p_color,
+                               alpha=0.6, facecolor=self.cset['s5p'],
                                transform=ccrs.PlateCarree())
                 axx.add_patch(poly)
 
-        self.add_copyright(axx)
-        if self.add_info:
-            if fig_info is None:
-                fig_info = OrderedDict({'lon0': lon_0})
-
-        self.close_page(fig, fig_info)
+        self.__add_copyright(axx)
+        fig_info.add('lon0', lon_0)
+        self.__add_fig_box(fig, fig_info)
+        self.__close_this_page(fig)
 
     # --------------------------------------------------
     def draw_geo_subsat(self, lons, lats, *,
@@ -357,19 +343,10 @@ class S5Pgeoplot():
         The information provided in the parameter 'fig_info' will be displayed
         in a small box.
         """
-        # define aspect for the location of fig_info
-        self.aspect = -1
-
-        # define colors
-        watercolor = '#ddeeff'
-        landcolor = '#e1c999'
-        gridcolor = '#bbbbbb'
-        s5p_color = '#ee6677'
+        if fig_info is None:
+            fig_info = FIGinfo()
 
         # determine central longitude
-        sphere_radius = 6370997.0
-        parallel_half = 0.883 * sphere_radius
-        meridian_half = 2.360 * sphere_radius
         if lons.max() - lons.min() > 180:
             if np.sum(lons > 0) > np.sum(lons < 0):
                 lons[lons < 0] += 360
@@ -387,27 +364,16 @@ class S5Pgeoplot():
         axx = plt.axes(projection=BetterTransverseMercator(
             central_longitude=lon_0, orientation=1,
             globe=ccrs.Globe(ellipse='sphere')))
-        axx.set_xlim(-meridian_half, meridian_half)
-        axx.set_ylim(-parallel_half, parallel_half)
-        axx.outline_patch.set_visible(False)
-        axx.background_patch.set_facecolor(watercolor)
-        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
-        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
-        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
-        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
-        glx.xformatter = LONGITUDE_FORMATTER
-        glx.yformatter = LATITUDE_FORMATTER
+        self.__draw_worldmap(axx)
 
         # draw sub-satellite spot(s)
         axx.scatter(lons, lats, 4, transform=ccrs.PlateCarree(),
-                    marker='o', color=s5p_color)
+                    marker='o', color=self.cset['s5p'])
 
-        self.add_copyright(axx)
-        if self.add_info:
-            if fig_info is None:
-                fig_info = OrderedDict({'lon0': lon_0})
-
-        self.close_page(fig, fig_info)
+        self.__add_copyright(axx)
+        fig_info.add('lon0', lon_0)
+        self.__add_fig_box(fig, fig_info)
+        self.__close_this_page(fig)
 
     # --------------------------------------------------
     def draw_geo_msm(self, gridlon, gridlat, msm_in, *,
@@ -444,6 +410,9 @@ class S5Pgeoplot():
         in a small box. In addition, we display the creation date and the data
         (biweight) median & spread.
         """
+        if fig_info is None:
+            fig_info = FIGinfo()
+
         # assert that we have some data to show
         if isinstance(msm_in, np.ndarray):
             msm = S5Pmsm(msm_in)
@@ -463,14 +432,6 @@ class S5Pgeoplot():
             zunit = None
         else:
             zunit = msm.units
-
-        # define aspect for the location of fig_info
-        self.aspect = -1
-
-        # define colors
-        watercolor = '#ddeeff'
-        landcolor = '#e1c999'
-        gridcolor = '#bbbbbb'
 
         # define data-range
         if vrange is None:
@@ -510,20 +471,7 @@ class S5Pgeoplot():
         fig.subplots_adjust(hspace=0, wspace=0, left=0.05, right=0.85)
 
         # define worldmap
-        if whole_globe:
-            sphere_radius = 6370997.0
-            parallel_half = 0.883 * sphere_radius
-            meridian_half = 2.360 * sphere_radius
-            axx.set_xlim(-parallel_half, parallel_half)
-            axx.set_ylim(-meridian_half, meridian_half)
-        axx.outline_patch.set_visible(False)
-        axx.background_patch.set_facecolor(watercolor)
-        axx.add_feature(cfeature.LAND, facecolor=landcolor, edgecolor='none')
-        glx = axx.gridlines(linestyle='-', linewidth=0.5, color=gridcolor)
-        glx.xlocator = mpl.ticker.FixedLocator(np.linspace(-180, 180, 13))
-        glx.ylocator = mpl.ticker.FixedLocator(np.linspace(-90, 90, 13))
-        glx.xformatter = LONGITUDE_FORMATTER
-        glx.yformatter = LATITUDE_FORMATTER
+        self.__draw_worldmap(axx, whole_globe)
 
         # draw image and colorbar
         img = axx.pcolormesh(gridlon, gridlat, data,
@@ -541,10 +489,7 @@ class S5Pgeoplot():
         plt.colorbar(img, cax=cax, label=zlabel)
 
         # finalize figure
-        self.add_copyright(axx)
-        if self.add_info:
-            if fig_info is None:
-                fig_info = OrderedDict({'lon0': lon_0})
-            else:
-                fig_info.update({'lon0': lon_0})
-        self.close_page(fig, fig_info)
+        self.__add_copyright(axx)
+        fig_info.add('lon0', lon_0)
+        self.__add_fig_box(fig, fig_info)
+        self.__close_this_page(fig)
