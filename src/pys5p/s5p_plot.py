@@ -305,17 +305,17 @@ class S5Pplot():
         elif method == 'ratio_unc':
             zlabel = 'uncertainty'
         elif method == 'diff':
-            if self.zunit is None:
+            if self.zunit is None or self.zunit == '1':
                 zlabel = 'difference'
             else:
                 zlabel = r'difference [{}]'.format(self.zunit)
         elif method == 'error':
-            if self.zunit is None:
+            if self.zunit is None or self.zunit == '1':
                 zlabel = 'uncertainty'
             else:
                 zlabel = r'uncertainty [{}]'.format(self.zunit)
         else:
-            if self.zunit is None:
+            if self.zunit is None or self.zunit == '1':
                 zlabel = 'value'
             else:
                 zlabel = r'value [{}]'.format(self.zunit)
@@ -545,7 +545,7 @@ class S5Pplot():
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
-                if self.zunit is None:
+                if self.zunit is None or self.zunit == '1':
                     axarr[i_ax].set_ylabel(msm.long_name)
                 else:
                     axarr[i_ax].set_ylabel(r'{} [{}]'.format(
@@ -1008,7 +1008,7 @@ class S5Pplot():
 
         # add annotation and save figure
         median, spread = biweight(img_data, spread=True)
-        if self.zunit is None:
+        if self.zunit is None or self.zunit == '1':
             fig_info.add('median', median, '{:.5g}')
             fig_info.add('spread', spread, '{:.5g}')
         else:
@@ -1289,7 +1289,7 @@ class S5Pplot():
 
         # add annotation and save figure
         median, spread = biweight(img_diff, spread=True)
-        if self.zunit is None:
+        if self.zunit is None or self.zunit == '1':
             fig_info.add('median', median, '{:.5g}')
             fig_info.add('spread', spread, '{:.5g}')
         else:

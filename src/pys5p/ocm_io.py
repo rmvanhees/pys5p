@@ -103,6 +103,51 @@ class OCMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
+
+    Attributes
+    ----------
+    fid : HDF5 file object
+    filename : string
+    band : string
+    
+
+    Methods
+    -------
+    close()
+       Close resources.
+    get_processor_version()
+       Returns version of the L01b processor used to generate this product.
+    get_coverage_time()
+       Returns start and end of the measurement coverage time.
+    get_attr(attr_name)
+       Obtain value of an HDF5 file attribute.
+    get_ref_time()
+       Returns reference start time of measurements.
+    get_delta_time()
+       Returns offset from the reference start time of measurement.
+    get_instrument_settings()
+       Returns instrument settings of measurement.
+    get_gse_stimuli()
+       Returns GSE stimuli parameters.
+    get_exposure_time()
+       Returns the exact pixel exposure time of the measurements.
+    get_housekeeping_data()
+       Returns housekeeping data of measurements.
+    select(ic_id=None, *, msm_grp=None)
+       Select a measurement as BAND%/ICID_<ic_id>_GROUP_%
+    get_msm_attr(msm_dset, attr_name)
+       Returns attribute of measurement dataset 'msm_dset'
+    get_msm_data(msm_dset, fill_as_nan=True, frames=None, columns=None)
+       Returns data of measurement dataset 'msm_dset'
+    read_direct_msm(msm_dset, dest_sel=None, dest_dtype=None,
+                    fill_as_nan=False)
+       The faster implementation of get_msm_data().
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     def __init__(self, ocm_product):
         """
@@ -114,15 +159,14 @@ class OCMio():
            Full path to on-ground calibration measurement
 
         """
+        if not Path(ocm_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(ocm_product))
+
         # initialize class-attributes
-        self.filename = ocm_product
         self.__msm_path = None
         self.__patched_msm = []
         self.band = None
-        self.fid = None
-
-        if not Path(ocm_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(ocm_product))
+        self.filename = ocm_product
 
         # open OCM product as HDF5 file
         self.fid = h5py.File(ocm_product, "r")

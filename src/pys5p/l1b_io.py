@@ -61,6 +61,18 @@ class L1Bio:
 
     The L1b calibration products are available for UVN (band 1-6)
     and SWIR (band 7-8).
+
+    Attributes
+    ----------
+
+    Methods
+    -------
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
                    '/BAND%_RADIANCE')

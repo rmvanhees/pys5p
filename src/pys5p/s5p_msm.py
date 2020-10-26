@@ -65,7 +65,66 @@ def pad_rows(arr1, arr2):
 # - class definition -------------------------------
 class S5Pmsm():
     """
-    Definition of class S5Pmsm
+    Definition of class S5Pmsm which contains the data of a HDF5 dataset,
+    including its attributes (CF convension)
+
+    Attributes
+    ----------
+    name : string
+       Name of the original HDF5 dataset
+    value : ndarray
+       Dataset values
+    error : ndarray, optional
+       Dataset uncertainties or error estimates
+    coords : OrderDict
+       Dataset coordinates (HDF5/netCDF4 dimensions)
+    coverage : string, optional
+       Dataset coverage start and end
+    units : string
+       Data units
+    long_name : string
+       Dataset long name
+    fillvalue : float
+       Value of undefined or missings data values
+
+    Methods
+    -------
+    copy()
+       Return a deep copy of the current object.
+    set_coords(coords_data, coords_name=None)
+       Set coordinates of data.
+    set_coverage(coverage, force=False)
+       Set the coverage attribute, as (coverageStart, coverageEnd),
+    set_units(units, force=False)
+       Set the units attribute.
+    set_fillvalue()
+       Set fillvalue of floating-point data.
+    set_long_name(name, force=False)
+       Set the long_name attribute.
+    fill_as_nan()
+       Replace missing floating-point data with NaN's.
+    sort(axis=0)
+       Sort dataset according a coordinate axis.
+    concatenate(msm, axis=0)
+       Concatenate the data of a S5Pmsm to the current S5Pmsm object.
+    nanpercentile(vperc, data_sel=None, axis=0, keepdims=False)
+       Returns percentile(s) of the data in the S5Pmsm object.
+    biweight(data_sel=None, axis=0, keepdims=False)
+       Returns biweight median of the data in the S5Pmsm object.
+    nanmedian(data_sel=None, axis=0, keepdims=False)
+       Returns S5Pmsm object containing median & standard deviation of the
+        original data.
+    nanmean(data_sel=None, axis=0, keepdims=False)
+       Returns S5Pmsm object containing mean & standard deviation of the
+        original data.
+    transpose()
+       Transpose data and coordinates of an S5Pmsm object.
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     def __init__(self, dset, data_sel=None, datapoint=False):
         """

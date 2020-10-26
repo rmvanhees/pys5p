@@ -3,21 +3,8 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-The class S5Pplot contains generic plot functions to display S5p Tropomi data
-
-Suggestion for the name of the report/pdf-file
-    <identifier>_<yyyymmdd>_<orbit>.pdf
-  where
-    identifier : name of L1B/ICM/OCM product or monitoring database
-    yyyymmdd   : coverage start-date or start-date of monitoring entry
-    orbit      : reference orbit
-
--- generate figures --
-- Creating an S5Pplot object will open multi-page PDF file or single-page PNG
-- Each public function listed below can be used to create a (new) page
- * draw_geolocation
-
-- Closing the S5Pplot object will write the report to disk
+The class S5Pgeoplot displays footprints or observations projected
+on the Earth surface.
 
 Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -43,6 +30,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Polygon
 import shapely.geometry as sgeom
 
+from .lib.plotlib import FIGinfo
 from .s5p_msm import S5Pmsm
 from .tol_colors import tol_cmap
 
@@ -97,9 +85,8 @@ class BetterTransverseMercator(ccrs.Projection):
     def boundary(self):
         xx0, xx1 = self.x_limits
         yy0, yy1 = self.y_limits
-        return sgeom.LineString([(xx0, yy0), (xx0, yy1),
-                                 (xx1, yy1), (xx1, yy0),
-                                 (xx0, yy0)])
+        return sgeom.LineString(
+            [(xx0, yy0), (xx0, yy1), (xx1, yy1), (xx1, yy0), (xx0, yy0)])
 
     @property
     def x_limits(self):
@@ -110,9 +97,33 @@ class BetterTransverseMercator(ccrs.Projection):
         return (-2e7, 2e7)
 
 
+# --------------------------------------------------
 class S5Pgeoplot():
     """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports
+
+    Attributes
+    ----------
+    data : ndarray
+    aspect : int
+    method : string
+    add_info : bool
+
+    Methods
+    -------
+    def close_page(fig, fig_info):
+    def close():
+    def add_copyright(axx):
+    def draw_geo_tiles(lons, lats, sequence=None, title=None, fig_info=None)
+    def draw_geo_subsat(lons, lats, title=None, fig_info=None)
+    def draw_geo_msm(gridlon, gridlat, msm_in, vperc=None, vrange=None,
+                     whole_globe=False, title=None, fig_info=None)
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     def __init__(self, figname, add_info=True):
         """
@@ -241,7 +252,7 @@ class S5Pgeoplot():
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
-        fig_info   :  dictionary
+        fig_info :  FIGinfo, optional
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
@@ -340,7 +351,7 @@ class S5Pgeoplot():
         title      :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
-        fig_info   :  dictionary
+        fig_info :  FIGinfo, optional
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed
@@ -426,7 +437,7 @@ class S5Pgeoplot():
         sub_title :  string
            Sub-title of the figure. Default is None
            [Suggestion] use attribute "comment" of data-product
-        fig_info  :  dictionary
+        fig_info :  FIGinfo, optional
            OrderedDict holding meta-data to be displayed in the figure
 
         The information provided in the parameter 'fig_info' will be displayed

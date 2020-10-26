@@ -5,14 +5,6 @@ https://github.com/rmvanhees/pys5p.git
 
 The class LV2io provides read access to S5p Tropomi S5P_OFFL_L2 products
 
-Note
-----
-The Python h5py module can read the operational netCDF4 products without any
-problems, however, the SRON science products contain incompatible attributes.
-Thus should be fixed when more up-to-date netCDF software is used to generate
-the products. Currently, the Python netCDF4 module is used to read the science
-products.
-
 Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
@@ -38,6 +30,23 @@ class LV2io():
     """
     This class should offer all the necessary functionality to read Tropomi
     S5P_OFFL_L2 products
+
+    Attributes
+    ----------
+
+    Methods
+    -------
+
+    Notes
+    -----
+    The Python h5py module can read the operational netCDF4 products without
+    any problems, however, the SRON science products contain incompatible
+    attributes. Thus should be fixed when more up-to-date netCDF software is
+    used to generate the products. Currently, the Python netCDF4 module is
+    used to read the science products.
+
+    Examples
+    --------
     """
     def __init__(self, lv2_product):
         """

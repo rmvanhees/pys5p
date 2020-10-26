@@ -27,6 +27,18 @@ class ICMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
+
+    Attributes
+    ----------
+
+    Methods
+    -------
+
+    Notes
+    -----
+
+    Examples
+    --------
     """
     def __init__(self, icm_product, readwrite=False):
         """

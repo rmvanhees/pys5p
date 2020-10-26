@@ -5,27 +5,8 @@ https://github.com/rmvanhees/pys5p.git
 
 Provides access to the S5P Tropomi CKD (static and dynamic)
 
-The option to have dynamic CKD is not used for the Tropomi mission, only for
-S/W version 1 a dynamic CKD product is defined. This product contained the OCAL
-CKD and was not updated automatically. For version 2, all CKD are stored in one
-product, where some CKD have a time-axis to correct any in-flight degradation.
-
-Therefore, the logic to find a CKD is implemented as follows:
-1) ckd_dir, defines the base directory to search for the CKD products
-  (see below)
-2) ckd_file, defines the full path to (static) CKD product;
-  (version 1) any product with dynamic CKD has to be in the same directory
-
-Version 1:
-* Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
-* Dynamic CKD are stored in two files:
-  - UVN, use glob('*_ICM_CKDUVN_*')
-  - SWIR, use glob('*_ICM_CKDSIR_*')
-
-Version 2+:
-* All CKD in one file: glob('*_AUX_L1_CKD_*')
-
-ToDo:
+ToDo
+----
  - access to UVN CKD, still incomplete
  - identify latest Static CKD product, e.g. using the validity period
 
@@ -50,9 +31,41 @@ class CKDio():
     """
     Read Tropomi CKD from the Static CKD product or from dynamic CKD products
 
+    Attributes
+    ----------
+
+    Methods
+    -------
+
+    Notes
+    -----
     Not all CKD are defined or derived for all bands.
     You can request a CKD for one band or for a channel (bands: '12', '34',
     '56', '78'). Do not mix bands from different channels
+
+    The option to have dynamic CKD is not used for the Tropomi mission, only
+    for S/W version 1 a dynamic CKD product is defined. This product contained
+    the OCAL CKD and was not updated automatically. For version 2, all CKD are
+    stored in one product, where some CKD have a time-axis to correct any
+    in-flight degradation.
+
+    Therefore, the logic to find a CKD is implemented as follows:
+    1) ckd_dir, defines the base directory to search for the CKD products
+    (see below)
+    2) ckd_file, defines the full path to (static) CKD product;
+    (version 1) any product with dynamic CKD has to be in the same directory
+
+    Version 1:
+    * Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
+    * Dynamic CKD are stored in two files:
+      - UVN, use glob('*_ICM_CKDUVN_*')
+      - SWIR, use glob('*_ICM_CKDSIR_*')
+
+    Version 2+:
+    * All CKD in one file: glob('*_AUX_L1_CKD_*')
+
+    Examples
+    --------
     """
     def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd', ckd_file=None):
         """

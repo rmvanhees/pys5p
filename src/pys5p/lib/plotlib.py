@@ -46,6 +46,26 @@ class FIGinfo:
     The figure information constists of key, value combinations which are
     to be displayed 'above' or 'right' from the main image.
 
+    Attributes
+    ----------
+    location : string
+       Location to draw the fig_info box: 'above' (default), 'right', 'none'
+    fig_info : OrderedDict
+       Dictionary holding the information for the fig_info box
+
+    Methods
+    -------
+    add(key, value, fmt='{}')
+       Extent fig_info with a new line.
+    as_str()
+       Return figure information as one long string.
+    copy()
+       Return a deep copy of the current object.
+    set_location(loc)
+       Set the location of the fig_info box.
+
+    Notes
+    -----
     The box with the figure information can only hold a limited number of keys:
       'above' :  The figure information is displayed in a small box. This box
                  grows with the number of lines and will overlap with the main
@@ -66,7 +86,7 @@ class FIGinfo:
 
     def copy(self):
         """
-        return a deep copy of the current object
+        Return a deep copy of the current object
         """
         return deepcopy(self)
 
