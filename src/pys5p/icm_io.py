@@ -30,9 +30,54 @@ class ICMio():
 
     Attributes
     ----------
+    fid : h5py.File
+    filename : string
+    bands : string
 
     Methods
     -------
+    close()
+       Close resources
+    find(msm_class)
+       Find a measurement as <processing-class name>.
+    select(msm_type: str, msm_path=None)
+       Select a measurement as <processing class>_<ic_id>.
+    get_orbit()
+       Returns value of revolution counter.
+    get_processor_version()
+       Returns version of the L01b processor used to generate this product.
+    get_coverage_time()
+       Returns start and end of the measurement coverage time.
+    get_creation_time()
+       Returns creation date of this product
+    get_attr(attr_name)
+       Obtain value of an HDF5 file attribute.
+    get_ref_time(band=None)
+       Returns reference start time of measurements.
+    get_delta_time(band=None)
+       Returns offset from the reference start time of measurement.
+    get_instrument_settings(band=None)
+       Returns instrument settings of measurement.
+    get_exposure_time(band=None)
+       Returns pixel exposure time of the measurements, which is calculated
+       from the parameters 'int_delay' and 'int_hold' for SWIR.
+    get_housekeeping_data(band=None)
+       Returns housekeeping data of measurements.
+    get_msmt_keys(band=None)
+       Read msmt_keys from the analysis groups.
+    get_msm_attr(msm_dset, attr_name, band=None)
+       Returns attribute of measurement dataset 'msm_dset'.
+    get_geo_data(band=None, geo_dset='satellite_latitude,satellite_longitude')
+       Returns data of selected datasets from the GEODATA group.
+    get_msm_data(msm_dset, band='78', *, read_raw=False, columns=None,
+                 fill_as_nan=True)
+       Read datasets from a measurement selected by class-method 'select'
+    read_direct_msm(msm_dset, dest_sel=None, dest_dtype=None, fill_as_nan=False)
+       The faster implementation of class method 'get_msm_data'.
+    set_housekeeping_data(data, band=None)
+       Returns housekeeping data of measurements.
+    set_msm_data(msm_dset, data, band='78')
+       Alter dataset from a measurement selected using function 'select'.
 
     Notes
     -----
@@ -51,16 +96,15 @@ class ICMio():
         readwrite   :  boolean
            open product in read-write mode (default is False)
         """
+        if not Path(icm_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(icm_product))
+
         # initialize class-attributes
-        self.filename = icm_product
         self.__rw = readwrite
         self.__msm_path = None
         self.__patched_msm = []
+        self.filename = icm_product
         self.bands = None
-        self.fid = None
-
-        if not Path(icm_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(icm_product))
 
         # open ICM product as HDF5 file
         if readwrite:

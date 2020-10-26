@@ -33,9 +33,42 @@ class LV2io():
 
     Attributes
     ----------
+    fid : h5py.File
+    filename : string
+    science_product : bool
+    ground_pixel : int
+    scanline : int
 
     Methods
     -------
+    close()
+       Close resources.
+    get_attr(attr_name, ds_name=None)
+       Obtain value of an HDF5 file attribute or dataset attribute.
+    get_orbit()
+       Returns reference orbit number
+    get_algorithm_version()
+       Returns version of the level-2 algorithm.
+    get_processor_version()
+       Returns version of the L12 processor used to generate this product.
+    get_product_version()
+       Returns version of the level-2 product
+    get_coverage_time()
+       Returns start and end of the measurement coverage time.
+    get_creation_time()
+       Returns creation date/time of the level-2 product.
+    get_ref_time()
+       Returns reference start time of measurements.
+    get_delta_time()
+       Returns offset from the reference start time of measurement.
+    get_geo_data(geo_dsets=None)
+       Returns data of selected datasets from the GEOLOCATIONS group.
+    get_geo_bounds(extent=None, data_sel=None)
+       Returns bounds of latitude/longitude as a mesh for plotting.
+    get_dataset(name, data_sel=None, fill_as_nan=True)
+       Read level-2 dataset from PRODUCT group.
+    get_data_as_s5pmsm(name, data_sel=None, fill_as_nan=True, mol_m2=False)
+       Read dataset from group PRODUCT/target_product group.
 
     Notes
     -----
@@ -57,19 +90,18 @@ class LV2io():
         lv2_product :  string
            full path to S5P Tropomi level 2 product
         """
-        science_inst = ['SRON Netherlands Institute for Space Research']
+        if not Path(lv2_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(lv2_product))
 
         # initialize class-attributes
         self.filename = lv2_product
         self.science_product = False
-        self.fid = None
-
-        if not Path(lv2_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(lv2_product))
 
         # open LV2 product as HDF5 file
         self.fid = h5py.File(lv2_product, "r")
         try:
+            science_inst = ['SRON Netherlands Institute for Space Research']
+
             if self.get_attr('institution') in science_inst:
                 self.science_product = True
         except OSError:

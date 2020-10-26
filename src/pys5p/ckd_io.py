@@ -33,9 +33,53 @@ class CKDio():
 
     Attributes
     ----------
+    ckd_dir : pathlib.Path
+    ckd_file : pathlib.Path
+    ckd_dyn_file : pathlib.Path
+    fid : h5py.File
 
     Methods
     -------
+    close()
+       Close resources.
+    creation_time()
+       Returns datetime when the L1b product was created.
+    processor_version()
+       Returns version of Tropomi L01B processor used to generate this procuct.
+    validity_period()
+       Return validity period of CKD product as a tuple of 2 datetime objects.
+    get_param(ds_name=None, band='7')
+       Returns value(s) of a CKD parameter from the Static CKD product.
+    memory(bands='78')
+       Returns memory CKD, SWIR only.
+    dn2v(bands='78')
+       Returns digital number to Volt CKD, SWIR only.
+    voltage_to_charge(bands='78')
+       Returns Voltage to Charge CKD, SWIR only.
+    prnu(bands='78')
+       Returns Pixel Response Non-Uniformity (PRNU).
+    absirr(qvd=1, bands='78')
+       Returns absolute irradiance responsivity.
+    relirr(qvd=1, bands='78')
+       Returns relative irradiance correction.
+    absrad(bands='78')
+       Returns absolute radiance responsivity.
+    wavelength(bands='78')
+       Returns wavelength CKD.
+    saa()
+       Returns definition of the SAA region.
+    offset(bands='78')
+       Returns offset CKD, SWIR only.
+    darkflux(bands='78')
+       Returns dark-flux CKD, SWIR only.
+    dpqf(threshold=None, bands='78')
+       Returns Detector Pixel Quality Mask (boolean), SWIR only.
+    pixel_quality(bands='78')
+       Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only.
+    noise(bands='78')
+       Returns pixel noise CKD, SWIR only
+    saturation(bands='78')
+       Returns saturation values (pre-offset), SWIR only
 
     Notes
     -----
@@ -71,13 +115,6 @@ class CKDio():
         """
         Initialize access to a Tropomi Static CKD product
         """
-        # initialize private class-attributes
-        self.ckd_file = None
-        self.ckd_dyn_file = None
-        self.fid = None
-        self.__header = PosixPath('/METADATA', 'earth_explorer_header',
-                                  'fixed_header')
-
         # define path to CKD product
         if ckd_file is not None:
             if not Path(ckd_file).is_file():
@@ -99,12 +136,17 @@ class CKDio():
             self.ckd_file = res[-1]
 
         # obtain path to dynamic CKD product (version 1, only)
+        self.ckd_dyn_file = None
         if (self.ckd_dir / 'dynamic').is_dir():
             res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
         else:
             res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
         if res:
             self.ckd_dyn_file = res[-1]
+
+        # initialize class-attributes
+        self.__header = PosixPath('/METADATA', 'earth_explorer_header',
+                                  'fixed_header')
 
         self.fid = h5py.File(self.ckd_file, "r")
 
@@ -149,7 +191,7 @@ class CKDio():
 
     def processor_version(self) -> str:
         """
-        Returns version of the CKD product
+        Returns version of Tropomi L01B processor used to generate this procuct
         """
         grpname = str(self.__header / 'source')
         attr = self.fid[grpname].attrs['Creator_Version'][0]
@@ -182,7 +224,6 @@ class CKDio():
     def get_param(self, ds_name=None, band='7'):
         """
         Returns value(s) of a CKD parameter from the Static CKD product.
-        Datasets of size=1 are return as scalar
 
         Parameters
         ----------
@@ -194,6 +235,10 @@ class CKDio():
         Returns
         -------
         numpy.ndarray or scalar
+
+        Notes
+        -----
+        Datasets of size=1 are return as scalar
 
         Handy function for scalar HDF5 datasets, such as:
          - dc_reference_temp
@@ -251,7 +296,9 @@ class CKDio():
         """
         Returns digital number to Volt CKD, SWIR only
 
-        Note: the DN2V factor has no error attached to it
+        Notes
+        -----
+        The DN2V factor has no error attached to it.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -279,7 +326,9 @@ class CKDio():
         """
         Returns Voltage to Charge CKD, SWIR only
 
-        Note: the V2C CKD has no error attached to it
+        Notes
+        -----
+        The V2C CKD has no error attached to it.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -294,8 +343,10 @@ class CKDio():
         """
         Returns Pixel Response Non-Uniformity (PRNU)
 
-        Note1 SWIR row 257 is excluded
-        Note2 the PRNU-CKD has no error attached to it (always zero)
+        Notes
+        -----
+        * SWIR row 257 is excluded.
+        * The PRNU-CKD has no error attached to it (always zero).
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -329,7 +380,9 @@ class CKDio():
         """
         Returns absolute irradiance responsivity
 
-        Note SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -384,7 +437,9 @@ class CKDio():
          - cheb_coefs     :    chebyshev parameters for elevation and azimuth
                                for pixels on a coarse irregular grid
 
-        Note SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -412,7 +467,9 @@ class CKDio():
         """
         Returns absolute radiance responsivity
 
-        Note SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -448,8 +505,10 @@ class CKDio():
         """
         Returns wavelength CKD
 
-        Note1 SWIR row 257 is excluded
-        Note2 the wavelength CKD has no error attached to it
+        Notes
+        -----
+        * SWIR row 257 is excluded.
+        * The wavelength CKD has no error attached to it.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -496,7 +555,9 @@ class CKDio():
         """
         Returns offset CKD, SWIR only
 
-        Note SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -545,7 +606,9 @@ class CKDio():
         """
         Returns dark-flux CKD, SWIR only
 
-        Note SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -595,7 +658,9 @@ class CKDio():
         """
         Returns Detector Pixel Quality Mask (boolean), SWIR only
 
-        Note1 SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -630,7 +695,9 @@ class CKDio():
         """
         Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only
 
-        Note1 SWIR row 257 is excluded
+        Notes
+        -----
+        SWIR row 257 is excluded.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -674,8 +741,10 @@ class CKDio():
         """
         Returns noise CKD, SWIR only
 
-        Note1 SWIR row 257 is excluded
-        Note2 the noise CKD has no error attached to it
+        Notes
+        -----
+        * SWIR row 257 is excluded.
+        * The noise CKD has no error attached to it.
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')
@@ -724,8 +793,10 @@ class CKDio():
         """
         Returns saturation values (pre-offset), SWIR only
 
-        Note1 SWIR row 257 is excluded
-        Note2 the saturation CKD has no error attached to it (always zero)
+        Notes
+        -----
+        * SWIR row 257 is excluded
+        * The saturation CKD has no error attached to it (always zero)
         """
         if len(bands) > 2:
             raise ValueError('read per band or channel, only')

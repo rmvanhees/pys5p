@@ -64,9 +64,48 @@ class L1Bio:
 
     Attributes
     ----------
+    fid : h5py.File
+    filename : string
+    bands : string
 
     Methods
     -------
+    close()
+       Close recources.
+    get_attr(attr_name)
+       Obtain value of an HDF5 file attribute.
+    get_orbit()
+       Returns absolute orbit number.
+    get_processor_version()
+       Returns version of the L01b processor used to generate this product.
+    get_coverage_time()
+       Returns start and end of the measurement coverage time.
+    get_creation_time()
+       Returns datetime when the L1b product was created.
+    select(msm_type=None)
+       Select a calibration measurement as <processing class>_<ic_id>.
+    sequence(band=None)
+       Returns sequence number for each unique measurement based on ICID
+       and delta_time.
+    get_ref_time(band=None)
+       Returns reference start time of measurements.
+    get_delta_time(band=None)
+       Returns offset from the reference start time of measurement.
+    get_instrument_settings(band=None)
+       Returns instrument settings of measurement.
+    get_exposure_time(band=None)
+       Returns pixel exposure time of the measurements, which is calculated
+       from the parameters 'int_delay' and 'int_hold' for SWIR.
+    get_housekeeping_data(band=None)
+       Returns housekeeping data of measurements.
+    get_geo_data(geo_dset=None, band=None)
+       Returns data of selected datasets from the GEODATA group.
+    get_msm_attr(msm_dset, attr_name, band=None)
+       Returns value attribute of measurement dataset "msm_dset".
+    get_msm_data(msm_dset, band=None, fill_as_nan=False, msm_to_row=None)
+       Reads data from dataset "msm_dset".
+    set_msm_data(msm_dset, new_data)
+       Replace data of dataset "msm_dset" with new_data.
 
     Notes
     -----
@@ -83,18 +122,17 @@ class L1Bio:
         """
         Initialize access to a Tropomi offline L1b product
         """
+        # open L1b product as HDF5 file
+        if not Path(l1b_product).is_file():
+            raise FileNotFoundError('{} does not exist'.format(l1b_product))
+
         # initialize private class-attributes
-        self.filename = l1b_product
         self.__rw = readwrite
         self.__verbose = verbose
         self.__msm_path = None
         self.__patched_msm = []
-        self.fid = None
+        self.filename = l1b_product
         self.bands = ''
-
-        # open L1b product as HDF5 file
-        if not Path(l1b_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(l1b_product))
 
         if readwrite:
             self.fid = h5py.File(l1b_product, "r+")
@@ -126,6 +164,10 @@ class L1Bio:
 
     def close(self):
         """
+        Close resources.
+
+        Notes
+        -----
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
@@ -634,21 +676,54 @@ class L1BioENG:
     """
     class with methods to access Tropomi offline L1b engineering products
 
+    Attributes
+    ----------
+    fid : HDF5 file object
+    filename : string
+
+    Methods
+    -------
+    close()
+       Close recources.
+    get_attr(attr_name)
+       Obtain value of an HDF5 file attribute.
+    get_orbit()
+       Returns absolute orbit number.
+    get_processor_version()
+       Returns version of the L01b processor used to generate this product.
+    get_coverage_time()
+       Returns start and end of the measurement coverage time.
+    get_creation_time()
+       Returns datetime when the L1b product was created.
+    get_ref_time()
+       Returns reference start time of measurements.
+    get_delta_time()
+       Returns offset from the reference start time of measurement.
+    get_msmtset()
+       Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos.
+    get_msmtset_db()
+       Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset.
+    get_swir_hk_db(stats=None, fill_as_nan=False)
+       Returns the most important SWIR house keeping parameters.
+
+    Notes
+    -----
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
+
+    Examples
+    --------
     """
     def __init__(self, l1b_product):
         """
         Initialize access to a Tropomi offline L1b product
         """
-        # initialize private class-attributes
-        self.filename = l1b_product
-        self.fid = None
-
         # open L1b product as HDF5 file
         if not Path(l1b_product).is_file():
             raise FileNotFoundError('{} does not exist'.format(l1b_product))
 
+        # initialize private class-attributes
+        self.filename = l1b_product
         self.fid = h5py.File(l1b_product, "r")
 
     def __repr__(self):
@@ -776,7 +851,9 @@ class L1BioENG:
         """
         Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset
 
-        Note this function is used to fill the SQLite product databases
+        Notes
+        -----
+        This function is used to fill the SQLite product databases
         """
         dtype_msmt_db = np.dtype([('meta_id', np.int32),
                                   ('ic_id', np.uint16),
@@ -830,8 +907,10 @@ class L1BioENG:
         fill_as_nan :  boolean
             Replace (float) FillValues with Nan's, when True
 
-        Note this function is used to fill the SQLite product datbase and
-           HDF5 monitoring database
+        Notes
+        -----
+        This function is used to fill the SQLite product datbase and
+        HDF5 monitoring database
         """
         dtype_hk_db = np.dtype([('detector_temp', np.float32),
                                 ('grating_temp', np.float32),

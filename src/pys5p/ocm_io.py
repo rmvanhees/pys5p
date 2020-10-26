@@ -106,10 +106,9 @@ class OCMio():
 
     Attributes
     ----------
-    fid : HDF5 file object
+    fid : h5py.File
     filename : string
     band : string
-    
 
     Methods
     -------
@@ -141,7 +140,7 @@ class OCMio():
        Returns data of measurement dataset 'msm_dset'
     read_direct_msm(msm_dset, dest_sel=None, dest_dtype=None,
                     fill_as_nan=False)
-       The faster implementation of get_msm_data().
+       The faster implementation of class method 'get_msm_data'.
 
     Notes
     -----

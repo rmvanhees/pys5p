@@ -307,8 +307,8 @@ class S5Pmsm():
         dims = [np.arange(sz) for sz in self.value.shape]
         try:
             self.set_coords(dims, coords_name=None)
-        except ValueError:
-            raise
+        except Exception as exc:
+            raise RuntimeError('failed to set the coordinates') from exc
 
     def copy(self):
         """
