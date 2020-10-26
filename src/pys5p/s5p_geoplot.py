@@ -278,8 +278,9 @@ class S5Pgeoplot():
         # inititalize figure
         fig = plt.figure(figsize=(15, 10))
         if title is not None:
+            ypos = 1 - 0.25 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(
@@ -357,8 +358,9 @@ class S5Pgeoplot():
         # inititalize figure
         fig = plt.figure(figsize=(15, 10))
         if title is not None:
+            ypos = 1 - 0.25 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(
@@ -462,8 +464,9 @@ class S5Pgeoplot():
         fig, axx = plt.subplots(1, 1, figsize=(10, 12.5),
                                 subplot_kw={'projection': myproj})
         if title is not None:
+            ypos = 1 - 0.25 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.9), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         # Add the colorbar axes anywhere in the figure.
         # Its position will be re-calculated at each figure resize.
