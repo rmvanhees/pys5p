@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 else:
     FOUND_CARTOPY = True
 import matplotlib as mpl
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -37,7 +37,7 @@ from .tol_colors import tol_cmap, tol_cset
 
 
 # - main function ----------------------------------
-class S5Pplot():
+class S5Pplot:
     """
     Generate figure(s) for the SRON Tropomi SWIR monitor website or MPC reports
 
@@ -109,7 +109,7 @@ class S5Pplot():
        identifier : name of L1B/ICM/OCM product or monitoring database
        yyyymmdd   : coverage start-date or start-date of monitoring entry
        orbit      : reference orbit
-    
+
     Examples
     --------
     >>> from pys5p.s5p_plot import S5Pplot
@@ -123,7 +123,7 @@ class S5Pplot():
     >>> msm = S5Pmsm(np.mean(signal, axis=0))
     >>> msm.set_units('V')
 
-    Create plot with matplotlib colormap 'RdPu' 
+    Create plot with matplotlib colormap 'RdPu'
 
     >>> plot.set_cmap(plt.get_cmap('RdPu'))
     >>> plot.draw_signal(msm, title='signal of my measurement')
@@ -173,11 +173,10 @@ class S5Pplot():
         # add save figure
         if self.__pdf is None:
             plt.savefig(self.filename)
-            # plt.savefig(self.filename, transparant=True)
             plt.close(fig)
         else:
             self.__pdf.savefig()
-            # self.__pdf.savefig(transparant=True)
+
         self.__divider = None
 
     def close(self):
@@ -402,7 +401,7 @@ class S5Pplot():
             ypos = 1 - 0.25 / fig.get_figheight()
 
             fig.text(xpos, ypos, fig_info.as_str(),
-                     fontsize='small', style='normal',
+                     fontsize='x-small', style='normal',
                      verticalalignment='top',
                      horizontalalignment='right',
                      multialignment='left',
@@ -410,8 +409,8 @@ class S5Pplot():
             return
 
         # box location on the right of the main image
-        xpos = 1 - 3.75 / fig.get_figwidth()
-        ypos = 1 - 1.25 / fig.get_figheight()
+        xpos = 1 - 3.825 / fig.get_figwidth()
+        ypos = 1 - 1.2 / fig.get_figheight()
 
         # height=95:  9-45 8-50 7-58 6-67
         # height=74:  9-31 8-36 7-40 6-47
@@ -439,7 +438,8 @@ class S5Pplot():
                  fontsize=fontsize, style='normal',
                  verticalalignment='top',
                  horizontalalignment='left',
-                 multialignment='left', linespacing=1.5)
+                 multialignment='left',
+                 bbox=None, linespacing=1.5)
 
     # -------------------------
     def __add_data1d(self, plot_mode, axarr, msm_1, msm_2):
@@ -979,7 +979,7 @@ class S5Pplot():
         fig, ax_fig = plt.subplots(figsize=self.__fig_sz_img(fig_info,
                                                              img_data.shape))
         if title is not None:
-            ypos = 1 - 0.25 / fig.get_figheight()
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, ypos), horizontalalignment='center')
         if sub_title is not None:
@@ -1112,7 +1112,7 @@ class S5Pplot():
         fig, ax_fig = plt.subplots(figsize=self.__fig_sz_img(fig_info,
                                                              qdata.shape))
         if title is not None:
-            ypos = 1 - 0.25 / fig.get_figheight()
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, ypos), horizontalalignment='center')
         if sub_title is not None:
@@ -1240,7 +1240,7 @@ class S5Pplot():
 
         gspec = mpl.gridspec.GridSpec(npanel, 2)
         if title is not None:
-            ypos = 1 - 0.25 / fig.get_figheight()
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
                          position=(.5, ypos), horizontalalignment='center')
 
@@ -1500,8 +1500,9 @@ class S5Pplot():
 
             # draw titles (and put it at the same place)
             if title is not None:
+                ypos = 1 - 0.3 / self.__mpl['fig'].get_figheight()
                 self.__mpl['fig'].suptitle(title, fontsize='x-large',
-                                           position=(0.5, 0.95),
+                                           position=(0.5, ypos),
                                            horizontalalignment='center')
             if sub_title is not None:
                 self.__mpl['axarr'].set_title(sub_title, fontsize='large')
@@ -1586,8 +1587,9 @@ class S5Pplot():
         # create figure
         fig = plt.figure(figsize=(10, 3 * len(data_dict)))
         if title is not None:
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         # specify grid for subplots
         gspec = mpl.gridspec.GridSpec(5 * len(data_dict), 1)
@@ -1671,8 +1673,9 @@ class S5Pplot():
         axx.set_title('ground-tracks of Sentinel-5P')
 
         if title is not None:
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 0.96), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         # draw SAA region
         if saa_region is not None:
