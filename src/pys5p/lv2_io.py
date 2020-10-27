@@ -178,8 +178,14 @@ class LV2io():
         read attributes from science products using netCDF4
         """
         if ds_name is not None:
-            for grp_name in ['/target_product', '/side_product']:
-                dset = self.fid['{}/{}'.format(grp_name, ds_name)]
+            for grp_name in ['target_product', 'side_product', 'instrument']:
+                if grp_name not in self.fid.groups:
+                    continue
+
+                if ds_name not in self.fid[grp_name].variables:
+                    continue
+
+                dset = self.fid['/{}/{}'.format(grp_name, ds_name)]
                 if attr_name in dset.ncattrs():
                     return dset.getncattr(attr_name)
 
@@ -207,21 +213,24 @@ class LV2io():
         return self.__h5_attr(attr_name, ds_name)
 
     # -------------------------
-    def get_orbit(self):
+    def get_orbit(self) -> int:
         """
         Returns reference orbit number
         """
-        return self.get_attr('orbit')
+        if self.science_product:
+            return int(self.__nc_attr('orbit', 'l1b_file'))
+
+        return self.__h5_attr('orbit', None)[0]
 
     # -------------------------
-    def get_algorithm_version(self):
+    def get_algorithm_version(self) -> str:
         """
         Returns version of the level 2 algorithm
         """
         return self.get_attr('algorithm_version')
 
     # -------------------------
-    def get_processor_version(self):
+    def get_processor_version(self) -> str:
         """
         Returns version of the L12 processor
         """
