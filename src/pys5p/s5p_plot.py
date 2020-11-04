@@ -459,7 +459,7 @@ class S5Pplot:
         i_ax = 0
         if plot_mode == 'quality':
             use_steps = msm_1.value.size <= 256
-            (xdata, gap_list) = get_xdata(msm_1.coords[0][:], use_steps)
+            xdata, gap_list = get_xdata(msm_1.coords[0][:], use_steps)
 
             qc_dict = {'bad': cset.yellow,
                        'worst': cset.red}
@@ -507,7 +507,7 @@ class S5Pplot:
                 dscale = self.__adjust_zunit(vmin, vmax)
 
                 use_steps = msm.value.size <= 256
-                (xdata, gap_list) = get_xdata(msm.coords[0][:], use_steps)
+                xdata, gap_list = get_xdata(msm.coords[0][:], use_steps)
                 ydata = msm.value.copy() / dscale
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
@@ -570,7 +570,7 @@ class S5Pplot:
         (xlabel,) = hk_data.coords._fields
         xdata = hk_data.coords[0][:].copy()
         use_steps = xdata.size <= 256
-        (xdata, gap_list) = get_xdata(xdata, use_steps)
+        xdata, gap_list = get_xdata(xdata, use_steps)
         if xlabel == 'time':
             xdata = xdata.astype(np.float) / 3600
 
@@ -822,9 +822,9 @@ class S5Pplot:
         """
         # define data-range
         if vrange is None:
-            (vmin, vmax) = np.nanpercentile(img_data, vperc)
+            vmin, vmax = np.nanpercentile(img_data, vperc)
         else:
-            (vmin, vmax) = vrange
+            vmin, vmax = vrange
 
         # convert units from electrons to ke, Me, ...
         dscale = self.__adjust_zunit(vmin, vmax)
@@ -836,13 +836,13 @@ class S5Pplot:
         mid_val = (vmin + vmax) / 2
         if method == 'diff':
             if vmin < 0 < vmax:
-                (tmp1, tmp2) = (vmin, vmax)
+                tmp1, tmp2 = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
         if method == 'ratio':
             if vmin < 1 < vmax:
-                (tmp1, tmp2) = (vmin, vmax)
+                tmp1, tmp2 = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
                 mid_val = 1.
@@ -1220,7 +1220,7 @@ class S5Pplot:
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
-        (median, spread) = biweight(img_diff, spread=True)
+        median, spread = biweight(img_diff, spread=True)
         rrange = (median - 5 * spread, median + 5 * spread)
         rnorm = self.__scale_data2d('diff', img_diff, None, rrange)
 
@@ -1242,7 +1242,7 @@ class S5Pplot:
         if title is not None:
             ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(.5, ypos), horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
 
         coords = get_fig_coords(data_in)
         if extent is None:
@@ -1378,18 +1378,18 @@ class S5Pplot:
             npanels += len(hk_keys)
 
         # initialize matplotlib using 'subplots'
-        figsize = (10., 0.5 + (npanels + 1) * 1.7)
-        margin = 1. / (1.8 * (npanels + 1))
-        (fig, axarr) = plt.subplots(npanels, sharex=True, figsize=figsize)
+        figsize = (10., 1 + (npanels + 1) * 1.5)
+        fig, axarr = plt.subplots(npanels, sharex=True, figsize=figsize)
         if npanels == 1:
             axarr = [axarr]
+        margin = min(1. / (1.8 * (npanels + 1)), .25)
         fig.subplots_adjust(bottom=margin, top=1-margin, hspace=0.02)
 
         # draw titles (and put it at the same place)
         if title is not None:
+            ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
-                         position=(0.5, 1 - margin / 3),
-                         horizontalalignment='center')
+                         position=(0.5, ypos), horizontalalignment='center')
         if sub_title is not None:
             axarr[0].set_title(sub_title, fontsize='large')
 
@@ -1584,19 +1584,25 @@ class S5Pplot:
         # define colors
         cset = tol_cset('bright')
 
-        # create figure
-        fig = plt.figure(figsize=(10, 3 * len(data_dict)))
+        # initialize matplotlib using 'subplots'
+        npanels = len(data_dict)
+        figsize = (10., 1 + (npanels + 1) * 1.65)
+        fig, axarr = plt.subplots(npanels, sharex=True, figsize=figsize)
+        if npanels == 1:
+            axarr = [axarr]
+        margin = min(1. / (1.8 * (npanels + 1)), .25)
+        fig.subplots_adjust(bottom=margin, top=1-margin, hspace=0.02)
+
+        # draw titles (and put it at the same place)
         if title is not None:
             ypos = 1 - 0.3 / fig.get_figheight()
             fig.suptitle(title, fontsize='x-large',
                          position=(0.5, ypos), horizontalalignment='center')
-
-        # specify grid for subplots
-        gspec = mpl.gridspec.GridSpec(5 * len(data_dict), 1)
+        axarr[0].set_title('Histograms of pixel-quality',
+                           fontsize='large')
 
         # draw histograms
-        ipos = 1
-        for key in data_dict:
+        for ii, key in enumerate(data_dict):
             try:
                 check_data2d('quality', data_dict[key])
             except Exception as exc:
@@ -1610,21 +1616,24 @@ class S5Pplot:
                 long_name = data_dict[key].long_name
             data[np.isnan(data)] = 0.
 
-            axx = plt.subplot(gspec[ipos:ipos+4, 0])
-            axx.hist(data, bins=11, range=[-.1, 1.], histtype='stepfilled',
-                     density=density, color=cset.blue)
-            axx.set_title(r'histogram of {}'.format(long_name),
-                          fontsize='medium')
-            axx.set_xlim([0, 1])
-            axx.set_ylim([1e-4, 10])
-            axx.set_yscale('log', nonpositive='clip')
-            axx.set_ylabel('density')
-            axx.grid(which='major', color='#BBBBBB', lw=0.75, ls=(0, (1, 5)))
-            self.__add_copyright(axx)
-            ipos += 5
-        axx.set_xlabel('pixel quality')
+            axarr[ii].hist(data, bins=11, range=[-.1, 1.],
+                            histtype='stepfilled', log=True,
+                            density=density, color=cset.blue)
+            # axarr[ii].set_yscale('log', nonpositive='clip')
+            axarr[ii].set_xlim([0, 1])
+            axarr[ii].set_ylabel('density')
+            axarr[ii].set_ylim([1e-4, 10])
+            axarr[ii].set_yticks([1e-4, 1e-3, 1e-2, 1e-1, 1])
+            axarr[ii].grid(which='major', color='#BBBBBB',
+                            lw=0.75, ls=(0, (1, 5)))
+            legenda = axarr[ii].legend([blank_legend_key()],
+                                       [long_name], loc='upper left')
+            legenda.draw_frame(False)
+
+        axarr[-1].set_xlabel('pixel quality')
 
         # add annotation and save figure
+        self.__add_copyright(axarr[-1])
         self.__add_fig_box(fig, fig_info)
         self.__close_this_page(fig)
 

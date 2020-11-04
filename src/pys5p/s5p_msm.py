@@ -192,14 +192,14 @@ class S5Pmsm():
             if datapoint:
                 self.value = h5_dset['value'][data_sel]
                 self.error = h5_dset['error'][data_sel]
-                for ii, elmt in enumerate(data_sel):
-                    if isinstance(elmt, int):
+                for ii, elmnt in enumerate(data_sel):
+                    if isinstance(elmnt, int) or isinstance(elmnt, np.int64):
                         self.value = np.expand_dims(self.value, axis=ii)
                         self.error = np.expand_dims(self.error, axis=ii)
             else:
                 self.value = h5_dset[data_sel]
                 for ii, elmnt in enumerate(data_sel):
-                    if isinstance(elmnt, int):
+                    if isinstance(elmnt, int) or isinstance(elmnt, np.int64):
                         self.value = np.expand_dims(self.value, axis=ii)
 
         # set default dimension names
