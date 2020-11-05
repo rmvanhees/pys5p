@@ -342,8 +342,8 @@ class LV2io():
             lats = self.fid['/PRODUCT/latitude'][0, ...]
             lons = self.fid['/PRODUCT/longitude'][0, ...]
 
-            indx = np.where((lons >= extent[0]) & (lons <= extent[1])
-                            & (lats >= extent[2]) & (lats <= extent[3]))
+            indx = ((lons >= extent[0]) & (lons <= extent[1])
+                    & (lats >= extent[2]) & (lats <= extent[3])).nonzero()
             data_sel = np.s_[0,
                              indx[0].min():indx[0].max(),
                              indx[1].min():indx[1].max()]
@@ -372,8 +372,8 @@ class LV2io():
             lons = self.fid['/instrument/longitude_center'][:].reshape(
                 self.scanline, self.ground_pixel)
 
-            indx = np.where((lons >= extent[0]) & (lons <= extent[1])
-                            & (lats >= extent[2]) & (lats <= extent[3]))
+            indx = ((lons >= extent[0]) & (lons <= extent[1])
+                    & (lats >= extent[2]) & (lats <= extent[3])).nonzero()
             data_sel = np.s_[indx[0].min():indx[0].max(),
                              indx[1].min():indx[1].max()]
 

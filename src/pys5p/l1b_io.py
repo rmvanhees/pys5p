@@ -361,8 +361,8 @@ class L1Bio:
         buff_time = np.concatenate(([delta_time[0] - 10 * dt_thres], delta_time,
                                     [delta_time[-1] + 10 * dt_thres]))
 
-        indx = np.where(((buff_time[1:] - buff_time[0:-1]) > dt_thres)
-                        | ((buff_icid[1:] - buff_icid[0:-1]) != 0))[0]
+        indx = (((buff_time[1:] - buff_time[0:-1]) > dt_thres)
+                | ((buff_icid[1:] - buff_icid[0:-1]) != 0)).nonzero()[0]
         for ii in range(len(indx)-1):
             res['sequence'][indx[ii]:indx[ii+1]] = ii
 
@@ -871,7 +871,7 @@ class L1BioENG:
 
         # get indices to start and end of every measurement (based in ICID)
         icid = msmtset['icid']
-        indx = np.where(np.diff(icid) != 0)[0] + 1
+        indx = (np.diff(icid) != 0).nonzero()[0] + 1
         indx = np.insert(indx, 0, 0)
         indx = np.append(indx, -1)
 

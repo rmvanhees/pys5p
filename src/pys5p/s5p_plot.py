@@ -427,7 +427,7 @@ class S5Pplot:
             mx_lines = np.array([23, 26, 30, 37, 999])
         else:
             raise KeyError('unknown figure height')
-        fontsize = font_sizes[np.where(mx_lines > len(fig_info))[0].min()]
+        fontsize = font_sizes[(mx_lines > len(fig_info)).nonzero()[0].min()]
 
         ax_info = self.__divider.append_axes("right", size=2.5, pad=.75)
         ax_info.set_xticks([])       # remove all X-axis tick locations

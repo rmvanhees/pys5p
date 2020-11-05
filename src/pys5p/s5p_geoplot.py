@@ -272,8 +272,8 @@ class S5Pgeoplot:
             axx.set_xlim(-parallel_half, parallel_half)
             axx.set_ylim(-meridian_half, meridian_half)
 
-        axx.outline_patch.set_visible(False)
-        axx.background_patch.set_facecolor(self.cset['water'])
+        axx.spines['geo'].set_visible(False)
+        axx.patch.set_facecolor(self.cset['water'])
         axx.add_feature(cfeature.LAND, edgecolor='none',
                         facecolor=self.cset['land'])
         glx = axx.gridlines(linestyle='-', linewidth=0.5,
@@ -410,7 +410,7 @@ class S5Pgeoplot:
             cset = [tol_cset('bright').red, tol_cset('bright').purple]
             print('Unique sequence: {}'.format(np.unique(sequence)))
             for ii in np.unique(sequence):
-                indx = np.unique(np.where(sequence == ii)[0])
+                indx = np.unique((sequence == ii).nonzero()[0])
                 indx_rev = indx[::-1]
                 lat = np.concatenate([lats[indx[0], :],
                                       lats[indx, -1],

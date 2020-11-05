@@ -216,20 +216,20 @@ def run_draw_qhist(plot):
     Run unit tests on S5Pplot::draw_qhist
     """
     print('Run unit tests on S5Pplot::draw_qhist')
-    buffA = np.repeat(0.9 + np.random.rand(1000) / 10, 56)
-    buff0 = np.repeat(np.random.rand(1000) / 10, 10)
-    buff1 = 0.1 + np.random.rand(1000) / 10
-    buff2 = np.repeat(0.2 + np.random.rand(1000) / 10, 2)
-    buff3 = np.repeat(0.3 + np.random.rand(1000) / 10, 3)
-    buff4 = np.repeat(0.4 + np.random.rand(1000) / 10, 4)
-    buff5 = np.repeat(0.5 + np.random.rand(1000) / 10, 8)
-    buff6 = np.repeat(0.6 + np.random.rand(1000) / 10, 12)
-    buff7 = np.repeat(0.7 + np.random.rand(1000) / 10, 20)
-    buff8 = np.repeat(0.8 + np.random.rand(1000) / 10, 40)
-    buffB = np.repeat(0.9 + np.random.rand(1000) / 10, 100)
-    data = S5Pmsm(np.concatenate((buffA, buff0, buff1, buff2, buff3,
-                                  buff4, buff5, buff6, buff7, buff8,
-                                  buffB)).reshape(256, 1000))
+    buff0 = np.repeat(0.9 + np.random.rand(1000) / 10, 56)
+    buff1 = np.repeat(np.random.rand(1000) / 10, 10)
+    buff2 = 0.1 + np.random.rand(1000) / 10
+    buff3 = np.repeat(0.2 + np.random.rand(1000) / 10, 2)
+    buff4 = np.repeat(0.3 + np.random.rand(1000) / 10, 3)
+    buff5 = np.repeat(0.4 + np.random.rand(1000) / 10, 4)
+    buff6 = np.repeat(0.5 + np.random.rand(1000) / 10, 8)
+    buff7 = np.repeat(0.6 + np.random.rand(1000) / 10, 12)
+    buff8 = np.repeat(0.7 + np.random.rand(1000) / 10, 20)
+    buff9 = np.repeat(0.8 + np.random.rand(1000) / 10, 40)
+    buffa = np.repeat(0.9 + np.random.rand(1000) / 10, 100)
+    data = S5Pmsm(np.concatenate((buff0, buff1, buff2, buff3, buff4,
+                                  buff5, buff6, buff7, buff8, buff9,
+                                  buffa)).reshape(256, 1000))
     data_dict = {}
     data.set_long_name('pixel-quality map')
     data_dict['dpqm'] = data.copy()

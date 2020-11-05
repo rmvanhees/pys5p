@@ -222,7 +222,7 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
     if not np.issubdtype(time_data.dtype, np.integer):
         raise ValueError('time-coordinate not of type integer')
     if not np.all(time_data[1:] > time_data[:-1]):
-        indx = np.where(time_data[1:] <= time_data[:-1])[0]
+        indx = (time_data[1:] <= time_data[:-1]).nonzero()[0]
         raise ValueError('time-coordinate not increasing at {}'.format(indx))
 
     # determine delta_time with greatest common divisor (numpy v1.15+)
@@ -241,13 +241,13 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
         data_full = np.empty((time_dim, msm.value.shape[1]),
                              dtype=msm.value.dtype)
         data_full[mask, :] = msm.value
-        for ii in np.where(~mask)[0]:
+        for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
     else:
         data_full = np.empty((msm.value.shape[0], time_dim),
                              dtype=msm.value.dtype)
         data_full[:, mask] = msm.value
-        for ii in np.where(~mask)[0]:
+        for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
 
     msm.value = data_full
@@ -290,11 +290,11 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
     if not np.issubdtype(xdata.dtype, np.integer):
         raise ValueError('x-coordinate not of type integer')
     if not np.all(xdata[1:] > xdata[:-1]):
-        indx = np.where(xdata[1:] <= xdata[:-1])[0]
+        indx = (xdata[1:] <= xdata[:-1]).nonzero()[0]
         raise ValueError('x-coordinate not increasing at {}'.format(indx))
 
     xstep = np.gcd.reduce(np.diff(xdata))
-    gap_list = 1 + np.where(np.diff(xdata) > xstep)[0]
+    gap_list = 1 + (np.diff(xdata) > xstep).nonzero()[0]
     for indx in reversed(gap_list):
         xdata = np.insert(xdata, indx, xdata[indx])
         xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
