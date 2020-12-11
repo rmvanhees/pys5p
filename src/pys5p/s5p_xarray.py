@@ -16,9 +16,20 @@ import numpy as np
 import xarray as xr
 
 
-def __get_attrs(dset, field):
+def __get_attrs(dset, field: str) -> dict:
     """
     Return attributes of the HDF5 dataset
+
+    Parameters
+    ----------
+    dset :  h5py.Dataset
+       h5py dataset from which the attributes are read
+    field : str
+       Name of field in compound dataset
+
+    Returns
+    -------
+    dict with numpy arrays
     """
     attrs = {}
     for key in dset.attrs:
@@ -40,13 +51,23 @@ def __get_attrs(dset, field):
     return attrs
 
 
-def __get_coords(dset, dims):
+def __get_coords(dset, dims: list, data_sel) -> list:
     """
     Return coordinates of the HDF5 dataset
 
-    Notes
-    -----
-    Provided as sequence of tuples [(dims, data), ...]
+    Parameters
+    ----------
+    dset :  h5py.Dataset
+       h5py dataset from which the data is read
+    dims : list of strings
+       Alternative names for the dataset dimensions if not attached to dataset
+    data_sel :  numpy slice
+       A numpy slice generated for example numpy.s_
+       Default read while array
+
+    Returns
+    -------
+    A sequence of tuples [(dims, data), ...]
     """
     coords = []
     if len(dset.dims) == dset.ndim:
@@ -71,35 +92,49 @@ def __get_coords(dset, dims):
         dims = ['time', 'row', 'column'][-dset.ndim:]
 
     for ii in range(dset.ndim):
-        buff = np.arange(dset.shape[ii], dtype='u4')
+        buff = np.arange(dset.shape[ii], dtype='u4')[data_sel[ii]]
         coords.append((dims[ii], buff))
 
     return coords
 
 
-def __get_data(dset, field):
+def __get_data(dset, field: str, data_sel):
     """
     Return data of the HDF5 dataset
+
+    Parameters
+    ----------
+    dset :  h5py.Dataset
+       h5py dataset from which the data is read
+    field : str
+       Name of field in compound dataset or None
+    data_sel :  numpy slice
+       A numpy slice generated for example numpy.s_
+       Default read while array
+
+    Returns
+    -------
+    Numpy array
 
     Notes
     -----
     Read floats always as doubles
     """
     if np.issubdtype(dset.dtype, np.floating):
-        with dset.astype(np.float):
-            data = dset[()]
-    else:
-        if field is None:
-            data = dset[()]
-        else:
-            data = dset.fields(field)[()]
-            if np.issubdtype(data.dtype, np.floating):
-                data = data.astype(np.float)
+        with dset.astype(float):
+            data = dset[data_sel]
+        return data
 
+    if field is None:
+        return dset[data_sel]
+
+    data = dset.fields(field)[()]
+    if np.issubdtype(data.dtype, np.floating):
+        data = data.astype(float)
     return data
 
 
-def h5_to_xr(h5_dset, field=None, dims=None):
+def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     """
     Create xarray::DataArray from a HDF5 dataset (with dimension scales)
 
@@ -107,6 +142,12 @@ def h5_to_xr(h5_dset, field=None, dims=None):
     ----------
     h5_dset :  h5py.Dataset
        Data, dimensions, coordinates and attributes are read for this dataset
+    field : str
+       Name of field in compound dataset or None
+    data_sel :  numpy slice
+       A numpy slice generated for example numpy.s_
+    dims :  list of strings
+       Alternative names for the dataset dimensions if not attached to dataset
 
     Returns
     -------
@@ -114,7 +155,7 @@ def h5_to_xr(h5_dset, field=None, dims=None):
 
     Notes
     -----
-    This module should work generally.
+    ...
 
     Examples
     --------
@@ -127,28 +168,28 @@ def h5_to_xr(h5_dset, field=None, dims=None):
     >>> xdata7 = h5_to_xr(fid['signal'])
     >>> fid.close()
     >>> fid = h5py.File(s5p_b8_prod, 'r')   # Tropomi band8 product
-    >>> xdata8 = h5_to_xr(fid['signal'])    
+    >>> xdata8 = h5_to_xr(fid['signal'])
     >>> fid.close()
     >>> xdata = xr.concat((xdata7, xdata8), dim='spectral_channel')
 
     Optionally, fix the 'column' dimension
     >>> xdata = xdata.assign_coords(
     >>> ... column=np.arange(xdata.column.size, dtype='u4'))
-
-    ToDo
-    ----
-    * Do we need to offer data selection?
     """
+    # ToDo fix special cases data_sel is int, Ellipsis, too few dimensions, ...
+    if data_sel is None:
+        data_sel = ()
+
     # Name of this array
     name = PurePath(h5_dset.name).name
 
     # Values for this array
-    data = __get_data(h5_dset, field)
+    data = __get_data(h5_dset, field, data_sel)
 
     # Attributes to assign to the array
     attrs = __get_attrs(h5_dset, field)
 
     # Coordinates (tick labels) to use for indexing along each dimension
-    coords = __get_coords(h5_dset, dims)
+    coords = __get_coords(h5_dset, data_sel, dims)
 
     return xr.DataArray(data, name=name, attrs=attrs, coords=coords)
