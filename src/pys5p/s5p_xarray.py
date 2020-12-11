@@ -128,7 +128,7 @@ def __get_data(dset, field: str, data_sel):
     if field is None:
         return dset[data_sel]
 
-    data = dset.fields(field)[()]
+    data = dset.fields(field)[data_sel]
     if np.issubdtype(data.dtype, np.floating):
         data = data.astype(float)
     return data
@@ -176,9 +176,18 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     >>> xdata = xdata.assign_coords(
     >>> ... column=np.arange(xdata.column.size, dtype='u4'))
     """
-    # ToDo fix special cases data_sel is int, Ellipsis, too few dimensions, ...
+    # ToDo fix cases when data_sel equals int, Ellipsis, ...
     if data_sel is None:
         data_sel = ()
+
+    if field is not None:
+        try:
+            _field = {'name': field,
+                      'oneof': len(h5_dset.dtype.names),
+                      'index': h5_dset.dtype.names.index(field)}
+        except Exception as exc:
+            raise RuntimeError('field {} not found in dataset {}'.format(
+                field, h5_dset.name)) from exc
 
     # Name of this array
     name = PurePath(h5_dset.name).name
