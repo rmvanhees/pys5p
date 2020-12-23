@@ -27,7 +27,6 @@ import numpy as np
 import shapely.geometry as sgeom
 
 from .lib.plotlib import check_data2d, FIGinfo
-# from .s5p_msm import S5Pmsm
 from .tol_colors import tol_cmap, tol_cset
 
 
@@ -109,7 +108,7 @@ class S5Pgeoplot:
     -------
     close():
        Close PNG or (multipage) PDF document.
-    draw_geo_msm(gridlon, gridlat, msm_in, vperc=None, vrange=None,
+    draw_geo_msm(gridlon, gridlat, data, vperc=None, vrange=None,
                  whole_globe=False, title=None, fig_info=None)
        Display measurement data projected with TransverseMercator.
     draw_geo_subsat(lons, lats, title=None, fig_info=None)
@@ -445,7 +444,7 @@ class S5Pgeoplot:
         gridlat :  array_like
            The coordinates of the quadrilateral corners, with dimensions one
            larger then data
-        data :  array_like
+        data :  array_like or xarray.DataArray
            Measurement data as a scalar 2-D array. The values will be
            color-mapped.
         whole_globe :  boolean
@@ -490,8 +489,8 @@ class S5Pgeoplot:
         if isinstance(data_in, np.ndarray):
             img_data = data_in.copy()
         else:
-            img_data = data_in.value.copy()
-            self.set_zunit(data_in.units)
+            img_data = data_in.values.copy()
+            self.set_zunit(data_in.attrs["units"])
 
         # define data-range
         if vrange is None:

@@ -160,7 +160,7 @@ def check_data2d(method: str, data) -> None:
 
     # data must be stored in a pys5p.S5Pmsm object
     if not isinstance(data, S5Pmsm):
-        raise TypeError('data not an numpy.ndarray or pys5p.S5Pmsm')
+        raise TypeError('data not a numpy.ndarray or pys5p.S5Pmsm')
 
     if data.value.ndim != 2:
         raise ValueError('data must be two dimensional')

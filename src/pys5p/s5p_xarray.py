@@ -12,7 +12,6 @@ License:  BSD-3-Clause
 """
 from pathlib import PurePath
 
-import h5py
 import numpy as np
 import xarray as xr
 
@@ -32,27 +31,41 @@ def __get_attrs(dset, field: str) -> dict:
     -------
     dict with numpy arrays
     """
+    _field = None
+    if field is not None:
+        try:
+            _field = {'name': field,
+                      'oneof': len(dset.dtype.names),
+                      'index': dset.dtype.names.index(field)}
+        except Exception as exc:
+            raise RuntimeError('field {} not found in dataset {}'.format(
+                field, dset.name)) from exc
+        # print('_field ', _field)
+
     attrs = {}
     for key in dset.attrs:
         if key == 'DIMENSION_LIST':
             continue
 
         attr_value = dset.attrs[key]
+        # print('# ----- ', key, type(attr_value), attr_value)
         if isinstance(attr_value, np.ndarray):
-            attr_value = attr_value[0]
+            if len(attr_value) == 1:
+                attr_value = attr_value[0]
+                # print('# ----- ', key, type(attr_value), attr_value)
+            if _field is not None:
+                if len(attr_value) == _field['oneof']:
+                    attr_value = attr_value[_field['index']]
+                # elif isinstance(attr_value, np.void):
+                #    attr_value = attr_value[0]
 
-        if isinstance(attr_value, bytes):
-            attrs[key] = attr_value.decode('ascii')
-        elif field is not None and key == '_FillValue' \
-           and isinstance(attr_value, np.void):
-            attrs[key] = attr_value[0]
-        else:
-            attrs[key] = attr_value
+        attrs[key] = (attr_value.decode('ascii')
+                      if isinstance(attr_value, bytes) else attr_value)
 
     return attrs
 
 
-def __get_coords(dset, data_sel: tuple, dims: list) -> list:
+def __get_coords(dset, data_sel: tuple) -> list:
     """
     Return coordinates of the HDF5 dataset
 
@@ -60,11 +73,9 @@ def __get_coords(dset, data_sel: tuple, dims: list) -> list:
     ----------
     dset :  h5py.Dataset
        h5py dataset from which the data is read
-    data_sel :  numpy slice
+    data_sel :  tuple of slice(s)
        A numpy slice generated for example numpy.s_
        Default read while array
-    dims : list of strings
-       Alternative names for the dataset dimensions if not attached to dataset
 
     Returns
     -------
@@ -78,21 +89,40 @@ def __get_coords(dset, data_sel: tuple, dims: list) -> list:
                 if np.all(buff == 0):
                     buff = np.arange(dim[0].size, dtype=dim[0].dtype)
 
-                coords.append((PurePath(dim[0].name).name, buff \
+                coords.append((PurePath(dim[0].name).name, buff
                                if data_sel is None else buff[data_sel[ii]]))
         except RuntimeError:
             coords = []
-        else:
-            return coords
 
-    # Only necessary when no dimension scales are defined or they are corrupted
-    # set default dimension names
+    return coords
+
+
+def __set_coords(dset, data_sel: tuple, dims: list) -> list:
+    """
+    Set coordinates of the HDF5 dataset
+
+    Parameters
+    ----------
+    dset :  h5py.Dataset
+       h5py dataset from which the data is read
+    data_sel :  tuple of slice(s)
+       A numpy slice generated for example numpy.s_
+       Default read while array
+    dims : list of strings
+       Alternative names for the dataset dimensions if not attached to dataset
+       Default coordinate names are ['time', ['row', ['column']]]
+
+    Returns
+    -------
+    A sequence of tuples [(dims, data), ...]
+    """
     if dims is None:
         if dset.ndim > 3:
             raise ValueError('not implemented for ndim > 3')
 
         dims = ['time', 'row', 'column'][-dset.ndim:]
 
+    coords = []
     for ii in range(dset.ndim):
         buff = np.arange(dset.shape[ii], dtype='u4')
         if data_sel is not None:
@@ -194,15 +224,6 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
         if data_sel in (np.s_[:], np.s_[...], np.s_[()]):
             data_sel = None
 
-    if field is not None:
-        try:
-            _field = {'name': field,
-                      'oneof': len(h5_dset.dtype.names),
-                      'index': h5_dset.dtype.names.index(field)}
-        except Exception as exc:
-            raise RuntimeError('field {} not found in dataset {}'.format(
-                field, h5_dset.name)) from exc
-
     # Name of this array
     name = PurePath(h5_dset.name).name
 
@@ -210,7 +231,11 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     data = __get_data(h5_dset, data_sel, field)
 
     # Coordinates (tick labels) to use for indexing along each dimension
-    coords = __get_coords(h5_dset, data_sel, dims)
+    coords = []
+    if dims is None:
+        coords = __get_coords(h5_dset, data_sel)
+    if not coords:
+        coords = __set_coords(h5_dset, data_sel, dims)
 
     # Attributes to assign to the array
     attrs = __get_attrs(h5_dset, field)
@@ -222,15 +247,3 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
                 del coords[ii]
 
     return xr.DataArray(data, name=name, attrs=attrs, coords=coords)
-
-
-# --------------------------------------------------
-if __name__ == '__main__':
-    with h5py.File('S5P_OPER_AUX_L1_CKD.h5', 'r') as fid:
-        print('------------------------- NO DATA_SEL -------------------------')
-        print(h5_to_xr(fid['BAND7/PRNU'], field='value'))
-        print('----------------------- WITH DATA_SEL -------------------------')
-        print(h5_to_xr(fid['BAND7/PRNU'], field='value',
-                       data_sel=np.s_[:-1, :]))
-        print(h5_to_xr(fid['BAND7/PRNU'], field='value',
-                       data_sel=np.s_[200, :]))
