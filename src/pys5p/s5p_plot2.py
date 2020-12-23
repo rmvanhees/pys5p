@@ -31,8 +31,8 @@ from . import error_propagation
 from . import swir_region
 from .biweight import biweight
 from .ckd_io import CKDio
-from .lib.plotlib import (blank_legend_key, check_data2d, FIGinfo,
-                          get_fig_coords, get_xdata, MidpointNormalize)
+from .lib.plotlib2 import (blank_legend_key, check_data2d, FIGinfo,
+                           get_fig_coords, get_xdata, MidpointNormalize)
 from .tol_colors import tol_cmap, tol_cset
 
 
@@ -792,28 +792,28 @@ class S5Pplot:
             if method == 'error':
                 img_data = data_in.error.copy()
             else:
-                img_data = data_in.value.copy()
+                img_data = data_in.values.copy()
 
             if method == 'ratio_unc':
                 self.unset_zunit()
                 mask = ref_data.value != 0.
                 img_data[~mask] = np.nan
                 img_data[mask] = error_propagation.unc_div(
-                    data_in.value[mask], data_in.error[mask],
+                    data_in.values[mask], data_in.error[mask],
                     ref_data.value[mask], ref_data.error[mask])
             elif method == 'diff':
-                self.set_zunit(data_in.units)
-                mask = np.isfinite(data_in.value) & np.isfinite(ref_data)
+                self.set_zunit(data_in.attrs['units'])
+                mask = np.isfinite(data_in.values) & np.isfinite(ref_data)
                 img_data[~mask] = np.nan
                 img_data[mask] -= ref_data[mask]
             elif method == 'ratio':
                 self.unset_zunit()
-                mask = (np.isfinite(data_in.value)
+                mask = (np.isfinite(data_in.values)
                         & np.isfinite(ref_data) & (ref_data != 0.))
                 img_data[~mask] = np.nan
                 img_data[mask] /= ref_data[mask]
             else:
-                self.set_zunit(data_in.units)
+                self.set_zunit(data_in.attrs['units'])
 
         return img_data
 
@@ -890,7 +890,7 @@ class S5Pplot:
         if isinstance(data, np.ndarray):
             qval = float_to_quality(qthres, data)
         else:
-            qval = float_to_quality(qthres, data.value)
+            qval = float_to_quality(qthres, data.values)
 
         if ref_data is None:
             return qval

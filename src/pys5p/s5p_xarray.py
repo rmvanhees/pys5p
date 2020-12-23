@@ -103,7 +103,7 @@ def __set_coords(dset, data_sel: tuple, dims: list) -> list:
 
     Parameters
     ----------
-    dset :  h5py.Dataset
+    dset :  h5py.Dataset or numpy.array
        h5py dataset from which the data is read
     data_sel :  tuple of slice(s)
        A numpy slice generated for example numpy.s_
@@ -245,5 +245,34 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
         for ii in reversed(range(len(coords))):
             if np.isscalar(coords[ii][1]):
                 del coords[ii]
+
+    return xr.DataArray(data, name=name, attrs=attrs, coords=coords)
+
+
+def data_to_xr(data, dims=None, name=None, long_name=None, units=None):
+    """
+    Create xarray::DataArray from a dataset
+
+    Parameters
+    ----------
+    data :  array-like
+       Data to be stored in the xarray
+    dims :  list of strings
+       Names for the dataset dimensions
+    name : str
+       A string that names the instance
+    units :  str
+       Units of the data, default: '1'
+    long_name : str
+       Long name describing the data, default: empty string
+
+    Returns
+    -------
+    xarray.DataArray
+    """
+    coords = __set_coords(data, None, dims)
+    attrs = {}
+    attrs['units'] = '1' if units is None else units
+    attrs['long_name'] = '' if long_name is None else long_name
 
     return xr.DataArray(data, name=name, attrs=attrs, coords=coords)
