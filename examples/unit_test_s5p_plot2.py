@@ -13,6 +13,7 @@ License:  BSD-3-Clause
 """
 from datetime import datetime, timedelta
 import numpy as np
+import xarray as xr
 
 from pys5p.lib.plotlib import FIGinfo
 from pys5p.s5p_xarray import data_to_xr
@@ -137,22 +138,35 @@ def run_draw_trend1d(plot):
         ('obm_temp', 'SWIR OBM temperature', 'K', np.float32)]
     hk_dtype = np.dtype(
         [(parm[0], parm[3]) for parm in hk_params])
-    hk_data = S5Pmsm(np.zeros(200, dtype=hk_dtype))
-    hk_data.error = np.zeros((200, 2), dtype=hk_dtype)
+    hk_min = np.zeros(200, dtype=hk_dtype)
+    hk_avg = np.zeros(200, dtype=hk_dtype)
+    hk_max = np.zeros(200, dtype=hk_dtype)
     data = 140. + (100 - np.arange(200)) / 1000
-    hk_data.value['detector_temp'][:] = data
-    hk_data.error['detector_temp'][:, 0] = data - .0125
-    hk_data.error['detector_temp'][:, 1] = data + .0075
-    data = 202.1 + (100 - np.arange(200)) / 250
-    hk_data.value['grating_temp'][:] = data
-    hk_data.error['grating_temp'][:, 0] = data - .15
-    hk_data.error['grating_temp'][:, 1] = data + .175
-    data = 208.2 + (100 - np.arange(200)) / 750
-    hk_data.value['obm_temp'][:] = data
-    hk_data.error['obm_temp'][:, 0] = data - .15
-    hk_data.error['obm_temp'][:, 1] = data + .175
-    hk_data.set_units([parm[2] for parm in hk_params])
-    hk_data.set_long_name([parm[1] for parm in hk_params])
+    hk_min['detector_temp'][:] = data - .0125
+    hk_avg['detector_temp'][:] = data
+    hk_max['detector_temp'][:] = data + .0075
+    data = 202.1 + (100 - np.arange(200)) / 1000
+    hk_min['grating_temp'][:] = data - .15
+    hk_avg['grating_temp'][:] = data
+    hk_max['grating_temp'][:] = data + .175
+    data = 208.2 + (100 - np.arange(200)) / 1000
+    hk_min['obm_temp'][:] = data - .15
+    hk_avg['obm_temp'][:] = data
+    hk_max['obm_temp'][:] = data + .175
+    units = [parm[2] for parm in hk_params]
+    long_name = [parm[1] for parm in hk_params]
+    msm_min = data_to_xr(hk_min, dims=['orbit'],
+                         long_name=long_name, units=units)
+    msm_avg = data_to_xr(hk_avg, dims=['orbit'],
+                         long_name=long_name, units=units)
+    msm_max = data_to_xr(hk_max, dims=['orbit'],
+                         long_name=long_name, units=units)
+    hk_ds = xr.Dataset({'hk_min': msm_min,
+                        'hk_avg': msm_avg,
+                        'hk_max': msm_max},
+                       attrs=msm_avg.attrs)
+    print(hk_ds)
+    return
 
     plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
                       title='Unit test of S5Pplot [draw_trend1d]',
@@ -246,11 +260,11 @@ def main():
     """
     main function
     """
-    plot = S5Pplot('unit_test_s5p_plot.pdf')
-    check_draw_signal = True
-    check_draw_quality = True
-    check_draw_cmp_images = True
-    check_draw_trend1d = False
+    plot = S5Pplot('unit_test_s5p_plot2.pdf')
+    check_draw_signal = False
+    check_draw_quality = False
+    check_draw_cmp_images = False
+    check_draw_trend1d = True
     check_draw_lines = False
     check_draw_qhist = False
 
