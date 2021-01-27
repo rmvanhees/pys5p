@@ -19,58 +19,77 @@ from pys5p.lib.plotlib import FIGinfo
 from pys5p.s5p_xarray import data_to_xr
 from pys5p.s5p_plot2 import S5Pplot
 
+def get_test_data(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
+    """
+    Generate synthetic data to simulate a square-detector image
+    """
+    if data_sel is None:
+        data_sel = [(), ()]
+
+    res = np.arange(xy_min, xy_max, delta)
+    xmesh, ymesh = np.meshgrid(res[data_sel[1]], res[data_sel[0]])
+    zz1 = np.exp(-xmesh ** 2 - ymesh ** 2)
+    zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
+    data = (zz1 - zz2) * 2
+    data += np.random.default_rng().normal(0., error, data.shape)
+
+    return data_to_xr(data, long_name='bogus data', units='Volt')
 
 # --------------------------------------------------
 def run_draw_signal(plot):
     """
     Run unit tests on S5Pplot::draw_signal
     """
-    print('Run unit tests on S5Pplot::draw_signal')
-    delta = 0.01
-    xx = yy = np.arange(-5.0, 5.0, delta)
-    xmesh, ymesh = np.meshgrid(xx, yy)
-    zz1 = np.exp(-xmesh ** 2 - ymesh ** 2)
-    zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
-    data = (zz1 - zz2) * 2
-
-    msm = data_to_xr(data, long_name='bogus data', units='Volt')
-
-    plot.draw_signal(msm,
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='aspect=1; fig_pos=above')
-
-    plot.draw_signal(data[500-250:500+250, :],
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='aspect=2; fig_pos=above')
-
-    plot.set_zunit('electron.s-1')
-    plot.draw_signal(data[500-125:500+125, 500-375:500+375],
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='aspect=3; fig_pos=above')
-
-    plot.unset_zunit()
-    plot.draw_signal(data[500-128:500+128, :],
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='aspect=4; fig_pos=above')
+    msm = get_test_data(error=.1)
+    # msm_ref = get_test_data(error=0.025)
 
     nlines = 40 # 35
     fig_info_in = FIGinfo('right')
     for ii in range(nlines):
         fig_info_in.add('line {:02d}'.format(ii), 5 * '0123456789')
-    plot.draw_signal(data, fig_info=fig_info_in.copy(),
+
+    plot.draw_signal(msm,
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='method=data; aspect=1; fig_pos=above')
+    plot.draw_signal(msm, method='diff',
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='method=diff; aspect=1; fig_pos=above')
+    plot.draw_signal(msm, method='ratio',
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='method=ratio; aspect=1; fig_pos=above')
+    plot.draw_signal(msm, method='ratio_unc',
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='method=ratio_unc; aspect=1; fig_pos=above')
+    plot.draw_signal(msm, method='error',
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='method=error; aspect=1; fig_pos=above')
+    plot.draw_signal(msm, fig_info=fig_info_in.copy(),
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=1; fig_pos=right')
 
-    plot.draw_signal(data[500-250:500+250, :], fig_info=fig_info_in.copy(),
+    msm = get_test_data(data_sel=np.s_[500-250:500+250, :], error=.1)
+    plot.draw_signal(msm,
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='aspect=2; fig_pos=above')
+    plot.draw_signal(msm, fig_info=fig_info_in.copy(),
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=2; fig_pos=right')
 
-    plot.draw_signal(data[500-125:500+125, 500-375:500+375],
+    msm = get_test_data(data_sel=np.s_[500-125:500+125, 500-375:500+375],
+                        error=.1)
+    plot.draw_signal(msm,
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='aspect=3; fig_pos=above')
+    plot.draw_signal(msm,
                      fig_info=fig_info_in.copy(),
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=3; fig_pos=right')
 
-    plot.draw_signal(data[500-128:500+128, :], fig_info=fig_info_in.copy(),
+    msm = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.1)
+    plot.draw_signal(msm,
+                     title='Unit test of S5Pplot [draw_signal]',
+                     sub_title='aspect=4; fig_pos=above')
+    plot.draw_signal(msm, fig_info=fig_info_in.copy(),
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=4; fig_pos=right')
 
@@ -258,36 +277,36 @@ def main():
     main function
     """
     plot = S5Pplot('unit_test_s5p_plot2.pdf')
-    check_draw_signal = False
-    check_draw_quality = False
+    check_draw_signal = True
     check_draw_cmp_images = False
+    check_draw_quality = False
+    check_draw_qhist = False
     check_draw_trend1d = False
     check_draw_lines = False
-    check_draw_qhist = True
 
     # ---------- UNIT TEST: draw_signal ----------
     if check_draw_signal:
         run_draw_signal(plot)
 
-    # ---------- UNIT TEST: draw_quality ----------
-    if check_draw_quality:
-        run_draw_quality(plot)
-
     # ---------- UNIT TEST: draw_cmp_images ----------
     if check_draw_cmp_images:
         run_draw_cmp_swir(plot)
 
-    # ---------- UNIT TEST: draw_lines ----------
+    # ---------- UNIT TEST: draw_quality ----------
+    if check_draw_quality:
+        run_draw_quality(plot)
+
+    # ---------- UNIT TEST: draw_qhist ----------
+    if check_draw_qhist:
+        run_draw_qhist(plot)
+
+    # ---------- UNIT TEST: draw_trend1d ----------
     if check_draw_trend1d:
         run_draw_trend1d(plot)
 
     # ---------- UNIT TEST: draw_lines ----------
     if check_draw_lines:
         run_draw_lines(plot)
-
-    # ---------- UNIT TEST: draw_qhist ----------
-    if check_draw_qhist:
-        run_draw_qhist(plot)
 
     # close figure
     plot.close()

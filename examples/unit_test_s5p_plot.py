@@ -19,13 +19,14 @@ from pys5p.s5p_msm import S5Pmsm
 from pys5p.s5p_plot import S5Pplot
 
 
-def get_msm(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
+def get_test_data(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
     """
+    Generate synthetic data to simulate a square-detector image 
     """
     if data_sel is None:
         data_sel = [(), ()]
 
-    res = np.arange(-5.0, 5.0, delta)
+    res = np.arange(xy_min, xy_max, delta)
     xmesh, ymesh = np.meshgrid(res[data_sel[1]], res[data_sel[0]])
     zz1 = np.exp(-xmesh ** 2 - ymesh ** 2)
     zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
@@ -47,8 +48,8 @@ def run_draw_signal(plot):
     """
     print('Run unit tests on S5Pplot::draw_signal')
 
-    msm = get_msm(error=.1)
-    msm_ref = get_msm(error=0.025)
+    msm = get_test_data(error=.1)
+    msm_ref = get_test_data(error=0.025)
 
     nlines = 40 # 35
     fig_info_in = FIGinfo('right')
@@ -74,7 +75,7 @@ def run_draw_signal(plot):
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=1; fig_pos=right')
 
-    msm = get_msm(data_sel=np.s_[500-250:500+250, :], error=.1)
+    msm = get_test_data(data_sel=np.s_[500-250:500+250, :], error=.1)
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=2; fig_pos=above')
@@ -82,7 +83,7 @@ def run_draw_signal(plot):
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=2; fig_pos=right')
 
-    msm = get_msm(data_sel=np.s_[500-125:500+125, 500-375:500+375], error=.1)
+    msm = get_test_data(data_sel=np.s_[500-125:500+125, 500-375:500+375], error=.1)
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=3; fig_pos=above')
@@ -91,7 +92,7 @@ def run_draw_signal(plot):
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=3; fig_pos=right')
 
-    msm = get_msm(data_sel=np.s_[500-128:500+128, :], error=.1)
+    msm = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.1)
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=4; fig_pos=above')
@@ -106,8 +107,8 @@ def run_draw_cmp_swir(plot):
     """
     print('Run unit tests on S5Pplot::draw_cmp_swir')
 
-    msm = get_msm(data_sel=np.s_[500-128:500+128, :], error=.1)
-    msm_ref = get_msm(data_sel=np.s_[500-128:500+128, :], error=.025)
+    msm = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.1)
+    msm_ref = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.025)
 
     plot.draw_cmp_swir(msm, msm_ref.value,
                        title='Unit test of S5Pplot [draw_cmp_images]',
