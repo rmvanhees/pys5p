@@ -14,77 +14,92 @@ import warnings
 
 import numpy as np
 
+# from memory_profiler import profile
+
 
 # ----- local functions -------------------------
 def __biweight(data, spread=False):
     """
-    Calculate biweight median and spread, for whole dataset
+    Calculate biweight parameters for the whole dataset
     """
-    mask = np.isfinite(data)
-    if np.all(~mask):
-        if spread:
-            return (np.nan, 0.)
-
-        return np.nan
-
-    # calculate biweight median
-    data_median = np.nanmedian(data)
-    delta = data - data_median
-    delta_median = np.nanmedian(np.abs(delta))
+    # calculate median and median absolute difference
+    if np.isnan(data).any():
+        biweight_median = np.nanmedian(data)
+        delta = data - biweight_median
+        delta_median = np.nanmedian(np.abs(delta))
+    else:
+        biweight_median = np.median(data)
+        delta = data - biweight_median
+        delta_median = np.median(np.abs(delta))
     if delta_median == 0.:
         if spread:
-            return (data_median, 0.)
-
-        return data_median
-
-    wmx = np.clip(1 - (delta / (6 * delta_median)) ** 2, 0, None) ** 2
-    biweight_median = data_median + np.nansum(wmx * delta) / np.nansum(wmx)
-    if not spread:
+            return (biweight_median, 0.)
         return biweight_median
-
-    # calculate biweight spread
-    umn = np.clip((delta / (9 * delta_median)) ** 2, None, 1)
-    buff = np.nansum(delta ** 2 * (1 - umn) ** 4)
-    buff /= np.nansum((1 - umn) * (1 - 5 * umn)) ** 2
-    biweight_spread = np.sqrt(np.sum(mask) * buff)
-
-    return (biweight_median, biweight_spread)
-
-
-def __biweight_axis(data, axis, spread=False):
-    """
-    Calculate only biweight median, along a given axis
-    """
-    mask = np.isfinite(data)
-    all_nan = np.all(np.isnan(data), axis=axis)
 
     # calculate biweight median
-    data_median = np.nanmedian(data, axis=axis, keepdims=True)
-    delta = data - data_median
-    delta_median = np.nanmedian(np.abs(delta), axis=axis, keepdims=True)
-    _mm = delta_median != 0.
-    delta_median[~_mm] = np.nan
-
     wmx = np.clip(1 - (delta / (6 * delta_median)) ** 2, 0, None) ** 2
-    biweight_median = np.squeeze(data_median)
-    _mm = np.squeeze(_mm) & ~all_nan
-    biweight_median[_mm] += \
-        np.nansum(wmx * delta, axis=axis)[_mm] / np.nansum(wmx, axis=axis)[_mm]
+    biweight_median += np.nansum(wmx * delta) / np.nansum(wmx)
     if not spread:
         return biweight_median
 
-    # calculate biweight spread
+    # calculate biweight variance
     umn = np.clip((delta / (9 * delta_median)) ** 2, None, 1)
-    buff = np.nansum(delta ** 2 * (1 - umn) ** 4, axis=axis)[_mm]
-    buff /= np.nansum((1 - umn) * (1 - 5 * umn), axis=axis)[_mm] ** 2
-    biweight_spread = np.full(biweight_median.shape, np.nan)
-    biweight_spread[_mm] = np.sqrt(np.sum(mask, axis=axis)[_mm] * buff)
+    biweight_var = np.nansum(delta ** 2 * (1 - umn) ** 4)
+    biweight_var /= np.nansum((1 - umn) * (1 - 5 * umn)) ** 2
+    biweight_var *= np.sum(np.isfinite(data))
 
-    return (biweight_median, biweight_spread)
+    return (biweight_median, np.sqrt(biweight_var))
+
+
+# @profile(precision=1)
+def __biweight_axis(data, axis, spread=False):
+    """
+    Calculate biweight parameters, along a given axis
+
+    Notes
+    -----
+    Data should not contain any invalid value
+    """
+    # calculate median and median absolute difference
+    if np.isnan(data).any():
+        all_nan = np.isnan(data).all(axis=axis)
+        biweight_median = np.nanmedian(data, axis=axis, keepdims=True)
+        delta = data - biweight_median
+        delta_median = np.nanmedian(np.abs(delta), axis=axis, keepdims=True)
+        _mm = delta_median != 0.
+        delta_median[~_mm] = np.nan
+        _mm = np.squeeze(_mm) & ~all_nan
+    else:
+        biweight_median = np.median(data, axis=axis, keepdims=True)
+        delta = data - biweight_median
+        delta_median = np.median(np.abs(delta), axis=axis, keepdims=True)
+        _mm = delta_median != 0.
+        delta_median[~_mm] = np.nan
+        _mm = np.squeeze(_mm)
+    biweight_median = np.squeeze(biweight_median)
+
+    # calculate biweight median
+    wmx = np.clip(1 - (delta / (6 * delta_median)) ** 2, 0, None) ** 2
+    biweight_median[_mm] += \
+        np.nansum(wmx * delta, axis=axis)[_mm] / np.nansum(wmx, axis=axis)[_mm]
+    del wmx
+    if not spread:
+        return biweight_median
+
+    # calculate biweight variance
+    umn = np.clip((delta / (9 * delta_median)) ** 2, None, 1)
+    del delta_median
+    biweight_var = np.nansum(delta ** 2 * (1 - umn) ** 4, axis=axis)
+    del delta
+    biweight_var[_mm] /= \
+        np.nansum((1 - umn) * (1 - 5 * umn), axis=axis)[_mm] ** 2
+    biweight_var[_mm] *= np.sum(np.isfinite(data), axis=axis)[_mm]
+
+    return (biweight_median, np.sqrt(biweight_var))
 
 
 # ----- main function -------------------------
-def biweight(data, axis=None, spread=False):
+def biweight2(data, axis=None, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
@@ -101,10 +116,15 @@ def biweight(data, axis=None, spread=False):
 
     Returns
     -------
-    out    :   ndarray
-       biweight median and biweight spread if function argument "spread" is True
+    out    :   ndarray or tuple
+       biweight median and biweight spread if parameter "spread" is True
     """
     if axis is None or data.ndim == 1:
+        mask = np.isfinite(data)
+        if np.all(~mask):
+            if spread:
+                return (np.nan, 0.)
+            return np.nan
         return __biweight(data, spread)
 
     # only a single axis!
