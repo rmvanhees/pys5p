@@ -3,19 +3,17 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-Implementation of the Tukey's biweight algorithm
+Python implementation of the Tukey's biweight algorithm.
 
-Copyright (c) 2019-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2019-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
 """
+import gc
 import warnings
 
 import numpy as np
-
-# from memory_profiler import profile
-
 
 # ----- local functions -------------------------
 def __biweight(data, spread=False):
@@ -39,19 +37,22 @@ def __biweight(data, spread=False):
     # calculate biweight median
     wmx = np.clip(1 - (delta / (6 * delta_median)) ** 2, 0, None) ** 2
     biweight_median += np.nansum(wmx * delta) / np.nansum(wmx)
+    del wmx
+    gc.collect()
     if not spread:
         return biweight_median
 
     # calculate biweight variance
     umn = np.clip((delta / (9 * delta_median)) ** 2, None, 1)
     biweight_var = np.nansum(delta ** 2 * (1 - umn) ** 4)
+    del delta
+    gc.collect()
     biweight_var /= np.nansum((1 - umn) * (1 - 5 * umn)) ** 2
     biweight_var *= np.sum(np.isfinite(data))
 
     return (biweight_median, np.sqrt(biweight_var))
 
 
-# @profile(precision=1)
 def __biweight_axis(data, axis, spread=False):
     """
     Calculate biweight parameters, along a given axis
@@ -83,6 +84,7 @@ def __biweight_axis(data, axis, spread=False):
     biweight_median[_mm] += \
         np.nansum(wmx * delta, axis=axis)[_mm] / np.nansum(wmx, axis=axis)[_mm]
     del wmx
+    gc.collect()
     if not spread:
         return biweight_median
 
@@ -91,6 +93,7 @@ def __biweight_axis(data, axis, spread=False):
     del delta_median
     biweight_var = np.nansum(delta ** 2 * (1 - umn) ** 4, axis=axis)
     del delta
+    gc.collect()
     biweight_var[_mm] /= \
         np.nansum((1 - umn) * (1 - 5 * umn), axis=axis)[_mm] ** 2
     biweight_var[_mm] *= np.sum(np.isfinite(data), axis=axis)[_mm]
@@ -99,7 +102,7 @@ def __biweight_axis(data, axis, spread=False):
 
 
 # ----- main function -------------------------
-def biweight2(data, axis=None, spread=False):
+def biweight(data, axis=None, spread=False):
     """
     Calculate Tukey's biweight.
     Implementation based on Eqn. 7.6 and 7.7 in the SWIR OCAL ATBD.
