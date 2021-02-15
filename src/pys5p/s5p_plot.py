@@ -607,28 +607,16 @@ class S5Pplot:
                 fcolor = '#EEBBDD'
 
             ydata = hk_data.value[key].copy()
-            yerr1 = hk_data.error[key][:, 0].copy()
-            yerr2 = hk_data.error[key][:, 1].copy()
             for indx in reversed(gap_list):
                 ydata = np.insert(ydata, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
                 ydata = np.insert(ydata, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
                 ydata = np.insert(ydata, indx, ydata[indx-1])
-                yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
-                yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
 
             if np.all(np.isnan(ydata)):
                 ydata[:] = 0
-                yerr1[:] = 0
-                yerr2[:] = 0
 
             if use_steps:
                 ydata = np.append(ydata, ydata[-1])
-                yerr1 = np.append(yerr1, yerr1[-1])
-                yerr2 = np.append(yerr2, yerr2[-1])
                 axarr[i_ax].step(xdata, ydata, where='post',
                                  linewidth=1.5, color=lcolor)
             else:
@@ -642,17 +630,35 @@ class S5Pplot:
                 ni = 2 * 15
                 ylim = [min(ybuff[0:ni].min(), ybuff[-ni:].min()),
                         max(ybuff[0:ni].max(), ybuff[-ni:].max())]
-            if not (np.array_equal(ydata, yerr1)
-                    and np.array_equal(ydata, yerr2)):
-                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                         step='post', facecolor=fcolor)
-                ybuff1 = yerr1[np.isfinite(yerr1)]
-                ybuff2 = yerr2[np.isfinite(yerr2)]
-                if xlabel == 'orbit' \
-                   and ybuff1.size > 5 * 15 and ybuff2.size > 5 * 15:
-                    ni = 2 * 15
-                    ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
-                            max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
+
+            # add errors on the y-parameter
+            if hk_data.error is not None and not np.all(np.isnan(ydata)):
+                yerr1 = hk_data.error[key][:, 0].copy()
+                yerr2 = hk_data.error[key][:, 1].copy()
+                for indx in reversed(gap_list):
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+                if use_steps:
+                    yerr1 = np.append(yerr1, yerr1[-1])
+                    yerr2 = np.append(yerr2, yerr2[-1])
+
+                if not (np.array_equal(ydata, yerr1)
+                        and np.array_equal(ydata, yerr2)):
+                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                             step='post', facecolor=fcolor)
+                    ybuff1 = yerr1[np.isfinite(yerr1)]
+                    ybuff2 = yerr2[np.isfinite(yerr2)]
+                    if xlabel == 'orbit' \
+                       and ybuff1.size > 5 * 15 and ybuff2.size > 5 * 15:
+                        ni = 2 * 15
+                        ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
+                                max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
+
             axarr[i_ax].locator_params(axis='y', nbins=4)
             axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
             if ylim is not None:
