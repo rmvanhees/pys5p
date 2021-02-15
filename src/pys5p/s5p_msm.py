@@ -192,15 +192,17 @@ class S5Pmsm():
             if datapoint:
                 self.value = h5_dset['value'][data_sel]
                 self.error = h5_dset['error'][data_sel]
-                for ii, elmnt in enumerate(data_sel):
-                    if isinstance(elmnt, (int, np.int64)):
-                        self.value = np.expand_dims(self.value, axis=ii)
-                        self.error = np.expand_dims(self.error, axis=ii)
+                if isinstance(data_sel, tuple):
+                    for ii, elmnt in enumerate(data_sel):
+                        if isinstance(elmnt, (int, np.int64)):
+                            self.value = np.expand_dims(self.value, axis=ii)
+                            self.error = np.expand_dims(self.error, axis=ii)
             else:
                 self.value = h5_dset[data_sel]
-                for ii, elmnt in enumerate(data_sel):
-                    if isinstance(elmnt, (int, np.int64)):
-                        self.value = np.expand_dims(self.value, axis=ii)
+                if isinstance(data_sel, tuple):
+                    for ii, elmnt in enumerate(data_sel):
+                        if isinstance(elmnt, (int, np.int64)):
+                            self.value = np.expand_dims(self.value, axis=ii)
 
         # set default dimension names
         if h5_dset.ndim == 1:
@@ -246,7 +248,9 @@ class S5Pmsm():
                 else:                          # bug in some KMNI HDF5 files
                     buff = np.arange(h5_dset.shape[ii])
 
-                if len(data_sel) == h5_dset.ndim:
+                if isinstance (data_sel, slice):
+                    dims.append(buff[data_sel])
+                elif len(data_sel) == h5_dset.ndim:
                     dims.append(buff[data_sel[ii]])
                 elif not isinstance(data_sel, tuple):
                     dims.append(buff[data_sel])
