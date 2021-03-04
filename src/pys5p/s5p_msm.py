@@ -370,7 +370,7 @@ class S5Pmsm():
         """
         Set fillvalue to KNMI undefined
         """
-        if self.value.dtype in (np.float, np.float32):
+        if np.issubdtype(self.value.dtype, np.floating):
             if self.fillvalue is None or self.fillvalue == 0.:
                 self.fillvalue = float.fromhex('0x1.ep+122')
 

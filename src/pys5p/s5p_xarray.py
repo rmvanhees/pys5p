@@ -158,8 +158,7 @@ def __get_data(dset, data_sel: tuple, field: str):
         data_sel = ()
 
     if np.issubdtype(dset.dtype, np.floating):
-        with dset.astype(float):
-            data = dset[data_sel]
+        data = dset.astype(float)[data_sel]
         return data
 
     if field is None:

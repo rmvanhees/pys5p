@@ -491,8 +491,7 @@ class OCMio():
 
             # read data
             if dset.dtype == np.float32:
-                with dset.astype(np.float):
-                    data = np.squeeze(dset[data_sel])
+                data = np.squeeze(dset.astype(float)[data_sel])
             else:
                 data = np.squeeze(dset[data_sel])
 
@@ -544,8 +543,7 @@ class OCMio():
             if dest_dtype is None:
                 buff = dset[dest_sel]
             else:
-                with dset.astype(dest_dtype):
-                    buff = dset[dest_sel]
+                buff = dset.astype(dest_dtype)[dest_sel]
 
             if fill_as_nan:
                 if dset.attrs['_FillValue'] == fillvalue:

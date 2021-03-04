@@ -758,7 +758,7 @@ class ICMio():
         Returns
         -------
         out  :  array
-           Data of measurement dataset "msm_dset" (floats converted to np.float)
+           Data of measurement dataset "msm_dset"
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -827,8 +827,7 @@ class ICMio():
                         raise ValueError
 
                 if dset.dtype == np.float32:
-                    with dset.astype(np.float):
-                        res = np.squeeze(dset[data_sel])
+                    res = np.squeeze(dset.astype(float)[data_sel])
                 else:
                     res = np.squeeze(dset[data_sel])
 
@@ -897,8 +896,7 @@ class ICMio():
                             fillvalue = dset.attrs['_FillValue'][0]
                             buff[(buff == fillvalue)] = np.nan
                 else:
-                    with dset.astype(dest_dtype):
-                        buff = dset[dest_sel]
+                    buff = dset.astype(dest_dtype)[dest_sel]
                     if fill_as_nan and '_FillValue' in dset.attrs:
                         if np.issubdtype(buff.dtype, np.floating):
                             buff[(buff == fillvalue)] = np.nan

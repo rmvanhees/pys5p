@@ -417,13 +417,13 @@ class LV2io():
 
         res = {}
         _sz = lon_bounds.shape
-        res['longitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=np.float)
+        res['longitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=float)
         res['longitude'][:-1, :-1] = lon_bounds[:, :, 0]
         res['longitude'][-1, :-1] = lon_bounds[-1, :, 1]
         res['longitude'][:-1, -1] = lon_bounds[:, -1, 1]
         res['longitude'][-1, -1] = lon_bounds[-1, -1, 2]
 
-        res['latitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=np.float)
+        res['latitude'] = np.empty((_sz[0]+1, _sz[1]+1), dtype=float)
         res['latitude'][:-1, :-1] = lat_bounds[:, :, 0]
         res['latitude'][-1, :-1] = lat_bounds[-1, :, 1]
         res['latitude'][:-1, -1] = lat_bounds[:, -1, 1]
@@ -447,14 +447,12 @@ class LV2io():
         dset = self.fid['/PRODUCT/{}'.format(name)]
         if data_sel is None:
             if dset.dtype == np.float32:
-                with dset.astype(np.float):
-                    res = dset[0, ...]
+                res = dset.astype(float)[0, ...]
             else:
                 res = dset[0, ...]
         else:
             if dset.dtype == np.float32:
-                with dset.astype(np.float):
-                    res = dset[data_sel]
+                res = dset.astype(float)[data_sel]
             else:
                 res = dset[data_sel]
 

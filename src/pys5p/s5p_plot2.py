@@ -543,7 +543,7 @@ class S5Pplot:
         use_steps = xdata.size <= 256
         xdata, gap_list = get_xdata(xdata, use_steps)
         if xlabel == 'time':
-            xdata = xdata.astype(np.float) / 3600
+            xdata = xdata.astype(float) / 3600
 
         for key in hk_keys:
             if key not in hk_data['avg'].values.dtype.names:
