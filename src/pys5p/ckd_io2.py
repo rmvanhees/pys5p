@@ -10,12 +10,17 @@ ToDo
  - access to UVN CKD, still incomplete
  - identify latest Static CKD product, e.g. using the validity period
 
+Environment
+-----------
+CKD_DIR :  directory with Tropomi (SWIR) CKD
+
 Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
 """
 from datetime import datetime
+from os import environ
 from pathlib import Path, PosixPath
 
 import h5py
@@ -663,7 +668,7 @@ def main():
     """
     Main function
     """
-    ckd = CKDio(ckd_dir='/data2/richardh/Tropomi/share/ckd')
+    ckd = CKDio(ckd_dir=environ.get('CKD_DIR', '.'))
     prnu_ckd = ckd.prnu()
     print(prnu_ckd)
     offs_ckd = ckd.offset()

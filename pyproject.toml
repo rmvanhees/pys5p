@@ -3,4 +3,3 @@
 requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
 
 [tool.setuptools_scm]
-fallback_version = '1.0.6'

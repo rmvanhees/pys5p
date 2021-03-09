@@ -33,6 +33,9 @@ or
 
 >  'pip install . --user`
 
+You may need to use the environment variable SETUPTOOLS\_SCM\_PRETEND\_VERSION
+if your source tree is not a git clone.
+
 ### Requirements
 
 These external packages are required to install pyS5p or gain access to
