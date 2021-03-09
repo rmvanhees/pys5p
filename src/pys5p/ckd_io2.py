@@ -12,7 +12,7 @@ ToDo
 
 Environment
 -----------
-CKD_DIR :  directory with Tropomi (SWIR) CKD
+CKD_DIR :  directory with Tropomi (SWIR) CKD, default is CWD
 
 Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
