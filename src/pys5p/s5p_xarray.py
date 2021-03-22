@@ -44,7 +44,8 @@ def __get_attrs(dset, field: str) -> dict:
 
     attrs = {}
     for key in dset.attrs:
-        if key == 'DIMENSION_LIST':
+        if key in ('CLASS', 'DIMENSION_LIST', 'NAME', 'REFERENCE_LIST',
+                   '_Netcdf4Dimid'):
             continue
 
         attr_value = dset.attrs[key]
