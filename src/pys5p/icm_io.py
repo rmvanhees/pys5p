@@ -258,7 +258,8 @@ class ICMio():
         return self.bands
 
     # ---------- Functions that work before MSM selection ----------
-    def get_orbit(self) -> int:
+    @property
+    def orbit(self) -> int:
         """
         Returns reference orbit number
         """
@@ -267,7 +268,8 @@ class ICMio():
 
         return None
 
-    def get_processor_version(self) -> str:
+    @property
+    def processor_version(self) -> str:
         """
         Returns version of the L01b processor
         """
@@ -281,7 +283,8 @@ class ICMio():
 
         return res
 
-    def get_coverage_time(self) -> tuple:
+    @property
+    def coverage_time(self) -> tuple:
         """
         Returns start and end of the measurement coverage time
         """
@@ -301,7 +304,8 @@ class ICMio():
 
         return (res1, res2)
 
-    def get_creation_time(self) -> str:
+    @property
+    def creation_time(self) -> str:
         """
         Returns version of the L01b processor
         """
@@ -328,7 +332,7 @@ class ICMio():
         return res
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time(self, band=None):
+    def get_ref_time(self, band=None) -> datetime:
         """
         Returns reference start time of measurements
 
