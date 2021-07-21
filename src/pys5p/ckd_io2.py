@@ -19,7 +19,6 @@ Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from datetime import datetime
 from os import environ
 from pathlib import Path, PosixPath
 
@@ -40,6 +39,7 @@ class CKDio():
     Attributes
     ----------
     ckd_dir : pathlib.Path
+    ckd_version : int
     ckd_file : pathlib.Path
     ckd_dyn_file : pathlib.Path
     fid : h5py.File
@@ -50,7 +50,7 @@ class CKDio():
        Close resources.
     creation_time()
        Returns datetime when the L1b product was created.
-    processor_version()
+    creator_version()
        Returns version of Tropomi L01B processor used to generate this procuct.
     validity_period()
        Return validity period of CKD product as a tuple of 2 datetime objects.
@@ -113,47 +113,63 @@ class CKDio():
 
     Version 2+:
     * All CKD in one file: glob('*_AUX_L1_CKD_*')
+    * Dynamic CKD are empty
 
     Examples
     --------
     """
-    def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd', ckd_file=None):
+    def __init__(self, ckd_dir=None, ckd_version=1, ckd_file=None):
         """
         Initialize access to a Tropomi Static CKD product
+
+        Parameters
+        ----------
+        ckd_dir :  str, optional
+           Directory where the CKD files are stored,
+           default='/nfs/Tropomi/share/ckd'
+        ckd_version :  int, optional
+           Version of the CKD, default=1
+        ckd_file : str, optional
+           Name of the CKD file, default=None then the CKD file is searched
+           in the directory ckd_dir with ckd_version in the glob-string
         """
+        if ckd_dir is None:
+            ckd_dir = '/nfs/Tropomi/share/ckd'
+        self.ckd_version = ckd_version
+        self.ckd_dyn_file = None
+
         # define path to CKD product
-        if ckd_file is not None:
+        if ckd_file is None:
+            if not Path(ckd_dir).is_dir():
+                raise FileNotFoundError(
+                    'Not found CKD directory: {}'.format(ckd_dir))
+            self.ckd_dir = Path(ckd_dir)
+            glob_str = '*_AUX_L1_CKD_*_*_00000_{:02d}_*_*.h5'.format(
+                ckd_version)
+            if (self.ckd_dir / 'static').is_dir():
+                res = sorted((self.ckd_dir / 'static').glob(glob_str))
+            else:
+                res = sorted(self.ckd_dir.glob(glob_str))
+            if not res:
+                raise FileNotFoundError('Static CKD product not found')
+            self.ckd_file = res[-1]
+        else:
             if not Path(ckd_file).is_file():
                 raise FileNotFoundError(
                     'Not found CKD file: {}'.format(ckd_file))
             self.ckd_dir = Path(ckd_file).parent
             self.ckd_file = Path(ckd_file)
-        else:
-            if not Path(ckd_dir).is_dir():
-                raise FileNotFoundError(
-                    'Not found CKD directory: {}'.format(ckd_dir))
-            self.ckd_dir = Path(ckd_dir)
-            if (self.ckd_dir / 'static').is_dir():
-                res = sorted((self.ckd_dir / 'static').glob('*_AUX_L1_CKD_*'))
-            else:
-                res = sorted(self.ckd_dir.glob('*_AUX_L1_CKD_*'))
-            if not res:
-                raise FileNotFoundError('Static CKD product not found')
-            self.ckd_file = res[-1]
 
         # obtain path to dynamic CKD product (version 1, only)
-        self.ckd_dyn_file = None
-        if (self.ckd_dir / 'dynamic').is_dir():
-            res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
-        else:
-            res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
-        if res:
-            self.ckd_dyn_file = res[-1]
+        if ckd_version == 1:
+            if (self.ckd_dir / 'dynamic').is_dir():
+                res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
+            else:
+                res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
+            if res:
+                self.ckd_dyn_file = res[-1]
 
-        # initialize class-attributes
-        self.__header = PosixPath('/METADATA', 'earth_explorer_header',
-                                  'fixed_header')
-
+        # open access to CKD product
         self.fid = h5py.File(self.ckd_file, "r")
 
     def __enter__(self):
@@ -180,45 +196,28 @@ class CKDio():
         """
         Returns datetime when the L1b product was created
         """
-        grpname = str(self.__header / 'source')
-        attr = self.fid[grpname].attrs['Creator_Date'][0]
-        if attr is None:
-            return None
+        if self.ckd_version == 2:
+            attr = self.fid['METADATA'].attrs['production_datetime']
+        else:
+            group = PosixPath('METADATA', 'earth_explorer_header',
+                              'fixed_header', 'source')
+            attr = self.fid[str(group)].attrs['Creator_Date'][0]
 
         if isinstance(attr, bytes):
-            return attr.decode('ascii')
+            attr = attr.decode('ascii')
         return attr
 
-    def processor_version(self) -> str:
+    def creator_version(self) -> str:
         """
         Returns version of Tropomi L01B processor used to generate this procuct
         """
-        grpname = str(self.__header / 'source')
-        attr = self.fid[grpname].attrs['Creator_Version'][0]
-        if attr is None:
-            return None
-
+        group = PosixPath('METADATA', 'earth_explorer_header', 'fixed_header')
+        attr = self.fid[str(group)].attrs['File_Version']
+        if self.ckd_version == 1:
+            attr = attr[0]
         if isinstance(attr, bytes):
-            return attr.decode('ascii')
+            attr = attr.decode('ascii')
         return attr
-
-    def validity_period(self) -> tuple:
-        """
-        Return validity period of CKD product as a tuple of 2 datetime objects
-        """
-        grpname = str(self.__header / 'validity_period')
-        attr = self.fid[grpname].attrs['Validity_Start'][0]
-        if attr is None:
-            return None
-        attr_bgn = attr.decode('ascii')
-
-        attr = self.fid[grpname].attrs['Validity_Stop'][0]
-        if attr is None:
-            return None
-        attr_end = attr.decode('ascii')
-
-        return (datetime.strptime(attr_bgn, '%Y%m%dT%H%M%S'),
-                datetime.strptime(attr_end, '%Y%m%dT%H%M%S'))
 
     @staticmethod
     def __get_spectral_channel(bands: str):
@@ -297,6 +296,7 @@ class CKDio():
         -----
         The V2C factor has no error attached to it.
         """
+        # pylint: disable=no-member
         return np.concatenate(
             (self.fid['/BAND7/v2c_factor_swir'].fields('value')[2:],
              self.fid['/BAND8/v2c_factor_swir'].fields('value')[2:]))
@@ -416,8 +416,9 @@ class CKDio():
         except Exception as exc:
             raise RuntimeError(exc) from exc
 
-        dset_name = '/BAND{}' + '/irr_conv_factor_qvd{}'.format(qvd)
+        dset_name = '/BAND{}' + '/abs_irr_conv_factor_qvd{}'.format(qvd)
         ckd = self.__rd_datapoints(dset_name, bands)
+        print(ckd)
         ckd.attrs["long_name"] = \
             '{} absolute irradiance CKD (QVD={})'.format(channel, qvd)
 
@@ -544,6 +545,7 @@ class CKDio():
             ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
 
             dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
+            # pylint: disable=no-member
             mapping_hor = self.fid[dsname][:].astype(int)
             mapping_hor[mapping_hor > 1000] -= 2**16
             ckd['mapping_cols'] = mapping_hor
@@ -652,12 +654,31 @@ class CKDio():
 
         return np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
-    def saturation(self):
+    def saturation(self, bands='78'):
         """
         Returns pixel-saturation values (pre-offset), SWIR only
         """
+        if len(bands) > 2:
+            raise ValueError('read per band or channel, only')
+        if '7' not in bands and '8' not in bands:
+            raise ValueError('saturation CKD is only available for SWIR')
+
+        ckd_val = None
         dset_name = '/BAND{}/saturation_preoffset'
-        ckd = self.__rd_datapoints(dset_name, '78')
+        ckd_file = (self.ckd_dir / 'OCAL'
+                    / 'ckd.saturation_preoffset.detector4.nc')
+        with h5py.File(ckd_file, 'r') as fid:
+            for band in bands:
+                if dset_name.format(band) in fid:
+                    if ckd_val is None:
+                        ckd_val = h5_to_xr(fid[dset_name.format(band)])
+                    else:
+                        ckd_val = xr.concat(
+                            (ckd_val,
+                             h5_to_xr(fid[dset_name.format(band)])),
+                            dim='column')
+
+        ckd = xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
         ckd.attrs["long_name"] = 'SWIR pixel-saturation CKD (pre-offset)'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))

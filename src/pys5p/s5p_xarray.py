@@ -54,7 +54,7 @@ def __get_attrs(dset, field: str) -> dict:
             if len(attr_value) == 1:
                 attr_value = attr_value[0]
                 # print('# ----- ', key, type(attr_value), attr_value)
-            if _field is not None:
+            elif _field is not None:
                 if len(attr_value) == _field['oneof']:
                     attr_value = attr_value[_field['index']]
                 # elif isinstance(attr_value, np.void):
@@ -86,11 +86,15 @@ def __get_coords(dset, data_sel: tuple) -> list:
     if len(dset.dims) == dset.ndim:
         try:
             for ii, dim in enumerate(dset.dims):
+                name = PurePath(dim[0].name).name
+                if name.startswith('row') or name.startswith('column'):
+                    name = name.split(' ')[0]
+
                 buff = dim[0][()]
                 if np.all(buff == 0):
                     buff = np.arange(dim[0].size, dtype=dim[0].dtype)
 
-                coords.append((PurePath(dim[0].name).name, buff
+                coords.append((name, buff
                                if data_sel is None else buff[data_sel[ii]]))
         except RuntimeError:
             coords = []

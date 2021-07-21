@@ -15,7 +15,6 @@ Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
-from datetime import datetime
 from pathlib import Path, PosixPath
 
 import h5py
@@ -34,6 +33,7 @@ class CKDio():
     Attributes
     ----------
     ckd_dir : pathlib.Path
+    ckd_version : int
     ckd_file : pathlib.Path
     ckd_dyn_file : pathlib.Path
     fid : h5py.File
@@ -44,10 +44,8 @@ class CKDio():
        Close resources.
     creation_time()
        Returns datetime when the L1b product was created.
-    processor_version()
+    creator_version()
        Returns version of Tropomi L01B processor used to generate this procuct.
-    validity_period()
-       Return validity period of CKD product as a tuple of 2 datetime objects.
     get_param(ds_name=None, band='7')
        Returns value(s) of a CKD parameter from the Static CKD product.
     memory(bands='78')
@@ -107,54 +105,64 @@ class CKDio():
 
     Version 2+:
     * All CKD in one file: glob('*_AUX_L1_CKD_*')
+    * Dynamic CKD are empty
 
     Examples
     --------
     """
-    def __init__(self, ckd_dir='/nfs/Tropomi/share/ckd', ckd_file=None):
+    def __init__(self, ckd_dir=None, ckd_version=1, ckd_file=None):
         """
         Initialize access to a Tropomi Static CKD product
+
+        Parameters
+        ----------
+        ckd_dir :  str, optional
+           Directory where the CKD files are stored,
+           default='/nfs/Tropomi/share/ckd'
+        ckd_version :  int, optional
+           Version of the CKD, default=1
+        ckd_file : str, optional
+           Name of the CKD file, default=None then the CKD file is searched
+           in the directory ckd_dir with ckd_version in the glob-string
         """
+        if ckd_dir is None:
+            ckd_dir = '/nfs/Tropomi/share/ckd'
+        self.ckd_version = ckd_version
+        self.ckd_dyn_file = None
+
         # define path to CKD product
-        if ckd_file is not None:
+        if ckd_file is None:
+            if not Path(ckd_dir).is_dir():
+                raise FileNotFoundError(
+                    'Not found CKD directory: {}'.format(ckd_dir))
+            self.ckd_dir = Path(ckd_dir)
+            glob_str = '*_AUX_L1_CKD_*_*_00000_{:02d}_*_*.h5'.format(
+                ckd_version)
+            if (self.ckd_dir / 'static').is_dir():
+                res = sorted((self.ckd_dir / 'static').glob(glob_str))
+            else:
+                res = sorted(self.ckd_dir.glob(glob_str))
+            if not res:
+                raise FileNotFoundError('Static CKD product not found')
+            self.ckd_file = res[-1]
+        else:
             if not Path(ckd_file).is_file():
                 raise FileNotFoundError(
                     'Not found CKD file: {}'.format(ckd_file))
             self.ckd_dir = Path(ckd_file).parent
             self.ckd_file = Path(ckd_file)
-        else:
-            if not Path(ckd_dir).is_dir():
-                raise FileNotFoundError(
-                    'Not found CKD directory: {}'.format(ckd_dir))
-            self.ckd_dir = Path(ckd_dir)
-            if (self.ckd_dir / 'static').is_dir():
-                res = sorted((self.ckd_dir / 'static').glob('*_AUX_L1_CKD_*'))
-            else:
-                res = sorted(self.ckd_dir.glob('*_AUX_L1_CKD_*'))
-            if not res:
-                raise FileNotFoundError('Static CKD product not found')
-            self.ckd_file = res[-1]
 
         # obtain path to dynamic CKD product (version 1, only)
-        self.ckd_dyn_file = None
-        if (self.ckd_dir / 'dynamic').is_dir():
-            res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
-        else:
-            res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
-        if res:
-            self.ckd_dyn_file = res[-1]
+        if ckd_version == 1:
+            if (self.ckd_dir / 'dynamic').is_dir():
+                res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
+            else:
+                res = sorted(self.ckd_dir.glob('*_ICM_CKDSIR_*'))
+            if res:
+                self.ckd_dyn_file = res[-1]
 
-        # initialize class-attributes
-        self.__header = PosixPath('/METADATA', 'earth_explorer_header',
-                                  'fixed_header')
-
+        # open access to CKD product
         self.fid = h5py.File(self.ckd_file, "r")
-
-    # def __del__(self):
-    #    """
-    #    called when the object is destroyed
-    #    """
-    #    self.close()
 
     def __enter__(self):
         """
@@ -180,45 +188,28 @@ class CKDio():
         """
         Returns datetime when the L1b product was created
         """
-        grpname = str(self.__header / 'source')
-        attr = self.fid[grpname].attrs['Creator_Date'][0]
-        if attr is None:
-            return None
+        if self.ckd_version == 2:
+            attr = self.fid['METADATA'].attrs['production_datetime']
+        else:
+            group = PosixPath('METADATA', 'earth_explorer_header',
+                              'fixed_header', 'source')
+            attr = self.fid[str(group)].attrs['Creator_Date'][0]
 
         if isinstance(attr, bytes):
-            return attr.decode('ascii')
+            attr = attr.decode('ascii')
         return attr
 
-    def processor_version(self) -> str:
+    def creator_version(self) -> str:
         """
         Returns version of Tropomi L01B processor used to generate this procuct
         """
-        grpname = str(self.__header / 'source')
-        attr = self.fid[grpname].attrs['Creator_Version'][0]
-        if attr is None:
-            return None
-
+        group = PosixPath('METADATA', 'earth_explorer_header', 'fixed_header')
+        attr = self.fid[str(group)].attrs['File_Version']
+        if self.ckd_version == 1:
+            attr = attr[0]
         if isinstance(attr, bytes):
-            return attr.decode('ascii')
+            attr = attr.decode('ascii')
         return attr
-
-    def validity_period(self) -> tuple:
-        """
-        Return validity period of CKD product as a tuple of 2 datetime objects
-        """
-        grpname = str(self.__header / 'validity_period')
-        attr = self.fid[grpname].attrs['Validity_Start'][0]
-        if attr is None:
-            return None
-        attr_bgn = attr.decode('ascii')
-
-        attr = self.fid[grpname].attrs['Validity_Stop'][0]
-        if attr is None:
-            return None
-        attr_end = attr.decode('ascii')
-
-        return (datetime.strptime(attr_bgn, '%Y%m%dT%H%M%S'),
-                datetime.strptime(attr_end, '%Y%m%dT%H%M%S'))
 
     # ---------- static CKD's ----------
     def get_param(self, ds_name=None, band='7'):
@@ -256,6 +247,7 @@ class CKDio():
             raise ValueError('dataset not available')
 
         full_name = '/BAND{}/{}'.format(band, ds_name)
+        # pylint: disable=no-member
         if self.fid[full_name].size == 1:
             return self.fid[full_name][0]
 
@@ -453,6 +445,7 @@ class CKDio():
             ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
 
             dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
+            # pylint: disable=no-member
             mapping_hor = self.fid[dsname][:].astype(int)
             mapping_hor[mapping_hor > 1000] -= 2**16
             ckd['mapping_cols'] = mapping_hor
