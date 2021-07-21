@@ -36,20 +36,20 @@ class ICMio():
 
     Methods
     -------
+    coverage_time
+       Returns start and end of the measurement coverage time.
+    creation_time
+       Returns creation date of this product
+    orbit
+       Returns value of revolution counter.
+    processor_version
+       Returns version of the L01b processor used to generate this product.
     close()
        Close resources
     find(msm_class)
        Find a measurement as <processing-class name>.
     select(msm_type: str, msm_path=None)
        Select a measurement as <processing class>_<ic_id>.
-    get_orbit()
-       Returns value of revolution counter.
-    get_processor_version()
-       Returns version of the L01b processor used to generate this product.
-    get_coverage_time()
-       Returns start and end of the measurement coverage time.
-    get_creation_time()
-       Returns creation date of this product
     get_attr(attr_name)
        Obtain value of an HDF5 file attribute.
     get_ref_time(band=None)

@@ -127,7 +127,7 @@ class CKDio():
         """
         if ckd_dir is None:
             ckd_dir = '/nfs/Tropomi/share/ckd'
-        self.ckd_version = ckd_version
+        self.ckd_version = max(1, ckd_version)
         self.ckd_dyn_file = None
 
         # define path to CKD product
@@ -137,7 +137,7 @@ class CKDio():
                     'Not found CKD directory: {}'.format(ckd_dir))
             self.ckd_dir = Path(ckd_dir)
             glob_str = '*_AUX_L1_CKD_*_*_00000_{:02d}_*_*.h5'.format(
-                ckd_version)
+                self.ckd_version)
             if (self.ckd_dir / 'static').is_dir():
                 res = sorted((self.ckd_dir / 'static').glob(glob_str))
             else:
@@ -153,7 +153,7 @@ class CKDio():
             self.ckd_file = Path(ckd_file)
 
         # obtain path to dynamic CKD product (version 1, only)
-        if ckd_version == 1:
+        if self.ckd_version == 1:
             if (self.ckd_dir / 'dynamic').is_dir():
                 res = sorted((self.ckd_dir / 'dynamic').glob('*_ICM_CKDSIR_*'))
             else:
