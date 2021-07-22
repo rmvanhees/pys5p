@@ -3,7 +3,7 @@ This file is part of pyS5p
 
 https://github.com/rmvanhees/pys5p.git
 
-Performs unit-tests on class CKDio
+Performs unit-tests on class CKDio (xarray version)
 
 Copyright (c) 2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -11,7 +11,9 @@ Copyright (c) 2021 SRON - Netherlands Institute for Space Research
 License:  BSD-3-Clause
 """
 from pathlib import Path
+
 from pys5p.ckd_io import CKDio
+
 
 def main():
     """
@@ -29,9 +31,9 @@ def main():
         for meth in dir(ckd):
             if (meth.startswith('_')
                 or meth.startswith('ckd')
-                or meth in ('close', 'fid')):
+                or meth in ('close', 'fid', 'get_param')):
                 continue
-            print('-------------------------', meth,
+            print('-------------------------', meth, '[v1]',
                   '-------------------------')
             print(meth, getattr(ckd, meth)())
 
@@ -40,9 +42,9 @@ def main():
         for meth in dir(ckd):
             if (meth.startswith('_')
                 or meth.startswith('ckd')
-                or meth in ('close', 'fid')):
+                or meth in ('close', 'fid', 'get_param')):
                 continue
-            print('-------------------------', meth,
+            print('-------------------------', meth, '[v2]',
                   '-------------------------')
             print(meth, getattr(ckd, meth)())
 

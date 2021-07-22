@@ -27,10 +27,11 @@ from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
+from . import error_propagation
 from . import swir_region
 from .biweight import biweight
-from .ckd_io import CKDio
-from .lib.plotlib2 import (blank_legend_key, check_data2d, FIGinfo,
+from .ckd_io1 import CKDio
+from .lib.plotlib1 import (blank_legend_key, check_data2d, FIGinfo,
                            get_fig_coords, get_xdata, MidpointNormalize)
 from .tol_colors import tol_cmap, tol_cset
 
@@ -53,7 +54,7 @@ class S5Pplot:
        Define alternative color-map to overrule the default.
     unset_cmap()
        Unset user supplied color-map, and use default color-map.
-    get_cmap(zscale='linear')
+    get_cmap(method='data')
        Returns matplotlib colormap.
     set_zunit(units)
        Provide units of data to be displayed.
@@ -61,17 +62,17 @@ class S5Pplot:
        Unset user supplied unit definition of data.
     zunit
        Returns value of zunit (property).
-    draw_signal(data_in, vperc=None, vrange=None, zscale='linear',
-                title=None, sub_title=None,
-                add_medians=True, extent=None, fig_info=None)
+    draw_signal(data_in, ref_data=None, method='data', add_medians=True,
+                vperc=None, vrange=None, title=None, sub_title=None,
+                extent=None, fig_info=None)
        Display 2D array data as image and averaged column/row signal plots.
-    draw_quality(data_in, ref_data=None, thres_worst=0.1, thres_bad=0.8,
-                 qlabels=None, title=None, sub_title=None,
-                 add_medians=True, extent=None, fig_info=None)
+    draw_quality(data_in, ref_data=None, add_medians=True, qlabels=None,
+                 thres_worst=0.1, thres_bad=0.8, title=None, sub_title=None,
+                 extent=None, fig_info=None)
        Display pixel-quality 2D array data as image and column/row statistics.
-    draw_cmp_swir(data_in, ref_data, vperc=None, vrange=None,
-                  model_label='reference', title=None, sub_title=None,
-                  add_residual=True, add_model=True, extent=None, fig_info=None)
+    draw_cmp_swir(data_in, ref_data, model_label='reference',
+                  vperc=None, vrange=None, add_residual=True, add_model=True,
+                  title=None, sub_title=None, extent=None, fig_info=None)
        Display signal vs model (or CKD) comparison in three panels.
        Top panel shows data, middle panel shows residuals (data - model)
        and lower panel shows model.
@@ -205,16 +206,16 @@ class S5Pplot:
         """
         self.__cmap = None
 
-    def get_cmap(self, zscale='linear'):
+    def get_cmap(self, method='data'):
         """
         Returns matplotlib colormap
         """
         if self.__cmap is not None:
             return self.__cmap
 
-        if zscale == 'diff':
+        if method == 'diff':
             return tol_cmap('sunset')
-        if zscale == 'ratio':
+        if method == 'ratio':
             return tol_cmap('sunset')
         return tol_cmap('rainbow_PuRd')
 
@@ -294,19 +295,24 @@ class S5Pplot:
         return 1.
 
     # -------------------------
-    def __get_zlabel(self, zscale):
+    def __get_zlabel(self, method):
         """
         Return label of colorbar
         """
-        if zscale == 'ratio':
+        if method == 'ratio':
             zlabel = 'ratio'
-        elif zscale == 'ratio_unc':
+        elif method == 'ratio_unc':
             zlabel = 'uncertainty'
-        elif zscale == 'diff':
+        elif method == 'diff':
             if self.zunit is None or self.zunit == '1':
                 zlabel = 'difference'
             else:
                 zlabel = r'difference [{}]'.format(self.zunit)
+        elif method == 'error':
+            if self.zunit is None or self.zunit == '1':
+                zlabel = 'uncertainty'
+            else:
+                zlabel = r'uncertainty [{}]'.format(self.zunit)
         else:
             if self.zunit is None or self.zunit == '1':
                 zlabel = 'value'
@@ -452,9 +458,8 @@ class S5Pplot:
 
         i_ax = 0
         if plot_mode == 'quality':
-            use_steps = msm_1.values.size <= 256
-            (xlabel,) = msm_1.dims[0]
-            xdata, gap_list = get_xdata(msm_1.coords[xlabel].data, use_steps)
+            use_steps = msm_1.value.size <= 256
+            xdata, gap_list = get_xdata(msm_1.coords[0][:], use_steps)
 
             qc_dict = {'bad': cset.yellow,
                        'worst': cset.red}
@@ -462,7 +467,7 @@ class S5Pplot:
                        'worst': 'worst (quality < 0.1)'}
 
             for key in ['bad', 'worst']:
-                ydata = msm_1.values[key].copy().astype(float)
+                ydata = msm_1.value[key].copy().astype(float)
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, np.nan)
@@ -492,15 +497,18 @@ class S5Pplot:
                     continue
 
                 # convert units from electrons to ke, Me, ...
-                vmin = msm.values.min()
-                vmax = msm.values.max()
+                if msm.error is None:
+                    vmin = msm.value.min()
+                    vmax = msm.value.max()
+                else:
+                    vmin = msm.error[0].min()
+                    vmax = msm.error[1].max()
                 self.set_zunit(msm.units)
                 dscale = self.__adjust_zunit(vmin, vmax)
 
-                use_steps = msm.values.size <= 256
-                (xlabel,) = msm.dims
-                xdata, gap_list = get_xdata(msm.coords[xlabel].data, use_steps)
-                ydata = msm.values.copy() / dscale
+                use_steps = msm.value.size <= 256
+                xdata, gap_list = get_xdata(msm.coords[0][:], use_steps)
+                ydata = msm.value.copy() / dscale
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
                     ydata = np.insert(ydata, indx, np.nan)
@@ -513,6 +521,27 @@ class S5Pplot:
                 else:
                     axarr[i_ax].plot(xdata, ydata,
                                      linewidth=1.5, color=cset.blue)
+
+                if msm.error is not None:
+                    yerr1 = msm.error[0].copy() / dscale
+                    yerr2 = msm.error[1].copy() / dscale
+                    for indx in reversed(gap_list):
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, np.nan)
+                        yerr2 = np.insert(yerr2, indx, np.nan)
+                        yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                        yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+                    if use_steps:
+                        yerr1 = np.append(yerr1, yerr1[-1])
+                        yerr2 = np.append(yerr2, yerr2[-1])
+                        axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                                 step='post',
+                                                 facecolor='#BBCCEE')
+                    else:
+                        axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                                 facecolor='#BBCCEE')
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
@@ -538,22 +567,22 @@ class S5Pplot:
         # define colors
         cset = tol_cset('bright')
 
-        (xlabel,) = hk_data.dims
-        xdata = hk_data.coords[xlabel].data.copy()
+        (xlabel,) = hk_data.coords._fields
+        xdata = hk_data.coords[0][:].copy()
         use_steps = xdata.size <= 256
         xdata, gap_list = get_xdata(xdata, use_steps)
         if xlabel == 'time':
             xdata = xdata.astype(float) / 3600
 
         for key in hk_keys:
-            if key not in hk_data['avg'].values.dtype.names:
+            if key not in hk_data.value.dtype.names:
                 continue
 
-            indx = hk_data['avg'].values.dtype.names.index(key)
-            hk_unit = hk_data.attrs['units'][indx]
+            indx = hk_data.value.dtype.names.index(key)
+            hk_unit = hk_data.units[indx]
             if isinstance(hk_unit, bytes):
                 hk_unit = hk_unit.decode('ascii')
-            full_string = hk_data.attrs['long_name'][indx]
+            full_string = hk_data.long_name[indx]
             if isinstance(full_string, bytes):
                 full_string = full_string.decode('ascii')
             if hk_unit == 'K':
@@ -577,29 +606,17 @@ class S5Pplot:
                 lcolor = cset.purple
                 fcolor = '#EEBBDD'
 
-            ydata = hk_data['avg'].values[key].copy()
-            yerr1 = hk_data['min'].values[key].copy()
-            yerr2 = hk_data['max'].values[key].copy()
+            ydata = hk_data.value[key].copy()
             for indx in reversed(gap_list):
                 ydata = np.insert(ydata, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
                 ydata = np.insert(ydata, indx, np.nan)
-                yerr1 = np.insert(yerr1, indx, np.nan)
-                yerr2 = np.insert(yerr2, indx, np.nan)
                 ydata = np.insert(ydata, indx, ydata[indx-1])
-                yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
-                yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
 
             if np.all(np.isnan(ydata)):
                 ydata[:] = 0
-                yerr1[:] = 0
-                yerr2[:] = 0
 
             if use_steps:
                 ydata = np.append(ydata, ydata[-1])
-                yerr1 = np.append(yerr1, yerr1[-1])
-                yerr2 = np.append(yerr2, yerr2[-1])
                 axarr[i_ax].step(xdata, ydata, where='post',
                                  linewidth=1.5, color=lcolor)
             else:
@@ -613,17 +630,35 @@ class S5Pplot:
                 ni = 2 * 15
                 ylim = [min(ybuff[0:ni].min(), ybuff[-ni:].min()),
                         max(ybuff[0:ni].max(), ybuff[-ni:].max())]
-            if not (np.array_equal(ydata, yerr1)
-                    and np.array_equal(ydata, yerr2)):
-                axarr[i_ax].fill_between(xdata, yerr1, yerr2,
-                                         step='post', facecolor=fcolor)
-                ybuff1 = yerr1[np.isfinite(yerr1)]
-                ybuff2 = yerr2[np.isfinite(yerr2)]
-                if xlabel == 'orbit' \
-                   and ybuff1.size > 5 * 15 and ybuff2.size > 5 * 15:
-                    ni = 2 * 15
-                    ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
-                            max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
+
+            # add errors on the y-parameter
+            if hk_data.error is not None and not np.all(np.isnan(ydata)):
+                yerr1 = hk_data.error[key][:, 0].copy()
+                yerr2 = hk_data.error[key][:, 1].copy()
+                for indx in reversed(gap_list):
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, np.nan)
+                    yerr2 = np.insert(yerr2, indx, np.nan)
+                    yerr1 = np.insert(yerr1, indx, yerr1[indx-1])
+                    yerr2 = np.insert(yerr2, indx, yerr2[indx-1])
+
+                if use_steps:
+                    yerr1 = np.append(yerr1, yerr1[-1])
+                    yerr2 = np.append(yerr2, yerr2[-1])
+
+                if not (np.array_equal(ydata, yerr1)
+                        and np.array_equal(ydata, yerr2)):
+                    axarr[i_ax].fill_between(xdata, yerr1, yerr2,
+                                             step='post', facecolor=fcolor)
+                    ybuff1 = yerr1[np.isfinite(yerr1)]
+                    ybuff2 = yerr2[np.isfinite(yerr2)]
+                    if xlabel == 'orbit' \
+                       and ybuff1.size > 5 * 15 and ybuff2.size > 5 * 15:
+                        ni = 2 * 15
+                        ylim = [min(ybuff1[0:ni].min(), ybuff1[-ni:].min()),
+                                max(ybuff2[0:ni].max(), ybuff2[-ni:].max())]
+
             axarr[i_ax].locator_params(axis='y', nbins=4)
             axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
             if ylim is not None:
@@ -738,36 +773,56 @@ class S5Pplot:
         return figsize
 
     # -------------------------
-    @staticmethod
-    def __get_fig_data2d(zscale: str, data_in, ref_data=None):
+    def __get_fig_data2d(self, method: str, data_in, ref_data=None):
         """
         Determine image data to be displayed
         """
         # check image data
         try:
-            check_data2d(zscale, data_in)
+            check_data2d(method, data_in)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
-        if zscale == 'linear' or ref_data is None:
-            if isinstance(data_in, np.ndarray):
-                return data_in.copy()
-
-            return data_in.values.copy()
-
         # check reference data
-        try:
-            check_data2d(zscale, ref_data)
-        except Exception as exc:
-            raise RuntimeError('invalid reference-data provided') from exc
+        if ref_data is not None:
+            try:
+                check_data2d(method, ref_data)
+            except Exception as exc:
+                raise RuntimeError('invalid reference-data provided') from exc
 
-        # assume that zscale='diff'
+        img_data = None
         if isinstance(data_in, np.ndarray):
-            return data_in - ref_data
+            img_data = data_in.copy()
+        else:
+            if method == 'error':
+                img_data = data_in.error.copy()
+            else:
+                img_data = data_in.value.copy()
 
-        return data_in.values - ref_data
+            if method == 'ratio_unc':
+                self.unset_zunit()
+                mask = ref_data.value != 0.
+                img_data[~mask] = np.nan
+                img_data[mask] = error_propagation.unc_div(
+                    data_in.value[mask], data_in.error[mask],
+                    ref_data.value[mask], ref_data.error[mask])
+            elif method == 'diff':
+                self.set_zunit(data_in.units)
+                mask = np.isfinite(data_in.value) & np.isfinite(ref_data)
+                img_data[~mask] = np.nan
+                img_data[mask] -= ref_data[mask]
+            elif method == 'ratio':
+                self.unset_zunit()
+                mask = (np.isfinite(data_in.value)
+                        & np.isfinite(ref_data) & (ref_data != 0.))
+                img_data[~mask] = np.nan
+                img_data[mask] /= ref_data[mask]
+            else:
+                self.set_zunit(data_in.units)
 
-    def __scale_data2d(self, zscale: str, img_data, vperc, vrange):
+        return img_data
+
+    def __scale_data2d(self, method: str, img_data, vperc, vrange):
         """
         Determine range of image data and normalize colormap accordingly
         """
@@ -785,20 +840,18 @@ class S5Pplot:
             img_data[np.isfinite(img_data)] /= dscale
 
         mid_val = (vmin + vmax) / 2
-        if zscale == 'diff':
+        if method == 'diff':
             if vmin < 0 < vmax:
                 tmp1, tmp2 = (vmin, vmax)
                 vmin = -max(-tmp1, tmp2)
                 vmax = max(-tmp1, tmp2)
                 mid_val = 0.
-        elif zscale == 'ratio':
+        if method == 'ratio':
             if vmin < 1 < vmax:
                 tmp1, tmp2 = (vmin, vmax)
                 vmin = min(tmp1, 1 / tmp2)
                 vmax = max(1 / tmp1, tmp2)
                 mid_val = 1.
-        elif zscale == 'log':
-            raise KeyError('Not implemented yet')
 
         return MidpointNormalize(midpoint=mid_val, vmin=vmin, vmax=vmax)
 
@@ -842,7 +895,7 @@ class S5Pplot:
         if isinstance(data, np.ndarray):
             qval = float_to_quality(qthres, data)
         else:
-            qval = float_to_quality(qthres, data.values)
+            qval = float_to_quality(qthres, data.value)
 
         if ref_data is None:
             return qval
@@ -863,27 +916,36 @@ class S5Pplot:
         return qval
 
     # --------------------------------------------------
-    def draw_signal(self, data_in, zscale='linear', *,
-                    vperc=None, vrange=None, title=None, sub_title=None,
-                    add_medians=True, extent=None, fig_info=None):
+    def draw_signal(self, data_in, ref_data=None, method='data', *,
+                    add_medians=True, vperc=None, vrange=None,
+                    title=None, sub_title=None,
+                    extent=None, fig_info=None):
         """
         Display 2D array data as image and averaged column/row signal plots
 
         Parameters
         ----------
-        data :  numpy.ndarray or xarray.DataArray
+        data :  numpy.ndarray or pys5p.S5Pmsm
            Object holding measurement data and attributes
-        zscale : string, optional
-           Scaling of the data values. Recognized values are: 'linear', 'log',
-           'diff' or 'ratio'. Default is 'linear'
+        ref_data :  numpy.ndarray, optional
+           Numpy array holding reference data. Required for method equals
+            'ratio' where measurement data is divided by the reference
+            'diff'  where reference is subtracted from the measurement data
+           S5Pmsm object holding the reference data as value/error required
+            by the method 'ratio_unc'
+        method : string
+           Method of plot to be generated, default is 'data', optional are
+            'error', 'diff', 'ratio', 'ratio_unc'
+        add_medians :  boolean
+           show in side plots row and column (biweight) medians. Default=True.
+
         vperc :  list
            Range to normalize luminance data between percentiles min and max of
            array data. Default is [1., 99.].
            keyword 'vperc' is ignored when vrange is given
         vrange :  list [vmin,vmax]
            Range to normalize luminance data between vmin and vmax.
-        add_medians :  boolean
-           show in side plots row and column (biweight) medians. Default=True.
+
         title :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -897,8 +959,8 @@ class S5Pplot:
         in a small box. In addition, we display the creation date and the data
         (biweight) median & spread.
         """
-        if zscale not in ('linear', 'log', 'diff', 'ratio'):
-            raise RuntimeError('unknown zscale: {}'.format(zscale))
+        if method not in ('data', 'error', 'diff', 'ratio', 'ratio_unc'):
+            raise RuntimeError('unknown method: {}'.format(method))
 
         if fig_info is None:
             fig_info = FIGinfo()
@@ -913,11 +975,11 @@ class S5Pplot:
                 raise TypeError('keyword vrange requires two values')
 
         try:
-            img_data = self.__get_fig_data2d(zscale, data_in)
+            img_data = self.__get_fig_data2d(method, data_in, ref_data)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
-        norm = self.__scale_data2d(zscale, img_data, vperc, vrange)
+        norm = self.__scale_data2d(method, img_data, vperc, vrange)
 
         # inititalize figure
         fig, ax_fig = plt.subplots(figsize=self.__fig_sz_img(fig_info,
@@ -934,7 +996,7 @@ class S5Pplot:
         if extent is None:
             extent = [0, len(coords['X']['data']),
                       0, len(coords['Y']['data'])]
-        ax_img = ax_fig.imshow(img_data, cmap=self.get_cmap(zscale),
+        ax_img = ax_fig.imshow(img_data, cmap=self.get_cmap(method),
                                interpolation='none', origin='lower',
                                aspect='equal', extent=extent, norm=norm)
         self.__add_copyright(ax_fig)
@@ -943,7 +1005,7 @@ class S5Pplot:
         self.__adjust_tickmarks(ax_fig, coords)
 
         self.__divider = make_axes_locatable(ax_fig)
-        self.__add_colorbar(ax_img, self.__get_zlabel(zscale))
+        self.__add_colorbar(ax_img, self.__get_zlabel(method))
         if add_medians:
             self.__add_side_panels(ax_fig, img_data, coords)
         else:
@@ -972,7 +1034,7 @@ class S5Pplot:
 
         Parameters
         ----------
-        data :  numpy.ndarray or xarray.DataArray
+        data :  numpy.ndarray or pys5p.S5Pmsm
            Object holding measurement data and attributes
         ref_data :  numpy.ndarray, optional
            Numpy array holding reference data, for example pixel quality
@@ -1112,7 +1174,7 @@ class S5Pplot:
 
         Parameters
         ----------
-        data :  numpy.ndarray or xarray.DataArray
+        data :  numpy.ndarray or pys5p.S5Pmsm
            Object holding measurement data and attributes
         ref_data :  numpy.ndarray
            Numpy array holding reference data.
@@ -1169,7 +1231,7 @@ class S5Pplot:
         rnorm = self.__scale_data2d('diff', img_diff, None, rrange)
 
         try:
-            img_data = self.__get_fig_data2d('linear', data_in, None)
+            img_data = self.__get_fig_data2d('data', data_in, None)
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
@@ -1201,8 +1263,8 @@ class S5Pplot:
             if sub_title is not None:
                 ax_fig.set_title(bullet[ipanel] + sub_title, fontsize='large')
 
-            zscale = 'diff' if sub_title == 'residual' else 'linear'
-            ax_img = ax_fig.imshow(data, cmap=self.get_cmap(zscale),
+            method = 'diff' if sub_title == 'residual' else 'data'
+            ax_img = ax_fig.imshow(data, cmap=self.get_cmap(method),
                                    interpolation='none', origin='lower',
                                    aspect='equal', extent=extent, norm=norm,)
             self.__add_copyright(ax_fig)
@@ -1251,11 +1313,11 @@ class S5Pplot:
 
         Parameters
         ----------
-        msm1      :  xarray.DataArray, optional
+        msm1      :  pys5p.S5Pmsm, optional
            Object with measurement data and its HDF5 attributes (first figure)
-        msm2      :  xarray.DataArray, optional
+        msm2      :  pys5p.S5Pmsm, optional
            Object with measurement data and its HDF5 attributes (second figure)
-        hk_data   :  xarray.Dataset, optional
+        hk_data   :  pys5p.S5Pmsm, optional
            Object holding housekeeping data and its HDF5 attributes
         hk_keys    : list or tuple
            List of housekeeping parameters to be displayed
@@ -1291,18 +1353,18 @@ class S5Pplot:
         # define number of panels for measurement data
         if msm1 is None:
             plot_mode = 'house-keeping'
-            (xlabel,) = hk_data.dims
+            (xlabel,) = hk_data.coords._fields
             if xlabel == 'time':
                 xlabel += ' [hours]'
             npanels = 0
-        elif (msm1.values.dtype.names is not None
-              and 'bad' in msm1.values.dtype.names):
+        elif (msm1.value.dtype.names is not None
+              and 'bad' in msm1.value.dtype.names):
             plot_mode = 'quality'
-            (xlabel,) = msm1.dims
+            (xlabel,) = msm1.coords._fields
             npanels = 2
         else:
             plot_mode = 'data'
-            (xlabel,) = msm1.dims
+            (xlabel,) = msm1.coords._fields
             if msm2 is None:
                 npanels = 1
             else:
@@ -1312,13 +1374,13 @@ class S5Pplot:
         if hk_data is not None:
             # default house-keeping parameters
             if hk_keys is None:
-                if 'detector_temp' in hk_data['avg'].values.dtype.names:
+                if 'detector_temp' in hk_data.value.dtype.names:
                     hk_keys = ('detector_temp', 'grating_temp',
                                'imager_temp', 'obm_temp')
-                elif 'temp_det4' in hk_data['avg'].values.dtype.names:
+                elif 'temp_det4' in hk_data.value.dtype.names:
                     hk_keys = ('temp_det4', 'temp_obm_swir_grating')
                 else:
-                    hk_keys = tuple(hk_data['avg'].values.dtype.names)[0:4]
+                    hk_keys = tuple(hk_data.value.dtype.names)[0:4]
             npanels += len(hk_keys)
 
         # initialize matplotlib using 'subplots'
@@ -1556,7 +1618,7 @@ class S5Pplot:
                 data = data_dict[key][swir_region.mask()]
                 long_name = key
             else:
-                data = data_dict[key].values[swir_region.mask()]
+                data = data_dict[key].value[swir_region.mask()]
                 long_name = data_dict[key].long_name
             data[np.isnan(data)] = 0.
 

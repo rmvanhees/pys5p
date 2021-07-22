@@ -4,7 +4,7 @@ This file is part of pyS5p
 https://github.com/rmvanhees/pys5p.git
 
 Performs unit-tests on S5Pplot methods: draw_signal, draw_quality,
-   draw_cmp_images, draw_trend1d and draw_lines
+   draw_cmp_images, draw_trend1d and draw_lines (xarray version)
 
 Copyright (c) 2020 SRON - Netherlands Institute for Space Research
    All Rights Reserved
@@ -13,15 +13,16 @@ License:  BSD-3-Clause
 """
 from datetime import datetime, timedelta
 import numpy as np
+import xarray as xr
 
 from pys5p.lib.plotlib import FIGinfo
-from pys5p.s5p_msm import S5Pmsm
+from pys5p.s5p_xarray import data_to_xr
 from pys5p.s5p_plot import S5Pplot
 
 
 def get_test_data(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
     """
-    Generate synthetic data to simulate a square-detector image 
+    Generate synthetic data to simulate a square-detector image
     """
     if data_sel is None:
         data_sel = [(), ()]
@@ -33,23 +34,15 @@ def get_test_data(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
     data = (zz1 - zz2) * 2
     data += np.random.default_rng().normal(0., error, data.shape)
 
-    msm = S5Pmsm(data)
-    msm.error = np.full(data.shape, error)
-    msm.set_units('Volt')
-    msm.set_long_name('bogus data')
-
-    return msm
+    return data_to_xr(data, long_name='bogus data', units='Volt')
 
 
-# --------------------------------------------------
 def run_draw_signal(plot):
     """
     Run unit tests on S5Pplot::draw_signal
     """
-    print('Run unit tests on S5Pplot::draw_signal')
-
     msm = get_test_data(error=.1)
-    msm_ref = get_test_data(error=0.025)
+    # msm_ref = get_test_data(error=0.025)
 
     nlines = 40 # 35
     fig_info_in = FIGinfo('right')
@@ -59,13 +52,13 @@ def run_draw_signal(plot):
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=data; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, msm_ref.value, method='diff',
+    plot.draw_signal(msm, method='diff',
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=diff; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, msm_ref.value, method='ratio',
+    plot.draw_signal(msm, method='ratio',
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=ratio; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, msm_ref, method='ratio_unc',
+    plot.draw_signal(msm, method='ratio_unc',
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=ratio_unc; aspect=1; fig_pos=above')
     plot.draw_signal(msm, method='error',
@@ -83,7 +76,8 @@ def run_draw_signal(plot):
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=2; fig_pos=right')
 
-    msm = get_test_data(data_sel=np.s_[500-125:500+125, 500-375:500+375], error=.1)
+    msm = get_test_data(data_sel=np.s_[500-125:500+125, 500-375:500+375],
+                        error=.1)
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=3; fig_pos=above')
@@ -101,22 +95,53 @@ def run_draw_signal(plot):
                      sub_title='aspect=4; fig_pos=right')
 
 
+def run_draw_quality(plot):
+    """
+    Run unit tests on S5Pplot::draw_quality
+    """
+    print('Run unit tests on S5Pplot::draw_quality')
+    row = np.linspace(0, 1., 1000)
+    ref_data = np.repeat(row[None, :], 256, axis=0)
+
+    data = ref_data.copy()
+    data[125:175, 30:50] = 0.4
+    data[125:175, 50:70] = 0.95
+    data[75:125, 250:300] = 0.05
+    data[125:175, 600:650] = 0.95
+    data[75:125, 900:925] = 0.05
+    data[75:125, 825:875] = 0.4
+
+    plot.draw_quality(data,
+                      title='Unit test of S5Pplot [draw_quality]',
+                      sub_title='no reference')
+
+    plot.draw_quality(data, ref_data=ref_data,
+                      title='Unit test of S5Pplot [draw_quality]',
+                      sub_title='with reference')
+
+
 def run_draw_cmp_swir(plot):
     """
     Run unit tests on S5Pplot::draw_cmp_swir
     """
     print('Run unit tests on S5Pplot::draw_cmp_swir')
+    delta = 0.01
+    xx = yy = np.arange(-5.0, 5.0, delta)
+    xmesh, ymesh = np.meshgrid(xx, yy)
+    zz1 = np.exp(-xmesh ** 2 - ymesh ** 2)
+    zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
+    data = (zz1 - zz2) * 2
 
-    msm = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.1)
-    msm_ref = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.025)
+    data = data[500-128:500+128, :]
+    ref_data = 1.001 * data
 
-    plot.draw_cmp_swir(msm, msm_ref.value,
+    plot.draw_cmp_swir(data, ref_data,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
-    plot.draw_cmp_swir(msm, msm_ref.value, add_residual=False,
+    plot.draw_cmp_swir(data, ref_data, add_residual=False,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
-    plot.draw_cmp_swir(msm, msm_ref.value, add_model=False,
+    plot.draw_cmp_swir(data, ref_data, add_model=False,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
 
@@ -133,39 +158,49 @@ def run_draw_trend1d(plot):
         ('obm_temp', 'SWIR OBM temperature', 'K', np.float32)]
     hk_dtype = np.dtype(
         [(parm[0], parm[3]) for parm in hk_params])
-    hk_data = S5Pmsm(np.zeros(200, dtype=hk_dtype))
-    hk_data.error = np.zeros((200, 2), dtype=hk_dtype)
+    hk_min = np.zeros(200, dtype=hk_dtype)
+    hk_avg = np.zeros(200, dtype=hk_dtype)
+    hk_max = np.zeros(200, dtype=hk_dtype)
     data = 140. + (100 - np.arange(200)) / 1000
-    hk_data.value['detector_temp'][:] = data
-    hk_data.error['detector_temp'][:, 0] = data - .0125
-    hk_data.error['detector_temp'][:, 1] = data + .0075
-    data = 202.1 + (100 - np.arange(200)) / 250
-    hk_data.value['grating_temp'][:] = data
-    hk_data.error['grating_temp'][:, 0] = data - .15
-    hk_data.error['grating_temp'][:, 1] = data + .175
-    data = 208.2 + (100 - np.arange(200)) / 750
-    hk_data.value['obm_temp'][:] = data
-    hk_data.error['obm_temp'][:, 0] = data - .15
-    hk_data.error['obm_temp'][:, 1] = data + .175
-    hk_data.set_units([parm[2] for parm in hk_params])
-    hk_data.set_long_name([parm[1] for parm in hk_params])
+    hk_min['detector_temp'][:] = data - .0125
+    hk_avg['detector_temp'][:] = data
+    hk_max['detector_temp'][:] = data + .0075
+    data = 202.1 + (100 - np.arange(200)) / 1000
+    hk_min['grating_temp'][:] = data - .15
+    hk_avg['grating_temp'][:] = data
+    hk_max['grating_temp'][:] = data + .175
+    data = 208.2 + (100 - np.arange(200)) / 1000
+    hk_min['obm_temp'][:] = data - .15
+    hk_avg['obm_temp'][:] = data
+    hk_max['obm_temp'][:] = data + .175
+    units = [parm[2] for parm in hk_params]
+    long_name = [parm[1] for parm in hk_params]
+    msm_min = data_to_xr(hk_min, dims=['orbit'],
+                         long_name=long_name, units=units)
+    msm_avg = data_to_xr(hk_avg, dims=['orbit'],
+                         long_name=long_name, units=units)
+    msm_max = data_to_xr(hk_max, dims=['orbit'],
+                         long_name=long_name, units=units)
+    hk_ds = xr.Dataset({'min': msm_min,
+                        'avg': msm_avg,
+                        'max': msm_max},
+                       attrs=msm_avg.attrs)
+    msm1 = data_to_xr(np.sin(xx * np.pi), dims=['orbit'])
+    msm2 = data_to_xr(np.cos(xx * np.pi), dims=['orbit'])
 
-    plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
+    plot.draw_trend1d(msm1,
                       title='Unit test of S5Pplot [draw_trend1d]',
                       sub_title='one dataset, no house-keeping')
-    plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
-                      msm2=S5Pmsm(np.cos(xx * np.pi)),
+    plot.draw_trend1d(msm1, msm2=msm2,
                       title='Unit test of S5Pplot [draw_trend1d]',
                       sub_title='two datasets, no house-keeping')
     hk_keys = [parm[0] for parm in hk_params]
-    plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
-                      hk_data=hk_data, hk_keys=hk_keys[0:2],
-                      msm2=S5Pmsm(np.cos(xx * np.pi)),
+    plot.draw_trend1d(msm1, msm2=msm2,
+                      hk_data=hk_ds, hk_keys=hk_keys[0:2],
                       title='Unit test of S5Pplot [draw_trend1d]',
                       sub_title='two datasets and house-keeping')
-    plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
-                      hk_data=hk_data, hk_keys=hk_keys,
-                      msm2=S5Pmsm(np.cos(xx * np.pi)),
+    plot.draw_trend1d(msm1, msm2=msm2,
+                      hk_data=hk_ds, hk_keys=hk_keys,
                       title='Unit test of S5Pplot [draw_trend1d]',
                       sub_title='two datasets and house-keeping')
 
@@ -205,30 +240,6 @@ def run_draw_lines(plot):
                     xlabel='x-axis', ylabel='y-axis',
                     sub_title='draw_lines [time_axis]')
 
-def run_draw_quality(plot):
-    """
-    Run unit tests on S5Pplot::draw_quality
-    """
-    print('Run unit tests on S5Pplot::draw_quality')
-    row = np.linspace(0, 1., 1000)
-    ref_data = np.repeat(row[None, :], 256, axis=0)
-
-    data = ref_data.copy()
-    data[125:175, 30:50] = 0.4
-    data[125:175, 50:70] = 0.95
-    data[75:125, 250:300] = 0.05
-    data[125:175, 600:650] = 0.95
-    data[75:125, 900:925] = 0.05
-    data[75:125, 825:875] = 0.4
-
-    plot.draw_quality(data,
-                      title='Unit test of S5Pplot [draw_quality]',
-                      sub_title='no reference')
-
-    plot.draw_quality(data, ref_data=ref_data,
-                      title='Unit test of S5Pplot [draw_quality]',
-                      sub_title='with reference')
-
 
 def run_draw_qhist(plot):
     """
@@ -246,17 +257,17 @@ def run_draw_qhist(plot):
     buff8 = np.repeat(0.7 + np.random.rand(1000) / 10, 20)
     buff9 = np.repeat(0.8 + np.random.rand(1000) / 10, 40)
     buffa = np.repeat(0.9 + np.random.rand(1000) / 10, 100)
-    data = S5Pmsm(np.concatenate((buff0, buff1, buff2, buff3, buff4,
-                                  buff5, buff6, buff7, buff8, buff9,
-                                  buffa)).reshape(256, 1000))
+    data = data_to_xr(np.concatenate((buff0, buff1, buff2, buff3, buff4,
+                                      buff5, buff6, buff7, buff8, buff9,
+                                      buffa)).reshape(256, 1000))
     data_dict = {}
-    data.set_long_name('pixel-quality map')
+    data.attrs['long_name'] = 'pixel-quality map'
     data_dict['dpqm'] = data.copy()
-    data.set_long_name('pixel-quality map (dark)', force=True)
+    data.attrs['long_name'] = 'pixel-quality map (dark)'
     data_dict['dpqm_dark'] = data.copy()
-    data.set_long_name('pixel-quality map (noise average)', force=True)
+    data.attrs['long_name'] = 'pixel-quality map (noise average)'
     data_dict['dpqm_noise'] = data.copy()
-    data.set_long_name('pixel-quality map (noise variance)', force=True)
+    data.attrs['long_name'] = 'pixel-quality map (noise variance)'
     data_dict['dpqm_noise_var'] = data
     plot.draw_qhist(data_dict,
                     title='Unit test of S5Pplot [draw_qhist]')
@@ -267,9 +278,9 @@ def main():
     """
     main function
     """
-    plot = S5Pplot('unit_test_s5p_plot.pdf')
+    plot = S5Pplot('unit_test_s5p_plot2.pdf')
     check_draw_signal = True
-    check_draw_cmp_images = True
+    check_draw_cmp_images = False
     check_draw_quality = False
     check_draw_qhist = False
     check_draw_trend1d = False
@@ -291,7 +302,7 @@ def main():
     if check_draw_qhist:
         run_draw_qhist(plot)
 
-    # ---------- UNIT TEST: draw_lines ----------
+    # ---------- UNIT TEST: draw_trend1d ----------
     if check_draw_trend1d:
         run_draw_trend1d(plot)
 

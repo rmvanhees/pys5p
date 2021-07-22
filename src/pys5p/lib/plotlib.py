@@ -16,8 +16,7 @@ from datetime import datetime
 
 import matplotlib as mpl
 import numpy as np
-
-from pys5p.s5p_msm import S5Pmsm
+import xarray as xr
 
 
 # set the colormap and centre the colorbar
@@ -158,13 +157,13 @@ def check_data2d(method: str, data) -> None:
             raise ValueError('data must contain valid data')
         return
 
-    # data must be stored in a pys5p.S5Pmsm object
-    if not isinstance(data, S5Pmsm):
-        raise TypeError('data not a numpy.ndarray or pys5p.S5Pmsm')
+    # data must be stored in a xarray.DataArray object
+    if not isinstance(data, xr.DataArray):
+        raise TypeError('data not a numpy.ndarray or xarray.DataArray')
 
-    if data.value.ndim != 2:
+    if data.values.ndim != 2:
         raise ValueError('data must be two dimensional')
-    if np.all(np.isnan(data.value)):
+    if np.all(np.isnan(data.values)):
         raise ValueError('data must contain valid data')
     if method == 'ratio_unc':
         if data.error.ndim != 2:
@@ -179,7 +178,7 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
 
     Parameters
     ----------
-    data :  numpy.ndarray or pys5p.S5Pmsm
+    data :  numpy.ndarray or xarray.DataArray
        Object holding measurement data and attributes
     coords :  dictionary, optional
        Dictionary with the names and data of each dimension, where the keys of
@@ -193,7 +192,7 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
 
     Returns
     -------
-    pys5p.S5Pmsm
+    xarray.DataArray
     """
     try:
         check_data2d('data', data_in)
@@ -203,8 +202,7 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
     if isinstance(data_in, np.ndarray):
         if coords is None:
             raise KeyError('coords needs to be provided when data is a ndarray')
-        msm = S5Pmsm(data_in)
-        msm.set_coords(list(coords.values()), list(coords.keys()))
+        msm = data_to_xr(data_in, coords=coords)
     else:
         msm = data_in
 
@@ -238,19 +236,19 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
                                delta_time)
     mask = np.in1d(time_data_full, time_data)
     if time_axis == 0:
-        data_full = np.empty((time_dim, msm.value.shape[1]),
-                             dtype=msm.value.dtype)
-        data_full[mask, :] = msm.value
+        data_full = np.empty((time_dim, msm.values.shape[1]),
+                             dtype=msm.values.dtype)
+        data_full[mask, :] = msm.values
         for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
     else:
-        data_full = np.empty((msm.value.shape[0], time_dim),
-                             dtype=msm.value.dtype)
-        data_full[:, mask] = msm.value
+        data_full = np.empty((msm.values.shape[0], time_dim),
+                             dtype=msm.values.dtype)
+        data_full[:, mask] = msm.values
         for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
 
-    msm.value = data_full
+    msm.values = data_full
     return msm
 
 
@@ -263,14 +261,14 @@ def get_fig_coords(data_in) -> dict:
     dict: {'X': {'label': value, 'data': value},
            'Y': {'label': value, 'data': value}}
     """
-    if isinstance(data_in, S5Pmsm):
-        ylabel, xlabel = data_in.coords._fields
-        ydata = data_in.coords[0]
-        xdata = data_in.coords[1]
-    else:
+    if isinstance(data_in, np.ndarray):
         ylabel, xlabel = ['row', 'column']
         ydata = np.arange(data_in.shape[0])
         xdata = np.arange(data_in.shape[1])
+    else:
+        ylabel, xlabel = data_in.dims
+        ydata = data_in.coords[ylabel].data
+        xdata = data_in.coords[xlabel].data
 
     return {'X': {'label': xlabel, 'data': xdata},
             'Y': {'label': ylabel, 'data': ydata}}
@@ -301,6 +299,6 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
         xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
 
     if use_steps:
-        xdata = np.append(xdata[0] - xstep, xdata)
+        xdata = np.append(xdata, xdata[-1] + xstep)
 
     return (xdata, gap_list)
