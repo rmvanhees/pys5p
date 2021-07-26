@@ -10,16 +10,11 @@ ToDo
  - access to UVN CKD, still incomplete
  - identify latest Static CKD product, e.g. using the validity period
 
-Environment
------------
-CKD_DIR :  directory with Tropomi (SWIR) CKD, default is CWD
-
-Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
 """
-from os import environ
 from pathlib import Path, PosixPath
 
 import h5py
@@ -28,7 +23,12 @@ import xarray as xr
 
 from pys5p.s5p_xarray import h5_to_xr
 
-# - global parameters ------------------------------
+# - local functions ------------------------------
+def reject_row257(xarr):
+    """
+    Remove row 257 from DataArray or Dataset
+    """
+    return xarr.isel(row=np.s_[0:256])
 
 
 # - class definition -------------------------------
@@ -341,6 +341,10 @@ class CKDio():
         if ckd_val is None:
             return None
 
+        # Use NaN as FillValue
+        ckd_val = ckd_val.where(ckd_val != float.fromhex('0x1.ep+122'),
+                                other=np.nan)
+
         # combine DataArrays to Dataset
         return xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
 
@@ -394,6 +398,12 @@ class CKDio():
         if ckd_val is None:
             return None
 
+        # Use NaN as FillValue
+        ckd_val = ckd_val.where(ckd_val != float.fromhex('0x1.ep+122'),
+                                other=np.nan)
+        ckd_err = ckd_err.where(ckd_err != float.fromhex('0x1.ep+122'),
+                                other=np.nan)
+
         # combine DataArrays to Dataset
         return xr.Dataset({'value': ckd_val, 'error': ckd_err},
                           attrs=ckd_val.attrs)
@@ -418,7 +428,8 @@ class CKDio():
 
         dset_name = '/BAND{}' + '/abs_irr_conv_factor_qvd{}'.format(qvd)
         ckd = self.__rd_datapoints(dset_name, bands)
-        print(ckd)
+        if '7' in bands or '8' in bands:
+            ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = \
             '{} absolute irradiance CKD (QVD={})'.format(channel, qvd)
 
@@ -441,6 +452,8 @@ class CKDio():
 
         dset_name = '/BAND{}/abs_rad_conv_factor'
         ckd = self.__rd_datapoints(dset_name, bands)
+        if '7' in bands or '8' in bands:
+            ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = '{} absolute radiance CKD'.format(channel)
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -475,8 +488,8 @@ class CKDio():
                 (ckd_err, h5_to_xr(self.fid[dset_name], field='error')),
                 dim='column')
             ckd_err = ckd_err.assign_coords(column=column)
-            ckd[key.replace('swir', 'value')] = ckd_val
-            ckd[key.replace('swir', 'error')] = ckd_err
+            ckd[key.replace('swir', 'value')] = reject_row257(ckd_val)
+            ckd[key.replace('swir', 'error')] = reject_row257(ckd_err)
 
         return ckd
 
@@ -485,7 +498,7 @@ class CKDio():
         Returns readout-noise CKD, SWIR only
         """
         dset_name = '/BAND{}/readout_noise_swir'
-        ckd = self.__rd_dataset(dset_name, '78')
+        ckd = reject_row257(self.__rd_dataset(dset_name, '78'))
         ckd.attrs["long_name"] = 'SWIR readout-noise CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -506,6 +519,8 @@ class CKDio():
             raise RuntimeError(exc) from exc
 
         ckd = self.__rd_datapoints('/BAND{}/PRNU', bands)
+        if '7' in bands or '8' in bands:
+            ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = '{} PRNU CKD'.format(channel)
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -587,6 +602,8 @@ class CKDio():
 
         dset_name = '/BAND{}/wavelength_map'
         ckd = self.__rd_datapoints(dset_name, bands)
+        if '7' in bands or '8' in bands:
+            ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = '{} wavelength CKD'.format(channel)
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -597,7 +614,7 @@ class CKDio():
         Returns dark-flux CKD, SWIR only
         """
         dset_name = '/BAND{}/long_term_swir'
-        ckd = self.__rd_datapoints(dset_name, '78')
+        ckd = reject_row257(self.__rd_datapoints(dset_name, '78'))
         ckd.attrs["long_name"] = 'SWIR dark-flux CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -607,7 +624,7 @@ class CKDio():
         Returns offset CKD, SWIR only
         """
         dset_name = '/BAND{}/analog_offset_swir'
-        ckd = self.__rd_datapoints(dset_name, '78')
+        ckd = reject_row257(self.__rd_datapoints(dset_name, '78'))
         ckd.attrs["long_name"] = 'SWIR offset CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -617,7 +634,7 @@ class CKDio():
         Returns detector pixel-quality mask (float [0, 1]), SWIR only
         """
         dset_name = '/BAND{}/dpqf_map'
-        ckd = self.__rd_dataset(dset_name, '78')
+        ckd = reject_row257(self.__rd_dataset(dset_name, '78'))
         ckd.attrs["long_name"] = 'SWIR pixel-quality CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -654,49 +671,21 @@ class CKDio():
 
         return np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
-    def saturation(self, bands='78'):
+    def saturation(self):
         """
         Returns pixel-saturation values (pre-offset), SWIR only
         """
-        if len(bands) > 2:
-            raise ValueError('read per band or channel, only')
-        if '7' not in bands and '8' not in bands:
-            raise ValueError('saturation CKD is only available for SWIR')
-
         ckd_val = None
         dset_name = '/BAND{}/saturation_preoffset'
         ckd_file = (self.ckd_dir / 'OCAL'
                     / 'ckd.saturation_preoffset.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
-            for band in bands:
-                if dset_name.format(band) in fid:
-                    if ckd_val is None:
-                        ckd_val = h5_to_xr(fid[dset_name.format(band)])
-                    else:
-                        ckd_val = xr.concat(
-                            (ckd_val,
-                             h5_to_xr(fid[dset_name.format(band)])),
-                            dim='column')
+            ckd_val = xr.concat((h5_to_xr(fid[dset_name.format(7)]),
+                                 h5_to_xr(fid[dset_name.format(8)])),
+                                dim='column')
 
         ckd = xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
+        ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = 'SWIR pixel-saturation CKD (pre-offset)'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
-
-
-# --------------------------------------------------
-def main():
-    """
-    Main function
-    """
-    ckd = CKDio(ckd_dir=environ.get('CKD_DIR', '.'))
-    prnu_ckd = ckd.prnu()
-    print(prnu_ckd)
-    offs_ckd = ckd.offset()
-    print(offs_ckd)
-    dpqm_ckd = ckd.memory()
-    print(dpqm_ckd)
-
-
-if __name__ == '__main__':
-    main()
