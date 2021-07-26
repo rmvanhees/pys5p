@@ -18,6 +18,8 @@ import matplotlib as mpl
 import numpy as np
 import xarray as xr
 
+from ..s5p_xarray import data_to_xr
+
 
 # set the colormap and centre the colorbar
 class MidpointNormalize(mpl.colors.Normalize):
@@ -172,7 +174,7 @@ def check_data2d(method: str, data) -> None:
             raise ValueError('data must contain valid error estimates')
 
 
-def data_for_trend2d(data_in, coords=None, delta_time=None):
+def data_for_trend2d(data_in, dims=None, delta_time=None):
     """
     Prepare data to display the averaged column/row as function of time
 
@@ -180,9 +182,8 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
     ----------
     data :  numpy.ndarray or xarray.DataArray
        Object holding measurement data and attributes
-    coords :  dictionary, optional
-       Dictionary with the names and data of each dimension, where the keys of
-       the  dictionary are the names of the dimensions.
+    dims :  list of strings
+       Names for the dataset dimensions
        Required when data is a numpy array (otherwise ignored)
     delta_time : int, optional
        Expected resolution of the time-axis.
@@ -200,9 +201,9 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
         raise RuntimeError('invalid input-data provided') from exc
 
     if isinstance(data_in, np.ndarray):
-        if coords is None:
-            raise KeyError('coords needs to be provided when data is a ndarray')
-        msm = data_to_xr(data_in, coords=coords)
+        if dims is None:
+            raise KeyError('a list with dimensions names should be provided')
+        msm = data_to_xr(data_in, dims=dims)
     else:
         msm = data_in
 
