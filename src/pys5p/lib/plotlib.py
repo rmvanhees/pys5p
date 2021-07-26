@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 This module contains the helper functions for the class S5Pplot
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2020-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -161,7 +161,7 @@ def check_data2d(method: str, data) -> None:
     if not isinstance(data, xr.DataArray):
         raise TypeError('data not a numpy.ndarray or xarray.DataArray')
 
-    if data.values.ndim != 2:
+    if len(data.dims) != 2:
         raise ValueError('data must be two dimensional')
     if np.all(np.isnan(data.values)):
         raise ValueError('data must contain valid data')
@@ -236,14 +236,14 @@ def data_for_trend2d(data_in, coords=None, delta_time=None):
                                delta_time)
     mask = np.in1d(time_data_full, time_data)
     if time_axis == 0:
-        data_full = np.empty((time_dim, msm.values.shape[1]),
-                             dtype=msm.values.dtype)
+        data_full = np.empty((time_dim, msm.coords[msm.dims[1]].size),
+                             dtype=msm.dtype)
         data_full[mask, :] = msm.values
         for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
     else:
-        data_full = np.empty((msm.values.shape[0], time_dim),
-                             dtype=msm.values.dtype)
+        data_full = np.empty((msm.coords[msm.dims[0]].size, time_dim),
+                             dtype=msm.dtype)
         data_full[:, mask] = msm.values
         for ii in (~mask).nonzero()[0]:
             data_full[ii, :] = data_full[ii-1, :]
@@ -280,6 +280,15 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
     The data of the X-coordinate is extended to avoid interpolation over
     missing data.
 
+    Parameters
+    ----------
+    xdata :  ndarray
+       Data of the x-coordinate
+    use_steps :  bool
+       Data will be plotted with the matplotlib step-function
+
+    Returns
+    -------
     A list of indices to all data gaps is also returned which can be used to
     update the Y-coordinate.
     """
