@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 Implements a lite interface with the xarray::DataArray
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2020-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -93,9 +93,10 @@ def __get_coords(dset, data_sel: tuple) -> list:
                 buff = dim[0][()]
                 if np.all(buff == 0):
                     buff = np.arange(dim[0].size, dtype=dim[0].dtype)
+                elif data_sel is not None:
+                    buff = buff[data_sel[ii]]
 
-                coords.append((name, buff
-                               if data_sel is None else buff[data_sel[ii]]))
+                coords.append((name, buff))
         except RuntimeError:
             coords = []
 
@@ -163,8 +164,7 @@ def __get_data(dset, data_sel: tuple, field: str):
         data_sel = ()
 
     if np.issubdtype(dset.dtype, np.floating):
-        data = dset.astype(float)[data_sel]
-        return data
+        return dset.astype(float)[data_sel]
 
     if field is None:
         return dset[data_sel]
@@ -175,7 +175,7 @@ def __get_data(dset, data_sel: tuple, field: str):
     return data
 
 
-def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
+def h5_to_xr(h5_dset, data_sel=None, *, dims=None, field=None):
     """
     Create xarray::DataArray from a HDF5 dataset (with dimension scales)
 
@@ -183,12 +183,12 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     ----------
     h5_dset :  h5py.Dataset
        Data, dimensions, coordinates and attributes are read for this dataset
-    field : str
-       Name of field in compound dataset or None
-    data_sel :  numpy slice
+    data_sel :  slice, optional
        A numpy slice generated for example numpy.s_
-    dims :  list of strings
+    dims :  list of strings, optional
        Alternative names for the dataset dimensions if not attached to dataset
+    field : str, optional
+       Name of field in compound dataset or None
 
     Returns
     -------
@@ -197,13 +197,14 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     Notes
     -----
     If data_sel is used to select data from a dataset then the number of
-    dimensions of data_sel should agree with the HDF5 dataset. Thus allowed
-    values for data_sel are:
+    dimensions of data_sel should agree with the HDF5 dataset or one and
+    only one Ellipsis has to be used.
+    Thus allowed values for data_sel are:
     * [always]: (), np.s_[:], np.s_[...]
     * [1-D dataset]: np.s_[:-1], np.s_[0]
     * [2-D dataset]: np.s_[:-1, :], np.s_[0, :], np.s_[:-1, 0]
     * [3-D dataset]: np.s_[:-1, :, 2:4], np.s_[0, :, :], np.s_[:-1, 0, 2:4]
-    But not np.s_[0, ...], np.s_[..., 4]
+    * [Ellipsis] np.s_[0, ...], np.s_[..., 4], np.s_[0, ..., 4]
 
     Examples
     --------
@@ -227,6 +228,19 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     if data_sel is not None:
         if data_sel in (np.s_[:], np.s_[...], np.s_[()]):
             data_sel = None
+        elif np.isscalar(data_sel):
+            data_sel = (np.s_[data_sel:data_sel+1],)
+        else:
+            buff = ()
+            for val in data_sel:
+                if val == Ellipsis:
+                    for _ in range(h5_dset.ndim - len(data_sel) + 1):
+                        buff += np.index_exp[:]
+                elif np.isscalar(val):
+                    buff += (np.s_[val:val+1],)
+                else:
+                    buff += (val,)
+            data_sel = buff
 
     # Name of this array
     name = PurePath(h5_dset.name).name
@@ -253,7 +267,7 @@ def h5_to_xr(h5_dset, field=None, data_sel=None, dims=None):
     return xr.DataArray(data, name=name, attrs=attrs, coords=coords)
 
 
-def data_to_xr(data, dims=None, name=None, long_name=None, units=None):
+def data_to_xr(data, *, dims=None, name=None, long_name=None, units=None):
     """
     Create xarray::DataArray from a dataset
 
