@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 The class S5Pplot contains generic plot functions
 
-Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -114,13 +114,13 @@ class S5Pplot:
     >>> from pys5p.s5p_plot import S5Pplot
     >>> plot = S5Pplot('test_plot_class.pdf')
 
-    Create the same plot twice, using ndarray/set_zunit or S5Pmsm
+    Create the same plot twice, using ndarray/set_zunit or xarray
 
     >>> plot.set_zunit('V')
     >>> plot.draw_signal(np.mean(signal, axis=0), title='Offset signal')
     >>> plot.unset_zunit()
-    >>> msm = S5Pmsm(np.mean(signal, axis=0))
-    >>> msm.set_units('V')
+    >>> msm = data_to_xr(np.mean(signal, axis=0))
+    >>> msm.attrs['units'] = 'V'
 
     Create plot with matplotlib colormap 'RdPu'
 
@@ -436,12 +436,20 @@ class S5Pplot:
                  bbox=None, linespacing=1.5)
 
     # -------------------------
-    def __add_data1d(self, plot_mode, axarr, msm_1, msm_2):
+    def __add_data1d(self, plot_mode: str, axarr, msm_1, msm_2=None):
         """
-        Implemented 3 options
-         1) only house-keeping data, no upper-panel with detector data
-         2) draw pixel-quality data, displayed in the upper-panel
-         3) draw measurement data, displayed in the upper-panel
+        Draw 1D data in matplotlib subplot, handling missing data gracefully
+
+        Parameters
+        ----------
+        plot_mode : str
+           What needs to be shown? Choices: 'data' or 'quality'
+        axarr :  array of axis.Axes
+           array of matplotlib Axes objects for one or more subplot
+        msm_1 :  xarray.DataArray
+           First 1D dataset
+        msm_2 :  xarray.DataArray, optional
+           Seconds (optional) 1D dataset
 
         Notes
         -----
@@ -454,7 +462,7 @@ class S5Pplot:
         if plot_mode == 'quality':
             use_steps = msm_1.values.size <= 256
             (xlabel,) = msm_1.dims[0]
-            xdata, gap_list = get_xdata(msm_1.coords[xlabel].data, use_steps)
+            xdata, gap_list = get_xdata(msm_1.coords[xlabel].values, use_steps)
 
             qc_dict = {'bad': cset.yellow,
                        'worst': cset.red}
@@ -484,8 +492,6 @@ class S5Pplot:
                 legenda.draw_frame(False)
                 i_ax += 1
 
-            return i_ax
-
         if plot_mode == 'data':
             for msm in (msm_1, msm_2):
                 if msm is None:
@@ -494,12 +500,13 @@ class S5Pplot:
                 # convert units from electrons to ke, Me, ...
                 vmin = msm.values.min()
                 vmax = msm.values.max()
-                self.set_zunit(msm.units)
+                self.set_zunit(msm.attrs['units'])
                 dscale = self.__adjust_zunit(vmin, vmax)
 
                 use_steps = msm.values.size <= 256
                 (xlabel,) = msm.dims
-                xdata, gap_list = get_xdata(msm.coords[xlabel].data, use_steps)
+                xdata, gap_list = get_xdata(msm.coords[xlabel].values,
+                                            use_steps)
                 ydata = msm.values.copy() / dscale
                 for indx in reversed(gap_list):
                     ydata = np.insert(ydata, indx, np.nan)
@@ -517,12 +524,11 @@ class S5Pplot:
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
                 if self.zunit is None or self.zunit == '1':
-                    axarr[i_ax].set_ylabel(msm.long_name)
+                    axarr[i_ax].set_ylabel(msm.attrs['long_name'])
                 else:
                     axarr[i_ax].set_ylabel(r'{} [{}]'.format(
-                        msm.long_name, self.zunit))
+                        msm.attrs['long_name'], self.zunit))
                 i_ax += 1
-            return i_ax
 
         return i_ax
 
@@ -538,18 +544,20 @@ class S5Pplot:
         # define colors
         cset = tol_cset('bright')
 
-        (xlabel,) = hk_data.dims
-        xdata = hk_data.coords[xlabel].data.copy()
+        xlabel = hk_data['hk_mean'].dims[0]
+        if xlabel == 'days':
+            xlabel = hk_data['hk_mean'].dims[1]
+        xdata = hk_data['hk_mean'].coords[xlabel].values
         use_steps = xdata.size <= 256
         xdata, gap_list = get_xdata(xdata, use_steps)
         if xlabel == 'time':
             xdata = xdata.astype(float) / 3600
 
         for key in hk_keys:
-            if key not in hk_data['avg'].values.dtype.names:
+            if key not in hk_data['hk_mean'].values.dtype.names:
                 continue
 
-            indx = hk_data['avg'].values.dtype.names.index(key)
+            indx = hk_data['hk_mean'].values.dtype.names.index(key)
             hk_unit = hk_data.attrs['units'][indx]
             if isinstance(hk_unit, bytes):
                 hk_unit = hk_unit.decode('ascii')
@@ -577,9 +585,14 @@ class S5Pplot:
                 lcolor = cset.purple
                 fcolor = '#EEBBDD'
 
-            ydata = hk_data['avg'].values[key].copy()
-            yerr1 = hk_data['min'].values[key].copy()
-            yerr2 = hk_data['max'].values[key].copy()
+            if len(hk_data['hk_mean'].dims) == 2:
+                ydata = hk_data['hk_mean'].values[key][0, :].copy()
+                yerr1 = hk_data['hk_range'].values[key][0, :, 0].copy()
+                yerr2 = hk_data['hk_range'].values[key][0, :, 1].copy()
+            else:
+                ydata = hk_data['hk_mean'].values[key].copy()
+                yerr1 = hk_data['hk_range'].values[key][:, 0].copy()
+                yerr2 = hk_data['hk_range'].values[key][:, 1].copy()
             for indx in reversed(gap_list):
                 ydata = np.insert(ydata, indx, np.nan)
                 yerr1 = np.insert(yerr1, indx, np.nan)
@@ -917,6 +930,9 @@ class S5Pplot:
         except Exception as exc:
             raise RuntimeError('invalid input-data provided') from exc
 
+        self.unset_zunit()
+        if not isinstance(data_in, np.ndarray) and zscale != 'ratio':
+            self.set_zunit(data_in.attrs['units'])
         norm = self.__scale_data2d(zscale, img_data, vperc, vrange)
 
         # inititalize figure
@@ -1291,7 +1307,10 @@ class S5Pplot:
         # define number of panels for measurement data
         if msm1 is None:
             plot_mode = 'house-keeping'
-            (xlabel,) = hk_data.dims
+            if hk_data['hk_mean'].dims[0] == 'days':
+                xlabel = hk_data['hk_mean'].dims[1]
+            else:
+                xlabel = hk_data['hk_mean'].dims[0]
             if xlabel == 'time':
                 xlabel += ' [hours]'
             npanels = 0
