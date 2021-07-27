@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 The class LV2io provides read access to S5p Tropomi S5P_OFFL_L2 products
 
-Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -17,7 +17,7 @@ import h5py
 from netCDF4 import Dataset
 import numpy as np
 
-from .s5p_msm import S5Pmsm
+from .s5p_xarray import data_to_xr, h5_to_xr
 
 # - global parameters ------------------------------
 
@@ -81,7 +81,7 @@ class LV2io():
     Examples
     --------
     """
-    def __init__(self, lv2_product):
+    def __init__(self, lv2_product: str):
         """
         Initialize access to an S5P_L2 product
 
@@ -95,22 +95,10 @@ class LV2io():
 
         # initialize class-attributes
         self.filename = lv2_product
-        self.science_product = False
 
         # open LV2 product as HDF5 file
-        self.fid = h5py.File(lv2_product, "r")
-        try:
-            science_inst = ['SRON Netherlands Institute for Space Research']
-
-            if self.get_attr('institution') in science_inst:
-                self.science_product = True
-        except OSError:
-            self.science_product = True
-
         if self.science_product:
-            self.fid.close()
             self.fid = Dataset(lv2_product, "r", format="NETCDF4")
-
             self.ground_pixel = self.fid['/instrument/ground_pixel'][:].max()
             self.ground_pixel += 1
             self.scanline = self.fid['/instrument/scanline'][:].max()
@@ -119,6 +107,7 @@ class LV2io():
             if self.fid['/instrument/scanline'].size % self.ground_pixel != 0:
                 raise ValueError('not all scanlines are complete')
         else:
+            self.fid = h5py.File(lv2_product, "r")
             self.ground_pixel = self.fid['/PRODUCT/ground_pixel'].size
             self.scanline = self.fid['/PRODUCT/scanline'].size
 
@@ -151,7 +140,75 @@ class LV2io():
         if self.fid is not None:
             self.fid.close()
 
-    # -------------------------
+    # ----- Class properties --------------------
+    @property
+    def science_product(self) -> bool:
+        """
+        Returns if the product is a science product
+        """
+        science_inst = b'SRON Netherlands Institute for Space Research'
+
+        res = False
+        with h5py.File(self.filename) as fid:
+            if ('institution' in fid.attrs
+                and fid.attrs['institution'] == science_inst):
+                res = True
+
+        return res
+
+    @property
+    def orbit(self) -> int:
+        """
+        Returns reference orbit number
+        """
+        if self.science_product:
+            return int(self.__nc_attr('orbit', 'l1b_file'))
+
+        return self.__h5_attr('orbit', None)[0]
+
+    @property
+    def algorithm_version(self) -> str:
+        """
+        Returns version of the level 2 algorithm
+        """
+        res = self.get_attr('algorithm_version')
+
+        return res if res is not None else self.get_attr('version')
+
+    @property
+    def processor_version(self) -> str:
+        """
+        Returns version of the level 2 processor
+        """
+        res = self.get_attr('processor_version')
+
+        return res if res is not None else self.get_attr('version')
+
+    @property
+    def product_version(self) -> str:
+        """
+        Returns version of the level 2 product
+        """
+        res = self.get_attr('product_version')
+
+        return res if res is not None else self.get_attr('version')
+
+    @property
+    def coverage_time(self) -> tuple:
+        """
+        Returns start and end of the measurement coverage time
+        """
+        return (self.get_attr('time_coverage_start'),
+                self.get_attr('time_coverage_end'))
+
+    @property
+    def creation_time(self) -> str:
+        """
+        Returns creation date/time of the level 2 product
+        """
+        return self.get_attr('date_created')
+
+    # ----- Attributes --------------------
     def __h5_attr(self, attr_name, ds_name):
         """
         read attributes from operational products using hdf5
@@ -212,70 +269,31 @@ class LV2io():
 
         return self.__h5_attr(attr_name, ds_name)
 
-    # -------------------------
-    def get_orbit(self) -> int:
-        """
-        Returns reference orbit number
-        """
-        if self.science_product:
-            return int(self.__nc_attr('orbit', 'l1b_file'))
-
-        return self.__h5_attr('orbit', None)[0]
-
-    # -------------------------
-    def get_algorithm_version(self) -> str:
-        """
-        Returns version of the level 2 algorithm
-        """
-        return self.get_attr('algorithm_version')
-
-    # -------------------------
-    def get_processor_version(self) -> str:
-        """
-        Returns version of the L12 processor
-        """
-        return self.get_attr('processor_version')
-
-    # -------------------------
-    def get_product_version(self):
-        """
-        Returns version of the level 2 product
-        """
-        return self.get_attr('product_version')
-
-    # -------------------------
-    def get_coverage_time(self):
-        """
-        Returns start and end of the measurement coverage time
-        """
-        res1 = self.get_attr('time_coverage_start')
-        res2 = self.get_attr('time_coverage_end')
-        return (res1, res2)
-
-    # -------------------------
-    def get_creation_time(self):
-        """
-        Returns creation date/time of the level 2 product
-        """
-        return self.get_attr('date_created')
-
-    # ---------- Functions using data in the PRODUCT group ----------
-    def get_ref_time(self):
+    # ----- Time information ---------------
+    @property
+    def ref_time(self) -> datetime:
         """
         Returns reference start time of measurements
         """
-        ref_time = datetime(2010, 1, 1, 0, 0, 0)
-        ref_time += timedelta(seconds=int(self.fid['/PRODUCT/time'][0]))
-        return ref_time
+        if self.science_product:
+            return None
 
-    # -------------------------
-    def get_delta_time(self):
-        """
-        Returns offset from the reference start time of measurement
-        """
-        return self.fid['/PRODUCT/delta_time'][0, :].astype(int)
+        return (datetime(2010, 1, 1, 0, 0, 0)
+                + timedelta(seconds=int(self.fid['/PRODUCT/time'][0])))
 
-    # -------------------------
+    def get_time(self):
+        """
+        Returns start time of measurement per scan-line
+        """
+        if self.science_product:
+            buff = self.get_dataset('time')[::self.ground_pixel, :]
+            return np.array([datetime(*x) for x in buff])
+
+        buff = self.fid['/PRODUCT/delta_time'][0, :]
+        return np.array([self.ref_time + timedelta(seconds=x / 1e3)
+                         for x in buff])
+
+    # ----- Geolocation --------------------
     def __h5_geo_data(self, geo_dsets):
         """
         read gelocation datasets from operational products using HDF5
@@ -303,7 +321,9 @@ class LV2io():
 
         for key in geo_dsets.split(','):
             if key in self.fid['/instrument'].variables.keys():
-                res[key] = self.fid['/instrument/{}'.format(key)][:]
+                ds_name = '/instrument/{}'.format(key)
+                res[key] = self.fid[ds_name][:].reshape(
+                    self.scanline, self.ground_pixel)
 
         return res
 
@@ -329,7 +349,7 @@ class LV2io():
 
         return self.__h5_geo_data(geo_dsets)
 
-    # -------------------------
+    # ----- Footprints --------------------
     def __h5_geo_bounds(self, extent, data_sel):
         """
         read bounds of latitude/longitude from operational products using HDF5
@@ -344,8 +364,7 @@ class LV2io():
 
             indx = ((lons >= extent[0]) & (lons <= extent[1])
                     & (lats >= extent[2]) & (lats <= extent[3])).nonzero()
-            data_sel = np.s_[0,
-                             indx[0].min():indx[0].max(),
+            data_sel = np.s_[indx[0].min():indx[0].max(),
                              indx[1].min():indx[1].max()]
 
         gid = self.fid['/PRODUCT/SUPPORT_DATA/GEOLOCATIONS']
@@ -353,8 +372,9 @@ class LV2io():
             lat_bounds = gid['latitude_bounds'][0, ...]
             lon_bounds = gid['longitude_bounds'][0, ...]
         else:
-            lat_bounds = gid['latitude_bounds'][data_sel + (slice(None),)]
-            lon_bounds = gid['longitude_bounds'][data_sel + (slice(None),)]
+            data_sel0 = (0,) + data_sel + (slice(None),)
+            lat_bounds = gid['latitude_bounds'][data_sel0]
+            lon_bounds = gid['longitude_bounds'][data_sel0]
 
         return (data_sel, lon_bounds, lat_bounds)
 
@@ -434,7 +454,7 @@ class LV2io():
 
         return data_sel, res
 
-    # -------------------------
+    # ----- Datasets (numpy) --------------------
     def __h5_dataset(self, name, data_sel, fill_as_nan):
         """
         read dataset from operational products using HDF5
@@ -452,9 +472,9 @@ class LV2io():
                 res = dset[0, ...]
         else:
             if dset.dtype == np.float32:
-                res = dset.astype(float)[data_sel]
+                res = dset.astype(float)[(0,) + data_sel]
             else:
-                res = dset[data_sel]
+                res = dset[(0,) + data_sel]
 
         if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
             res[(res == fillvalue)] = np.nan
@@ -465,11 +485,18 @@ class LV2io():
         """
         read dataset from science products using netCDF4
         """
-        if name not in self.fid['/target_product'].variables.keys():
+        if name in self.fid['/target_product'].variables.keys():
+            group = '/target_product'
+        elif name in self.fid['/instrument'].variables.keys():
+            group = '/instrument'
+        else:
             raise ValueError('dataset {} for found'.format(name))
 
-        dset = self.fid['/target_product/{}'.format(name)]
-        res = dset[:].reshape(self.scanline, self.ground_pixel)
+        dset = self.fid['{}/{}'.format(group, name)]
+        if dset.size == self.scanline * self.ground_pixel:
+            res = dset[:].reshape(self.scanline, self.ground_pixel)
+        else:
+            res = dset[:]
         if data_sel is not None:
             res = res[data_sel]
 
@@ -500,81 +527,60 @@ class LV2io():
 
         return self.__h5_dataset(name, data_sel, fill_as_nan)
 
-    # -------------------------
-    def __h5_data_as_s5pmsm(self, name, data_sel, fill_as_nan, mol_m2):
+    # ----- Dataset (xarray) --------------------
+    def __h5_data_as_xds(self, name, data_sel, mol_m2):
         """
         Read dataset from group target_product using HDF5
 
         Input: operational product
 
-        Return: S5Pmsm object
+        Return: xarray.Dataset
         """
         if name not in self.fid['/PRODUCT']:
             raise ValueError('dataset {} for found'.format(name))
-
         dset = self.fid['/PRODUCT/{}'.format(name)]
-        msm = S5Pmsm(dset, data_sel=data_sel)
-        if '{}_precision'.format(name) in self.fid['/PRODUCT']:
-            msm.error = self.get_dataset('{}_precision'.format(name),
-                                         data_sel=data_sel)
 
-        if not mol_m2:
-            factor = dset.attrs[
-                'multiplication_factor_to_convert_to_molecules_percm2']
-            msm.value[msm.value != msm.fillvalue] *= factor
-            msm.units = 'molecules / cm$^2$'
-            if msm.error is not None:
-                msm.error[msm.error != msm.fillvalue] *= factor
-        else:
-            msm.units = 'mol / m$^2$'
+        # ToDo handle parameter mol_m2
+        return h5_to_xr(dset, (0,) + data_sel).squeeze()
 
-        if fill_as_nan:
-            msm.fill_as_nan()
-
-        return msm
-
-    def __nc_data_as_s5pmsm(self, name, data_sel, fill_as_nan):
+    def __nc_data_as_xds(self, name, data_sel):
         """
         Read dataset from group PRODUCT using netCDF4
 
         Input: science product
 
-        Return: S5Pmsm object
+        Return: xarray.DataArray
         """
-        msm = S5Pmsm(self.get_dataset(name, data_sel))
-        buff = self.get_dataset('{}_precision'.format(name), data_sel)
-        if buff is not None:
-            msm.error = buff
-        msm.set_fillvalue()
-        msm.set_units(self.get_attr('units', name))
-        msm.set_long_name(self.get_attr('long_name', name))
+        if name in self.fid['/target_product'].variables.keys():
+            group = '/target_product'
+        elif name in self.fid['/instrument'].variables.keys():
+            group = '/instrument'
+        else:
+            raise ValueError('dataset {} for found'.format(name))
 
-        if fill_as_nan:
-            msm.fill_as_nan()
+        return data_to_xr(self.get_dataset(name, data_sel),
+                          dims=['scanline','ground_pixel'], name=name,
+                          long_name=self.get_attr('long_name', name),
+                          units=self.get_attr('units', name))
 
-        return msm
-
-    def get_data_as_s5pmsm(self, name, data_sel=None, fill_as_nan=True,
-                           mol_m2=False):
+    def get_data_as_xds(self, name, data_sel=None, mol_m2=False):
         """
         Read dataset from group PRODUCT/target_product group
 
         Parameters
         ----------
-        name   :  string
+        name   :  str
             name of dataset with level 2 data
         data_sel  :  numpy slice
            a 3-dimensional numpy slice: time, scan_line, ground_pixel
-        fill_as_nan :  boolean
-            Replace (float) FillValues with Nan's, when True
-        mol_m2    : boolean
+        mol_m2    : bool
             Leaf units as mol per m^2 or convert units to molecules per cm^2
 
         Returns
         -------
-        out  :  pys5p.S5Pmsm object
+        out  :  xarray.DataArray
         """
         if self.science_product:
-            return self.__nc_data_as_s5pmsm(name, data_sel, fill_as_nan)
+            return self.__nc_data_as_xds(name, data_sel)
 
-        return self.__h5_data_as_s5pmsm(name, data_sel, fill_as_nan, mol_m2)
+        return self.__h5_data_as_xds(name, data_sel, mol_m2)
