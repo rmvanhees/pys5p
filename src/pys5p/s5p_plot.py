@@ -461,7 +461,7 @@ class S5Pplot:
         i_ax = 0
         if plot_mode == 'quality':
             use_steps = msm_1.values.size <= 256
-            (xlabel,) = msm_1.dims[0]
+            (xlabel,) = msm_1.dims
             xdata, gap_list = get_xdata(msm_1.coords[xlabel].values, use_steps)
 
             qc_dict = {'bad': cset.yellow,
@@ -1518,15 +1518,14 @@ class S5Pplot:
                                      **kwargs)
 
     # --------------------------------------------------
-    def draw_qhist(self, data_dict, *,
-                   title=None, density=True, fig_info=None):
+    def draw_qhist(self, xds, *, title=None, density=True, fig_info=None):
         """
         Display pixel-quality data as histograms.
 
         Parameters
         ----------
-        data_dict : dict
-           Dictionary containing pixel quality and its submasks
+        xds : xarray.Dataset
+           Xarray Dataset containing pixel quality and its submasks
         title :  string
            Title of the figure. Default is None
            Suggestion: use attribute "title" of data-product
@@ -1548,7 +1547,7 @@ class S5Pplot:
         cset = tol_cset('bright')
 
         # initialize matplotlib using 'subplots'
-        npanels = len(data_dict)
+        npanels = len(xds.data_vars)
         figsize = (10., 1 + (npanels + 1) * 1.65)
         fig, axarr = plt.subplots(npanels, sharex=True, figsize=figsize)
         if npanels == 1:
@@ -1565,18 +1564,19 @@ class S5Pplot:
                            fontsize='large')
 
         # draw histograms
-        for ii, key in enumerate(data_dict):
+        for ii, (key, xda) in enumerate(xds.data_vars.items()):
+            xda = xda.squeeze()
             try:
-                check_data2d('quality', data_dict[key])
+                check_data2d('quality', xda)
             except Exception as exc:
                 raise RuntimeError('invalid input-data provided') from exc
 
-            if isinstance(data_dict[key], np.ndarray):
-                data = data_dict[key][swir_region.mask()]
+            if isinstance(xda, np.ndarray):
+                data = xda[swir_region.mask()]
                 long_name = key
             else:
-                data = data_dict[key].values[swir_region.mask()]
-                long_name = data_dict[key].long_name
+                data = xda.values[swir_region.mask()]
+                long_name = xda.attrs['long_name']
             data[np.isnan(data)] = 0.
 
             axarr[ii].hist(data, bins=11, range=[-.1, 1.],
