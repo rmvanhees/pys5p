@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 Performs unit-tests on S5Pplot methods: draw_signal, draw_quality,
    draw_cmp_images, draw_trend1d and draw_lines
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2020-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -80,7 +80,7 @@ def run_lv2_tests(plot, lv2_product):
     print('Run unit tests on S5Pgeoplot using LV2io')
 
     with LV2io(lv2_product) as lv2:
-        orbit = lv2.get_orbit()
+        orbit = lv2.orbit
         print('orbit: ', orbit)
 
         extent = [-180, 180, -30, 30]
@@ -93,12 +93,11 @@ def run_lv2_tests(plot, lv2_product):
             msm_name = 'co_column'
         else:
             msm_name = 'carbonmonoxide_total_column'
-        lv2_msm = lv2.get_data_as_s5pmsm(msm_name, data_sel=data_sel,
-                                         fill_as_nan=True)
+        lv2_msm = lv2.get_data_as_xds(msm_name, data_sel=data_sel)
 
-    print(lv2_msm.long_name)
+    print(lv2_msm.attrs['long_name'])
     plot.draw_geo_msm(geo['longitude'], geo['latitude'], lv2_msm,
-                      title=lv2_msm.long_name,
+                      title=lv2_msm.attrs['long_name'],
                       sub_title='orbit={}'.format(orbit))
 
 

@@ -10,6 +10,7 @@ Copyright (c) 2021 SRON - Netherlands Institute for Space Research
 
 License:  BSD-3-Clause
 """
+import argparse
 from pathlib import Path
 
 from pys5p.ckd_io1 import CKDio
@@ -18,15 +19,15 @@ from pys5p.ckd_io1 import CKDio
 def main():
     """
     """
-    if Path('/nfs/Tropomi/share/ckd').is_dir():
-        ckd_dir = '/nfs/Tropomi/share/ckd'
-    elif Path('/data/richardh/Tropomi/share/ckd').is_dir():
-        ckd_dir = '/data/richardh/Tropomi/share/ckd'
-    else:
-        ckd_dir = '/data2/richardh/Tropomi/share/ckd'
+    parser = argparse.ArgumentParser(
+        description='{}: run units-test on class CKDio'.format(
+            Path(__file__).name))
+    parser.add_argument('ckd_dir', nargs=1, type=str, default=None,
+                        help=('directory with CKD data with'
+                              ' static CKD in a subdirectory static'))
+    args = parser.parse_args()
 
-    print(ckd_dir)
-    with CKDio(ckd_dir, ckd_version=1) as ckd:
+    with CKDio(args.ckd_dir[0], ckd_version=1) as ckd:
         print(ckd.ckd_file)
         for meth in dir(ckd):
             if (meth.startswith('_')
@@ -37,7 +38,7 @@ def main():
                   '-------------------------')
             print(meth, getattr(ckd, meth)())
 
-    with CKDio(ckd_dir, ckd_version=2) as ckd:
+    with CKDio(args.ckd_dir[0], ckd_version=2) as ckd:
         print(ckd.ckd_file)
         for meth in dir(ckd):
             if (meth.startswith('_')

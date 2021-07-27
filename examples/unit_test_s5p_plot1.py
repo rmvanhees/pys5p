@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 Performs unit-tests on S5Pplot methods: draw_signal, draw_quality,
    draw_cmp_images, draw_trend1d and draw_lines (S5Pmsm version)
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2020-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

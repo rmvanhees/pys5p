@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The class S5Pgeoplot displays footprints or observations projected
 on the Earth surface.
 
-Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
