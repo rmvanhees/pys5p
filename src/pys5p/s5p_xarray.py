@@ -164,7 +164,9 @@ def __get_data(dset, data_sel: tuple, field: str):
         data_sel = ()
 
     if np.issubdtype(dset.dtype, np.floating):
-        return dset.astype(float)[data_sel]
+        data = dset.astype(float)[data_sel]
+        data[data == float.fromhex('0x1.ep+122')] = np.nan
+        return data
 
     if field is None:
         return dset[data_sel]
@@ -172,6 +174,7 @@ def __get_data(dset, data_sel: tuple, field: str):
     data = dset.fields(field)[data_sel]
     if np.issubdtype(data.dtype, np.floating):
         data = data.astype(float)
+        data[data == float.fromhex('0x1.ep+122')] = np.nan
     return data
 
 
