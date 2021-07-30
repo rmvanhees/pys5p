@@ -309,6 +309,6 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
         xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
 
     if use_steps:
-        xdata = np.append(xdata, xdata[-1] + xstep)
+        xdata = np.append(xdata[0] - xstep, xdata)
 
     return (xdata, gap_list)
