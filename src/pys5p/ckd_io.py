@@ -658,16 +658,16 @@ class CKDio():
         # try Static-CKD product
         if '/BAND7/dpqf_map' in self.fid:
             dset = self.fid['/BAND7/dpqf_map']
-            dpqf_b7 = dset[()]
+            dpqf_b7 = dset[:-1, :]
             dset = self.fid['/BAND8/dpqf_map']
-            dpqf_b8 = dset[()]
+            dpqf_b8 = dset[:-1, :]
         else:
             # try Dynamic-CKD product
             with h5py.File(self.ckd_dyn_file, 'r') as fid:
                 dset = fid['/BAND7/dpqf_map']
-                dpqf_b7 = dset[()]
+                dpqf_b7 = dset[:-1, :]
                 dset = fid['/BAND8/dpqf_map']
-                dpqf_b8 = dset[()]
+                dpqf_b8 = dset[:-1, :]
 
         return np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
