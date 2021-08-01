@@ -163,7 +163,6 @@ class OCMio():
 
         # initialize class-attributes
         self.__msm_path = None
-        self.__patched_msm = []
         self.band = None
         self.filename = ocm_product
 

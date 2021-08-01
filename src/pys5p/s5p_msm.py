@@ -163,14 +163,14 @@ class S5Pmsm():
 
     def __repr__(self) -> str:
         res = []
-        for attr in self.__dict__:
-            if attr.startswith('__'):
+        for key, value in self.__dict__.items():
+            if key.startswith('__'):
                 continue
-            if isinstance(self.__dict__[attr], np.ndarray):
-                value = self.__dict__[attr].shape
+            if isinstance(value, np.ndarray):
+                res.append('{}: {}'.format(key, value.shape))
             else:
-                value = self.__dict__[attr]
-            res.append('{}: {}'.format(attr, value))
+                res.append('{}: {}'.format(key, value))
+
         return '\n'.join(res)
 
     def __from_h5_dset(self, h5_dset, data_sel, datapoint):

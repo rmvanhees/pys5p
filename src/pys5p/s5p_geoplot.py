@@ -18,8 +18,8 @@ try:
     import cartopy.feature as cfeature
     from cartopy.mpl.gridliner import (LONGITUDE_FORMATTER,
                                        LATITUDE_FORMATTER)
-except Exception as exc:
-    raise RuntimeError('This module require module Cartopy') from exc
+except Exception as exc2:
+    raise RuntimeError('This module require module Cartopy') from exc2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
