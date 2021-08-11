@@ -11,7 +11,7 @@ Reference
 ---------
    https://personal.sron.nl/~pault/
 
-Copyright (c) 2019-2020, Paul Tol (SRON)
+Copyright (c) 2019-2021 Paul Tol (SRON)
 All rights reserved.
 
 License:  Standard 3-clause BSD

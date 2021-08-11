@@ -15,6 +15,7 @@ import warnings
 
 import numpy as np
 
+
 # ----- local functions -------------------------
 def __biweight(data, spread=False):
     """

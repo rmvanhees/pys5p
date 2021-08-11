@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classe OCMio provide read access to Tropomi on-ground calibration products
 (Lx)
 
-Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

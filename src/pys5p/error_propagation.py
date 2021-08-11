@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 Implement some function for error propagation
 
-Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

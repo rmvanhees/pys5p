@@ -1580,15 +1580,15 @@ class S5Pplot:
             data[np.isnan(data)] = 0.
 
             axarr[ii].hist(data, bins=11, range=[-.1, 1.],
-                            histtype='stepfilled', log=True,
-                            density=density, color=cset.blue)
+                           histtype='stepfilled', log=True,
+                           density=density, color=cset.blue)
             # axarr[ii].set_yscale('log', nonpositive='clip')
             axarr[ii].set_xlim([0, 1])
             axarr[ii].set_ylabel('density')
             axarr[ii].set_ylim([1e-4, 10])
             axarr[ii].set_yticks([1e-4, 1e-3, 1e-2, 1e-1, 1])
             axarr[ii].grid(which='major', color='#BBBBBB',
-                            lw=0.75, ls=(0, (1, 5)))
+                           lw=0.75, ls=(0, (1, 5)))
             legenda = axarr[ii].legend([blank_legend_key()],
                                        [long_name], loc='upper left')
             legenda.draw_frame(False)

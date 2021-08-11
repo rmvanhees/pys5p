@@ -10,7 +10,7 @@ ToDo
  - access to UVN CKD, still incomplete
  - identify latest Static CKD product, e.g. using the validity period
 
-Copyright (c) 2018-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause

@@ -19,6 +19,7 @@ import numpy as np
 
 from .s5p_xarray import data_to_xr, h5_to_xr
 
+
 # - global parameters ------------------------------
 
 
@@ -150,8 +151,8 @@ class LV2io():
 
         res = False
         with h5py.File(self.filename) as fid:
-            if ('institution' in fid.attrs
-                and fid.attrs['institution'] == science_inst):
+            if 'institution' in fid.attrs \
+               and fid.attrs['institution'] == science_inst:
                 res = True
 
         return res
@@ -559,7 +560,7 @@ class LV2io():
             raise ValueError('dataset {} for found'.format(name))
 
         return data_to_xr(self.get_dataset(name, data_sel),
-                          dims=['scanline','ground_pixel'], name=name,
+                          dims=['scanline', 'ground_pixel'], name=name,
                           long_name=self.get_attr('long_name', name),
                           units=self.get_attr('units', name))
 

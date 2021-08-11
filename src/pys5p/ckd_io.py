@@ -23,6 +23,7 @@ import xarray as xr
 
 from pys5p.s5p_xarray import h5_to_xr
 
+
 # - local functions ------------------------------
 def reject_row257(xarr):
     """

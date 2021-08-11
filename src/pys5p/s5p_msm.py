@@ -21,7 +21,7 @@ dimensions. Initialization:
 
 Limited to 3 dimensions
 
-Copyright (c) 2017-2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -34,6 +34,7 @@ from h5py import Dataset
 import numpy as np
 
 from .biweight import biweight
+
 
 # - local functions --------------------------------
 def pad_rows(arr1, arr2):
@@ -248,7 +249,7 @@ class S5Pmsm():
                 else:                          # bug in some KMNI HDF5 files
                     buff = np.arange(h5_dset.shape[ii])
 
-                if isinstance (data_sel, slice):
+                if isinstance(data_sel, slice):
                     dims.append(buff[data_sel])
                 elif len(data_sel) == h5_dset.ndim:
                     dims.append(buff[data_sel[ii]])
