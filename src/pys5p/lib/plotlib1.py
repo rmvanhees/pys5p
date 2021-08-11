@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 This module contains the helper functions for the class S5Pplot
 
-Copyright (c) 2020 SRON - Netherlands Institute for Space Research
+Copyright (c) 2020-2021 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
