@@ -309,6 +309,9 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
         xdata = np.insert(xdata, indx, xdata[indx-1] + xstep)
 
     if use_steps:
-        xdata = np.append(xdata[0] - xstep, xdata)
+        if xstep > xdata[0] and np.issubdtype(xdata.dtype, np.unsignedinteger):
+            xdata = np.append(0, xdata)
+        else:
+            xdata = np.append(xdata[0] - xstep, xdata)
 
     return (xdata, gap_list)

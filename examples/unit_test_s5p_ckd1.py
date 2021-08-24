@@ -18,6 +18,7 @@ from pys5p.ckd_io1 import CKDio
 
 def main():
     """
+    Main function of the unit-test
     """
     parser = argparse.ArgumentParser(
         description='{}: run units-test on class CKDio'.format(

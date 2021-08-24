@@ -52,18 +52,15 @@ def run_draw_signal(plot):
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=data; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, method='diff',
+    plot.draw_signal(msm, zscale='diff',
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=diff; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, method='ratio',
+    plot.draw_signal(msm, zscale='ratio',
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='method=ratio; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, method='ratio_unc',
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='method=ratio_unc; aspect=1; fig_pos=above')
-    plot.draw_signal(msm, method='error',
-                     title='Unit test of S5Pplot [draw_signal]',
-                     sub_title='method=error; aspect=1; fig_pos=above')
+    #plot.draw_signal(msm, zscale='log',
+    #                 title='Unit test of S5Pplot [draw_signal]',
+    #                 sub_title='method=error; aspect=1; fig_pos=above')
     plot.draw_signal(msm, fig_info=fig_info_in.copy(),
                      title='Unit test of S5Pplot [draw_signal]',
                      sub_title='aspect=1; fig_pos=right')
@@ -125,23 +122,17 @@ def run_draw_cmp_swir(plot):
     Run unit tests on S5Pplot::draw_cmp_swir
     """
     print('Run unit tests on S5Pplot::draw_cmp_swir')
-    delta = 0.01
-    xx = yy = np.arange(-5.0, 5.0, delta)
-    xmesh, ymesh = np.meshgrid(xx, yy)
-    zz1 = np.exp(-xmesh ** 2 - ymesh ** 2)
-    zz2 = np.exp(-(xmesh - 1) ** 2 - (ymesh - 1) ** 2)
-    data = (zz1 - zz2) * 2
 
-    data = data[500-128:500+128, :]
-    ref_data = 1.001 * data
+    msm = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.1)
+    msm_ref = get_test_data(data_sel=np.s_[500-128:500+128, :], error=.025)
 
-    plot.draw_cmp_swir(data, ref_data,
+    plot.draw_cmp_swir(msm, msm_ref.values,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
-    plot.draw_cmp_swir(data, ref_data, add_residual=False,
+    plot.draw_cmp_swir(msm, msm_ref.values, add_residual=False,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
-    plot.draw_cmp_swir(data, ref_data, add_model=False,
+    plot.draw_cmp_swir(msm, msm_ref.values, add_model=False,
                        title='Unit test of S5Pplot [draw_cmp_images]',
                        sub_title='test image')
 
@@ -175,16 +166,14 @@ def run_draw_trend1d(plot):
     hk_max['obm_temp'][:] = data + .175
     units = [parm[2] for parm in hk_params]
     long_name = [parm[1] for parm in hk_params]
-    msm_min = data_to_xr(hk_min, dims=['orbit'],
-                         long_name=long_name, units=units)
-    msm_avg = data_to_xr(hk_avg, dims=['orbit'],
-                         long_name=long_name, units=units)
-    msm_max = data_to_xr(hk_max, dims=['orbit'],
-                         long_name=long_name, units=units)
-    hk_ds = xr.Dataset({'min': msm_min,
-                        'avg': msm_avg,
-                        'max': msm_max},
-                       attrs=msm_avg.attrs)
+
+    msm_mean = data_to_xr(hk_avg, dims=['orbit'], name='hk_mean',
+                          long_name=long_name, units=units)
+    msm_range = data_to_xr(np.stack([hk_min, hk_max], axis=1),
+                           dims=['orbit', 'range'], name='hk_range',
+                           long_name=long_name, units=units)
+    hk_ds = xr.merge([msm_mean, msm_range])
+
     msm1 = data_to_xr(np.sin(xx * np.pi), dims=['orbit'])
     msm2 = data_to_xr(np.cos(xx * np.pi), dims=['orbit'])
 
@@ -257,20 +246,19 @@ def run_draw_qhist(plot):
     buff8 = np.repeat(0.7 + np.random.rand(1000) / 10, 20)
     buff9 = np.repeat(0.8 + np.random.rand(1000) / 10, 40)
     buffa = np.repeat(0.9 + np.random.rand(1000) / 10, 100)
-    data = data_to_xr(np.concatenate((buff0, buff1, buff2, buff3, buff4,
-                                      buff5, buff6, buff7, buff8, buff9,
-                                      buffa)).reshape(256, 1000))
-    data_dict = {}
-    data.attrs['long_name'] = 'pixel-quality map'
-    data_dict['dpqm'] = data.copy()
-    data.attrs['long_name'] = 'pixel-quality map (dark)'
-    data_dict['dpqm_dark'] = data.copy()
-    data.attrs['long_name'] = 'pixel-quality map (noise average)'
-    data_dict['dpqm_noise'] = data.copy()
-    data.attrs['long_name'] = 'pixel-quality map (noise variance)'
-    data_dict['dpqm_noise_var'] = data
-    plot.draw_qhist(data_dict,
-                    title='Unit test of S5Pplot [draw_qhist]')
+    frame = np.concatenate((buff0, buff1, buff2, buff3, buff4,
+                            buff5, buff6, buff7, buff8, buff9,
+                            buffa)).reshape(256, 1000)
+    msm = xr.merge([data_to_xr(frame, name='dpqm',
+                               long_name='pixel-quality map'),
+                    data_to_xr(frame, name='dpqm_dark',
+                               long_name='pixel-quality map (dark)'),
+                    data_to_xr(frame, name='dpqm_noise',
+                               long_name='pixel-quality map (noise average)'),
+                    data_to_xr(frame, name='dpqm_noise_var',
+                               long_name='pixel-quality map (noise variance)')])
+
+    plot.draw_qhist(msm, title='Unit test of S5Pplot [draw_qhist]')
 
 
 # --------------------------------------------------
@@ -280,11 +268,11 @@ def main():
     """
     plot = S5Pplot('unit_test_s5p_plot2.pdf')
     check_draw_signal = True
-    check_draw_cmp_images = False
-    check_draw_quality = False
-    check_draw_qhist = False
-    check_draw_trend1d = False
-    check_draw_lines = False
+    check_draw_cmp_images = True
+    check_draw_quality = True
+    check_draw_qhist = True
+    check_draw_trend1d = True
+    check_draw_lines = True
 
     # ---------- UNIT TEST: draw_signal ----------
     if check_draw_signal:

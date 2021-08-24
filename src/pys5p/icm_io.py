@@ -158,6 +158,7 @@ class ICMio():
 
         self.bands = None
         if self.__patched_msm:
+            # pylint: disable=no-member
             sgrp = self.fid.require_group("METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = get_version(root='..',

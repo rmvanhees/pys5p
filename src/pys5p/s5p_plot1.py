@@ -281,7 +281,7 @@ class S5Pplot:
             zunit = self.zunit
             if max_value <= 2e-4:
                 dscale = 1e-6
-                zunit = zunit.replace('V', u'\xb5V')
+                zunit = zunit.replace('V', '\xb5V')
             elif max_value <= 0.1:
                 dscale = 1e-3
                 zunit = zunit.replace('V', 'mV')

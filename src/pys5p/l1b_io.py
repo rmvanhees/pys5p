@@ -183,6 +183,7 @@ class L1Bio:
             return
 
         if self.__patched_msm:
+            # pylint: disable=no-member
             sgrp = self.fid.require_group("/METADATA/SRON_METADATA")
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = get_version(root='..',
@@ -194,7 +195,6 @@ class L1Bio:
                                            maxshape=(None,), dtype=dtype)
                 dset[:] = np.asarray(self.__patched_msm)
             else:
-                # pylint: disable=no-member
                 dset = sgrp['patched_datasets']
                 dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
                 dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)

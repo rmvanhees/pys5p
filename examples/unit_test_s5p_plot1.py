@@ -21,7 +21,7 @@ from pys5p.s5p_plot1 import S5Pplot
 
 def get_test_data(data_sel=None, xy_min=-5, xy_max=5, delta=0.01, error=0):
     """
-    Generate synthetic data to simulate a square-detector image 
+    Generate synthetic data to simulate a square-detector image
     """
     if data_sel is None:
         data_sel = [(), ()]
@@ -148,7 +148,8 @@ def run_draw_trend1d(plot):
     hk_data.error['obm_temp'][:, 1] = data + .175
     hk_data.set_units([parm[2] for parm in hk_params])
     hk_data.set_long_name([parm[1] for parm in hk_params])
-
+    print(hk_data)
+    print(S5Pmsm(np.sin(xx * np.pi)))
     plot.draw_trend1d(S5Pmsm(np.sin(xx * np.pi)),
                       title='Unit test of S5Pplot [draw_trend1d]',
                       sub_title='one dataset, no house-keeping')
@@ -267,13 +268,13 @@ def main():
     """
     main function
     """
-    plot = S5Pplot('unit_test_s5p_plot.pdf')
+    plot = S5Pplot('unit_test_s5p_plot1.pdf')
     check_draw_signal = True
     check_draw_cmp_images = True
-    check_draw_quality = False
-    check_draw_qhist = False
-    check_draw_trend1d = False
-    check_draw_lines = False
+    check_draw_quality = True
+    check_draw_qhist = True
+    check_draw_trend1d = True
+    check_draw_lines = True
 
     # ---------- UNIT TEST: draw_signal ----------
     if check_draw_signal:
