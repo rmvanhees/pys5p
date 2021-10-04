@@ -37,10 +37,9 @@ class BetterTransverseMercator(ccrs.Projection):
 
     By Paul Tol (SRON)
     """
-    # pylint: disable=no-member,too-many-arguments
-    def __init__(self, central_latitude=0.0, central_longitude=0.0,
-                 orientation=0, scale_factor=1.0,
-                 false_easting=0.0, false_northing=0.0, globe=None):
+    def __init__(self, central_latitude=0, central_longitude=0,
+                 false_easting=0, false_northing=0,
+                 orientation=0, scale_factor=1, globe=None):
         """
         Parameters
         ----------
@@ -48,27 +47,24 @@ class BetterTransverseMercator(ccrs.Projection):
             meridian in degrees. Defaults to 0.
         * central_latitude - The true latitude of the planar origin in
             degrees. Defaults to 0.
-        * orientation - ...
-            Defaults to 0.
-        * scale_factor - Scale factor at the central meridian.
-            Defaults to 1.
         * false_easting - X offset from the planar origin in metres.
             Defaults to 0.
         * false_northing - Y offset from the planar origin in metres.
             Defaults to 0.
+        * scale_factor - Scale factor at the central meridian.
+            Defaults to 1.
         * globe - An instance of :class:`cartopy.crs.Globe`.
             If omitted, a default globe is created.
         """
         proj4_params = [
-            ('proj', 'omerc'),
+            ('proj', 'tmerc'),
+            ('lon_0', central_longitude),
             ('lat_0', central_latitude),
-            ('lonc', np.round(central_longitude / 15.0) * 15.0 + 0.01),
-            ('alpha', '0.01'),
-            ('gamma', np.sign(orientation) * 89.99),
-            ('over', ''),
-            ('k_0', scale_factor),
+            ('k', scale_factor),
             ('x_0', false_easting),
             ('y_0', false_northing),
+            ('alpha', '0.01'),
+            ('gamma', np.sign(orientation) * 89.99),
             ('units', 'm')]
         super().__init__(proj4_params, globe=globe)
 
@@ -89,7 +85,7 @@ class BetterTransverseMercator(ccrs.Projection):
 
     @property
     def y_limits(self):
-        return (-2e7, 2e7)
+        return (-1e7, 1e7)
 
 
 # --------------------------------------------------
@@ -326,8 +322,7 @@ class S5Pgeoplot:
 
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(
-            central_longitude=lon_0, orientation=0,
-            globe=ccrs.Globe(ellipse='sphere')))
+            central_longitude=lon_0, globe=ccrs.Globe(ellipse='sphere')))
         if sub_title is not None:
             axx.set_title(sub_title, fontsize='large')
         self.__draw_worldmap(axx, whole_globe=True)
@@ -387,8 +382,7 @@ class S5Pgeoplot:
 
         # draw worldmap
         axx = plt.axes(projection=BetterTransverseMercator(
-            central_longitude=lon_0, orientation=0,
-            globe=ccrs.Globe(ellipse='sphere')))
+            central_longitude=lon_0, globe=ccrs.Globe(ellipse='sphere')))
         if sub_title is not None:
             axx.set_title(sub_title, fontsize='large')
         self.__draw_worldmap(axx, whole_globe=True)
@@ -506,11 +500,11 @@ class S5Pgeoplot:
                 gridlon[gridlon > 0] -= 360
         lon_0 = np.around(np.mean(gridlon), decimals=-1)
 
-        # inititalize figure
-        myproj = BetterTransverseMercator(central_longitude=lon_0,
-                                          orientation=0,
-                                          globe=ccrs.Globe(ellipse='sphere'))
+        # define projection
+        myproj = BetterTransverseMercator(
+            central_longitude=lon_0, globe=ccrs.Globe(ellipse='sphere'))
 
+        # inititalize figure
         fig, axx = plt.subplots(1, 1, figsize=(12.5, 9),
                                 subplot_kw={'projection': myproj})
         if title is not None:
