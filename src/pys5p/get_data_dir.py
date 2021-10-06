@@ -39,8 +39,8 @@ def get_data_dir():
         print('*** Fatal: environment variable USER not set')
         return None
 
-    guesses_data_dir = ['/data/{}/pys5p-data'.format(user),
-                        '/Users/{}/pys5p-data'.format(user)]
+    guesses_data_dir = [f'/data/{user}/pys5p-data',
+                        f'/Users/{user}/pys5p-data']
 
     try:
         _ = environ['PYS5P_DATA_DIR']

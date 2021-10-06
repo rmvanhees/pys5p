@@ -133,11 +133,9 @@ class CKDio():
         # define path to CKD product
         if ckd_file is None:
             if not Path(ckd_dir).is_dir():
-                raise FileNotFoundError(
-                    'Not found CKD directory: {}'.format(ckd_dir))
+                raise FileNotFoundError(f'Not found CKD directory: {ckd_dir}')
             self.ckd_dir = Path(ckd_dir)
-            glob_str = '*_AUX_L1_CKD_*_*_00000_{:02d}_*_*.h5'.format(
-                self.ckd_version)
+            glob_str = f'*_AUX_L1_CKD_*_*_00000_{self.ckd_version:02d}_*_*.h5'
             if (self.ckd_dir / 'static').is_dir():
                 res = sorted((self.ckd_dir / 'static').glob(glob_str))
             else:
@@ -147,8 +145,7 @@ class CKDio():
             self.ckd_file = res[-1]
         else:
             if not Path(ckd_file).is_file():
-                raise FileNotFoundError(
-                    'Not found CKD file: {}'.format(ckd_file))
+                raise FileNotFoundError(f'Not found CKD file: {ckd_file}')
             self.ckd_dir = Path(ckd_file).parent
             self.ckd_file = Path(ckd_file)
 
@@ -243,10 +240,10 @@ class CKDio():
         if not 1 <= int(band) <= 8:
             raise ValueError('band must be between and 1 and 8')
 
-        if ds_name not in self.fid['/BAND{}'.format(band)]:
+        if ds_name not in self.fid[f'/BAND{band}']:
             raise ValueError('dataset not available')
 
-        full_name = '/BAND{}/{}'.format(band, ds_name)
+        full_name = f'/BAND{band}/{ds_name}'
         # pylint: disable=no-member
         if self.fid[full_name].size == 1:
             return self.fid[full_name][0]
@@ -271,11 +268,11 @@ class CKDio():
         for key in ckd_parms:
             for band in bands:
                 if key not in ckd:
-                    ckd[key] = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
+                    ckd[key] = S5Pmsm(self.fid[f'/BAND{band}/{key}'],
                                       datapoint=True, data_sel=np.s_[:-1, :])
                     ckd[key].set_long_name(long_name.format(key))
                 else:
-                    buff = S5Pmsm(self.fid['/BAND{}/{}'.format(band, key)],
+                    buff = S5Pmsm(self.fid[f'/BAND{band}/{key}'],
                                   datapoint=True, data_sel=np.s_[:-1, :])
                     ckd[key].concatenate(buff, axis=1)
 
@@ -357,11 +354,11 @@ class CKDio():
         ckd = None
         for band in bands:
             if not ckd:
-                ckd = S5Pmsm(self.fid['/BAND{}/PRNU'.format(band)],
+                ckd = S5Pmsm(self.fid[f'/BAND{band}/PRNU'],
                              datapoint=True, data_sel=data_sel)
                 ckd.set_long_name(long_name)
             else:
-                buff = S5Pmsm(self.fid['/BAND{}/PRNU'.format(band)],
+                buff = S5Pmsm(self.fid[f'/BAND{band}/PRNU'],
                               datapoint=True, data_sel=data_sel)
                 ckd.concatenate(buff, axis=1)
 
@@ -382,17 +379,17 @@ class CKDio():
         data_sel = None
         if '7' in bands or '8' in bands:
             data_sel = np.s_[:-1, :]
-            long_name = 'SWIR absolute irradiance CKD (QVD={})'.format(qvd)
+            long_name = f'SWIR absolute irradiance CKD (QVD={qvd})'
         elif '5' in bands or '6' in bands:
-            long_name = 'NIR absolute irradiance CKD (QVD={})'.format(qvd)
+            long_name = f'NIR absolute irradiance CKD (QVD={qvd})'
         elif '3' in bands or '4' in bands:
-            long_name = 'VIS absolute irradiance CKD (QVD={})'.format(qvd)
+            long_name = f'VIS absolute irradiance CKD (QVD={qvd})'
         else:
-            long_name = 'UV absolute irradiance CKD (QVD={})'.format(qvd)
+            long_name = f'UV absolute irradiance CKD (QVD={qvd})'
 
         ckd = None
         for band in bands:
-            dsname = '/BAND{}/abs_irr_conv_factor_qvd{}'.format(band, qvd)
+            dsname = f'/BAND{band}/abs_irr_conv_factor_qvd{qvd}'
             if not ckd:
                 ckd = S5Pmsm(self.fid[dsname],
                              datapoint=True, data_sel=data_sel)
@@ -441,16 +438,16 @@ class CKDio():
             ckd = {}
             ckd['band'] = int(band)
 
-            dsname = '/BAND{}/rel_irr_coarse_mapping_vert'.format(band)
+            dsname = f'/BAND{band}/rel_irr_coarse_mapping_vert'
             ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
 
-            dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
+            dsname = f'/BAND{band}/rel_irr_coarse_mapping_hor'
             # pylint: disable=no-member
             mapping_hor = self.fid[dsname][:].astype(int)
             mapping_hor[mapping_hor > 1000] -= 2**16
             ckd['mapping_cols'] = mapping_hor
 
-            dsname = '/BAND{}/rel_irr_coarse_func_cheb_qvd{}'.format(band, qvd)
+            dsname = f'/BAND{band}/rel_irr_coarse_func_cheb_qvd{qvd}'
             ckd['cheb_coefs'] = self.fid[dsname]['coefs'][:]
             res += (ckd,)
 
@@ -480,7 +477,7 @@ class CKDio():
 
         ckd = None
         for band in bands:
-            dsname = '/BAND{}/abs_rad_conv_factor'.format(band)
+            dsname = f'/BAND{band}/abs_rad_conv_factor'
             if not ckd:
                 ckd = S5Pmsm(self.fid[dsname],
                              datapoint=True, data_sel=data_sel)
@@ -519,7 +516,7 @@ class CKDio():
 
         ckd = None
         for band in bands:
-            dsname = '/BAND{}/wavelength_map'.format(band)
+            dsname = f'/BAND{band}/wavelength_map'
             if not ckd:
                 ckd = S5Pmsm(self.fid[dsname],
                              datapoint=True, data_sel=data_sel)
@@ -562,7 +559,7 @@ class CKDio():
 
         # try the Static CKD product, first
         for band in bands:
-            dsname = '/BAND{}/analog_offset_swir'.format(band)
+            dsname = f'/BAND{band}/analog_offset_swir'
             if dsname not in self.fid:
                 continue
 
@@ -582,7 +579,7 @@ class CKDio():
         # try the dynamic CKD products
         with h5py.File(self.ckd_dyn_file, 'r') as fid:
             for band in bands:
-                dsname = '/BAND{}/analog_offset_swir'.format(band)
+                dsname = f'/BAND{band}/analog_offset_swir'
 
                 if not ckd:
                     ckd = S5Pmsm(fid[dsname],
@@ -613,7 +610,7 @@ class CKDio():
 
         # try the Static CKD product, first
         for band in bands:
-            dsname = '/BAND{}/long_term_swir'.format(band)
+            dsname = f'/BAND{band}/long_term_swir'
             if dsname not in self.fid:
                 continue
 
@@ -633,7 +630,7 @@ class CKDio():
         # try the dynamic CKD products
         with h5py.File(self.ckd_dyn_file, 'r') as fid:
             for band in bands:
-                dsname = '/BAND{}/long_term_swir'.format(band)
+                dsname = f'/BAND{band}/long_term_swir'
 
                 if not ckd:
                     ckd = S5Pmsm(fid[dsname],
@@ -702,7 +699,7 @@ class CKDio():
 
         # try the Static CKD product, first
         for band in bands:
-            dsname = '/BAND{}/dpqf_map'.format(band)
+            dsname = f'/BAND{band}/dpqf_map'
             if dsname not in self.fid:
                 continue
 
@@ -719,7 +716,7 @@ class CKDio():
         # try the dynamic CKD products
         with h5py.File(self.ckd_dyn_file, 'r') as fid:
             for band in bands:
-                dsname = '/BAND{}/dpqf_map'.format(band)
+                dsname = f'/BAND{band}/dpqf_map'
 
                 if not ckd:
                     ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])
@@ -749,7 +746,7 @@ class CKDio():
 
         # try the Static CKD product, first
         for band in bands:
-            dsname = '/BAND{}/readout_noise_swir'.format(band)
+            dsname = f'/BAND{band}/readout_noise_swir'
             if dsname not in self.fid:
                 continue
 
@@ -768,7 +765,7 @@ class CKDio():
         ckd_file = self.ckd_dir / 'OCAL' / 'ckd.readnoise.detector4.nc'
         with h5py.File(ckd_file, 'r') as fid:
             for band in bands:
-                dsname = '/BAND{}/readout_noise_swir'.format(band)
+                dsname = f'/BAND{band}/readout_noise_swir'
 
                 if not ckd:
                     ckd = S5Pmsm(fid[dsname],
@@ -802,7 +799,7 @@ class CKDio():
                     / 'ckd.saturation_preoffset.detector4.nc')
         with h5py.File(ckd_file, 'r') as fid:
             for band in bands:
-                dsname = '/BAND{}/saturation_preoffset'.format(band)
+                dsname = f'/BAND{band}/saturation_preoffset'
 
                 if not ckd:
                     ckd = S5Pmsm(fid[dsname], data_sel=np.s_[:-1, :])

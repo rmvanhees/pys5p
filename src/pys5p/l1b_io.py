@@ -124,7 +124,7 @@ class L1Bio:
         """
         # open L1b product as HDF5 file
         if not Path(l1b_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(l1b_product))
+            raise FileNotFoundError(f'{l1b_product} does not exist')
 
         # initialize private class-attributes
         self.__rw = readwrite
@@ -141,8 +141,7 @@ class L1Bio:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r}, readwrite={!r})'.format(class_name,
-                                                 self.filename, self.__rw)
+        return f'{class_name}({self.filename!r}, readwrite={self.__rw!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -721,7 +720,7 @@ class L1BioENG:
         """
         # open L1b product as HDF5 file
         if not Path(l1b_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(l1b_product))
+            raise FileNotFoundError(f'{l1b_product} does not exist')
 
         # initialize private class-attributes
         self.filename = l1b_product
@@ -729,7 +728,7 @@ class L1BioENG:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r})'.format(class_name, self.filename)
+        return f'{class_name}({self.filename!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):

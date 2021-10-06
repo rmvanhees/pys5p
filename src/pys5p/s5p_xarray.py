@@ -38,8 +38,8 @@ def __get_attrs(dset, field: str) -> dict:
                       'oneof': len(dset.dtype.names),
                       'index': dset.dtype.names.index(field)}
         except Exception as exc:
-            raise RuntimeError('field {} not found in dataset {}'.format(
-                field, dset.name)) from exc
+            raise RuntimeError(
+                f'field {field} not found in dataset {dset.name}') from exc
         # print('_field ', _field)
 
     attrs = {}

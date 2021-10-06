@@ -97,7 +97,7 @@ class ICMio():
            open product in read-write mode (default is False)
         """
         if not Path(icm_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(icm_product))
+            raise FileNotFoundError(f'{icm_product} does not exist')
 
         # initialize class-attributes
         self.__rw = readwrite
@@ -114,8 +114,7 @@ class ICMio():
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r}, readwrite={!r})'.format(class_name,
-                                                 self.filename, self.__rw)
+        return f'{class_name}({self.filename!r}, readwrite={self.__rw!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -197,7 +196,7 @@ class ICMio():
         grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
         for ii in '12345678':
             for name in grp_list:
-                grp_name = 'BAND{}_{}'.format(ii, name)
+                grp_name = f'BAND{ii}_{name}'
                 if grp_name in self.fid:
                     gid = self.fid[grp_name]
                     res += [s for s in gid if s.startswith(msm_class)]
@@ -238,10 +237,9 @@ class ICMio():
             grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
             for ii in '12345678':
                 for name in grp_list:
-                    grp_path = PurePosixPath('BAND{}_{}'.format(ii, name),
-                                             msm_type)
+                    grp_path = PurePosixPath(f'BAND{ii}_{name}', msm_type)
                     if str(grp_path) in self.fid:
-                        msm_path = 'BAND{}_{}'.format('%', name)
+                        msm_path = f'BAND%_{name}'
                         self.bands += ii
         else:
             if not msm_path.startswith('BAND%'):
@@ -360,7 +358,7 @@ class ICMio():
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'OBSERVATIONS')
                 grp = self.fid[str(grp_path)]
@@ -371,7 +369,7 @@ class ICMio():
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'OBSERVATIONS')
                 grp = self.fid[str(grp_path)]
@@ -410,7 +408,7 @@ class ICMio():
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'OBSERVATIONS')
                 grp = self.fid[str(grp_path)]
@@ -424,7 +422,7 @@ class ICMio():
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'OBSERVATIONS')
                 grp = self.fid[grp_path]
@@ -439,7 +437,7 @@ class ICMio():
 
         return res
 
-    def get_instrument_settings(self, band=None):
+    def get_instrument_settings(self, band=None) -> np.ndarray:
         """
         Returns instrument settings of measurement
 
@@ -466,7 +464,7 @@ class ICMio():
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'INSTRUMENT')
                 grp = self.fid[str(grp_path)]
@@ -480,7 +478,7 @@ class ICMio():
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'INSTRUMENT')
                 grp = self.fid[grp_path]
@@ -492,10 +490,9 @@ class ICMio():
             grp = self.fid[msm_path]
             dset = grp[msm_type.lower() + '_msmt_keys']
             icid = dset['icid'][dset.size // 2]
-            grp_path = PurePosixPath(
-                'BAND{}_CALIBRATION'.format(band),
-                'BACKGROUND_RADIANCE_MODE_{:04d}'.format(icid),
-                'INSTRUMENT')
+            grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
+                                     f'BACKGROUND_RADIANCE_MODE_{icid:04d}',
+                                     'INSTRUMENT')
             grp = self.fid[str(grp_path)]
             res = grp['instrument_settings'][:]
         else:
@@ -516,15 +513,15 @@ class ICMio():
             Select one of the band present in the product
             Default is 'None' which returns the first available band
         """
-        # obtain instrument settings
-        instr_arr = self.get_instrument_settings(band)
-        if instr_arr is None:
-            return None
-
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
             raise ValueError('band not found in product')
+
+        # obtain instrument settings
+        instr_arr = self.get_instrument_settings(band)
+        if instr_arr is None:
+            return None
 
         # calculate exact exposure time
         res = []
@@ -564,7 +561,7 @@ class ICMio():
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'INSTRUMENT')
                 grp = self.fid[str(grp_path)]
@@ -578,7 +575,7 @@ class ICMio():
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath('BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'INSTRUMENT')
                 grp = self.fid[str(grp_path)]
@@ -712,7 +709,7 @@ class ICMio():
             dset = grp[msm_type.lower() + '_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'GEODATA')
                 grp = self.fid[str(grp_path)]
@@ -724,7 +721,7 @@ class ICMio():
             dset = grp['analog_offset_swir_group_keys']
             group_keys = dset['group'][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{}_CALIBRATION'.format(band),
+                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
                                          name.decode('ascii'),
                                          'GEODATA')
                 grp = self.fid[str(grp_path)]

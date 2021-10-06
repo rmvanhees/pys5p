@@ -142,11 +142,9 @@ class CKDio():
         # define path to CKD product
         if ckd_file is None:
             if not Path(ckd_dir).is_dir():
-                raise FileNotFoundError(
-                    'Not found CKD directory: {}'.format(ckd_dir))
+                raise FileNotFoundError(f'Not found CKD directory: {ckd_dir}')
             self.ckd_dir = Path(ckd_dir)
-            glob_str = '*_AUX_L1_CKD_*_*_00000_{:02d}_*_*.h5'.format(
-                self.ckd_version)
+            glob_str = f'*_AUX_L1_CKD_*_*_00000_{self.ckd_version:02d}_*_*.h5'
             if (self.ckd_dir / 'static').is_dir():
                 res = sorted((self.ckd_dir / 'static').glob(glob_str))
             else:
@@ -156,8 +154,7 @@ class CKDio():
             self.ckd_file = res[-1]
         else:
             if not Path(ckd_file).is_file():
-                raise FileNotFoundError(
-                    'Not found CKD file: {}'.format(ckd_file))
+                raise FileNotFoundError(f'Not found CKD file: {ckd_file}')
             self.ckd_dir = Path(ckd_file).parent
             self.ckd_file = Path(ckd_file)
 
@@ -271,10 +268,10 @@ class CKDio():
         if not 1 <= int(band) <= 8:
             raise ValueError('band must be between and 1 and 8')
 
-        if ds_name not in self.fid['/BAND{}'.format(band)]:
+        if ds_name not in self.fid[f'/BAND{band}']:
             raise ValueError('dataset not available')
 
-        return self.fid['/BAND{}/{}'.format(band, ds_name)][()]
+        return self.fid[f'/BAND{band}/{ds_name}'][()]
 
     # ---------- band or channel CKD's ----------
     def dn2v_factors(self):
@@ -310,7 +307,7 @@ class CKDio():
         Parameters
         ----------
         dset_name: str
-           ...
+           name (including path) of the dataset as '/BAND{}/<name>'
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
            default: '78'
@@ -356,7 +353,7 @@ class CKDio():
         Parameters
         ----------
         dset_name: str
-           ...
+           name (including path) of the dataset as '/BAND{}/<name>'
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
            default: '78'
@@ -427,12 +424,12 @@ class CKDio():
         except Exception as exc:
             raise RuntimeError(exc) from exc
 
-        dset_name = '/BAND{}' + '/abs_irr_conv_factor_qvd{}'.format(qvd)
+        dset_name = '/BAND{}' + f'/abs_irr_conv_factor_qvd{qvd}'
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = \
-            '{} absolute irradiance CKD (QVD={})'.format(channel, qvd)
+                            f'{channel} absolute irradiance CKD (QVD={qvd})'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
@@ -455,7 +452,7 @@ class CKDio():
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = '{} absolute radiance CKD'.format(channel)
+        ckd.attrs["long_name"] = f'{channel} absolute radiance CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
@@ -475,10 +472,10 @@ class CKDio():
         ckd = xr.Dataset()
         ckd.attrs["long_name"] = 'SWIR memory CKD'
         for key in ckd_parms:
-            dset_name = '/BAND7/{}'.format(key)
+            dset_name = f'/BAND7/{key}'
             ckd_val = h5_to_xr(self.fid[dset_name], field='value')
             ckd_err = h5_to_xr(self.fid[dset_name], field='error')
-            dset_name = '/BAND8/{}'.format(key)
+            dset_name = f'/BAND8/{key}'
             ckd_val = xr.concat(
                 (ckd_val, h5_to_xr(self.fid[dset_name], field='value')),
                 dim='column')
@@ -522,7 +519,7 @@ class CKDio():
         ckd = self.__rd_datapoints('/BAND{}/PRNU', bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = '{} PRNU CKD'.format(channel)
+        ckd.attrs["long_name"] = f'{channel} PRNU CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
@@ -557,16 +554,16 @@ class CKDio():
             ckd = {}
             ckd['band'] = int(band)
 
-            dsname = '/BAND{}/rel_irr_coarse_mapping_vert'.format(band)
+            dsname = f'/BAND{band}/rel_irr_coarse_mapping_vert'
             ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
 
-            dsname = '/BAND{}/rel_irr_coarse_mapping_hor'.format(band)
+            dsname = f'/BAND{band}/rel_irr_coarse_mapping_hor'
             # pylint: disable=no-member
             mapping_hor = self.fid[dsname][:].astype(int)
             mapping_hor[mapping_hor > 1000] -= 2**16
             ckd['mapping_cols'] = mapping_hor
 
-            dsname = '/BAND{}/rel_irr_coarse_func_cheb_qvd{}'.format(band, qvd)
+            dsname = f'/BAND{band}/rel_irr_coarse_func_cheb_qvd{qvd}'
             ckd['cheb_coefs'] = self.fid[dsname]['coefs'][:]
             res += (ckd,)
 
@@ -605,7 +602,7 @@ class CKDio():
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = '{} wavelength CKD'.format(channel)
+        ckd.attrs["long_name"] = f'{channel} wavelength CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 

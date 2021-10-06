@@ -310,8 +310,8 @@ def tol_cmap(colormap=None, lut=None):
     if colormap not in obj.namelist:
         colormap = 'rainbow_PuRd'
         print('*** Warning: requested colormap not defined,',
-              'known colormaps are {}.'.format(obj.namelist),
-              'Using {}.'.format(colormap))
+              f'known colormaps are {obj.namelist}.',
+              f'Using {colormap}.')
     return obj.get(colormap, lut)
 
 
@@ -331,8 +331,8 @@ def tol_cset(colorset=None):
 
     if colorset not in namelist:
         print('*** Warning: requested colorset not defined,',
-              'known colorsets are {}.'.format(namelist),
-              'Using {}.'.format(colorset))
+              f'known colorsets are {namelist}.',
+              f'Using {colorset}.')
 
     if colorset == 'high-contrast':
         cset = namedtuple('Hcset',

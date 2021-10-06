@@ -401,7 +401,7 @@ class S5Pgeoplot:
             axx.add_patch(poly)
         else:
             cset = [tol_cset('bright').red, tol_cset('bright').purple]
-            print('Unique sequence: {}'.format(np.unique(sequence)))
+            print(f'Unique sequence: {np.unique(sequence)}')
             for ii in np.unique(sequence):
                 indx = np.unique((sequence == ii).nonzero()[0])
                 indx_rev = indx[::-1]
@@ -533,7 +533,7 @@ class S5Pgeoplot:
                           posn.y0, 0.04, posn.height])
 
         zlabel = 'value' if self.zunit is None \
-                 else r'value [{}]'.format(self.zunit)
+                 else f'value [{self.zunit}]'
         plt.colorbar(img, cax=cax, label=zlabel)
 
         # finalize figure

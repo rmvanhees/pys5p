@@ -128,13 +128,13 @@ class FIGinfo:
         """
         Return figure information as one long string
         """
-        info_str = ""
-        for key in self.fig_info:
-            info_str += "{} : {}\n".format(key, self.fig_info[key])
+        info_str = ''
+        for key, value in self.fig_info.items():
+            info_str += f'{key} : {value}\n'
 
         # add timestamp
-        info_str += 'created : {}'.format(
-            datetime.utcnow().isoformat(timespec='seconds'))
+        res = datetime.utcnow().isoformat(timespec='seconds')
+        info_str += f'created : {res}'
 
         return info_str
 
@@ -222,7 +222,7 @@ def data_for_trend2d(data_in, dims=None, delta_time=None):
         raise ValueError('time-coordinate not of type integer')
     if not np.all(time_data[1:] > time_data[:-1]):
         indx = (time_data[1:] <= time_data[:-1]).nonzero()[0]
-        raise ValueError('time-coordinate not increasing at {}'.format(indx))
+        raise ValueError(f'time-coordinate not increasing at {indx}')
 
     # determine delta_time with greatest common divisor (numpy v1.15+)
     if delta_time is None:
@@ -299,7 +299,7 @@ def get_xdata(xdata, use_steps: bool) -> tuple:
         raise ValueError('x-coordinate not of type integer')
     if not np.all(xdata[1:] > xdata[:-1]):
         indx = (xdata[1:] <= xdata[:-1]).nonzero()[0]
-        raise ValueError('x-coordinate not increasing at {}'.format(indx))
+        raise ValueError(f'x-coordinate not increasing at {indx}')
 
     xstep = np.gcd.reduce(np.diff(xdata))
     gap_list = 1 + (np.diff(xdata) > xstep).nonzero()[0]

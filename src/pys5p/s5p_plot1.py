@@ -307,17 +307,17 @@ class S5Pplot:
             if self.zunit is None or self.zunit == '1':
                 zlabel = 'difference'
             else:
-                zlabel = r'difference [{}]'.format(self.zunit)
+                zlabel = f'difference [{self.zunit}]'
         elif method == 'error':
             if self.zunit is None or self.zunit == '1':
                 zlabel = 'uncertainty'
             else:
-                zlabel = r'uncertainty [{}]'.format(self.zunit)
+                zlabel = f'uncertainty [{self.zunit}]'
         else:
             if self.zunit is None or self.zunit == '1':
                 zlabel = 'value'
             else:
-                zlabel = r'value [{}]'.format(self.zunit)
+                zlabel = f'value [{self.zunit}]'
 
         return zlabel
 
@@ -483,7 +483,7 @@ class S5Pplot:
 
                 axarr[i_ax].set_xlim([xdata[0], xdata[-1]])
                 axarr[i_ax].grid(True)
-                axarr[i_ax].set_ylabel('{}'.format('count'))
+                axarr[i_ax].set_ylabel('count')
                 legenda = axarr[i_ax].legend([blank_legend_key()],
                                              [ql_dict[key]], loc='upper left')
                 legenda.draw_frame(False)
@@ -548,8 +548,7 @@ class S5Pplot:
                 if self.zunit is None or self.zunit == '1':
                     axarr[i_ax].set_ylabel(msm.long_name)
                 else:
-                    axarr[i_ax].set_ylabel(r'{} [{}]'.format(
-                        msm.long_name, self.zunit))
+                    axarr[i_ax].set_ylabel('{msm.long_name} [{self.zunit}]')
                 i_ax += 1
             return i_ax
 
@@ -587,22 +586,22 @@ class S5Pplot:
                 full_string = full_string.decode('ascii')
             if hk_unit == 'K':
                 hk_name = full_string.rsplit(' ', 1)[0]
-                hk_label = 'temperature [{}]'.format(hk_unit)
+                hk_label = f'temperature [{hk_unit}]'
                 lcolor = cset.blue
                 fcolor = '#BBCCEE'
             elif hk_unit in ('A', 'mA'):
                 hk_name = full_string.rsplit(' ', 1)[0]
-                hk_label = 'current [{}]'.format(hk_unit)
+                hk_label = f'current [{hk_unit}]'
                 lcolor = cset.green
                 fcolor = '#CCDDAA'
             elif hk_unit == '%':
                 hk_name = full_string.rsplit(' ', 2)[0]
-                hk_label = 'duty cycle [{}]'.format(hk_unit)
+                hk_label = f'duty cycle [{hk_unit}]'
                 lcolor = cset.red
                 fcolor = '#FFCCCC'
             else:
                 hk_name = full_string
-                hk_label = 'value [{}]'.format(hk_unit)
+                hk_label = f'value [{hk_unit}]'
                 lcolor = cset.purple
                 fcolor = '#EEBBDD'
 
@@ -960,7 +959,7 @@ class S5Pplot:
         (biweight) median & spread.
         """
         if method not in ('data', 'error', 'diff', 'ratio', 'ratio_unc'):
-            raise RuntimeError('unknown method: {}'.format(method))
+            raise RuntimeError(f'unknown method: {method}')
 
         if fig_info is None:
             fig_info = FIGinfo()
@@ -1018,8 +1017,8 @@ class S5Pplot:
             fig_info.add('median', median, '{:.5g}')
             fig_info.add('spread', spread, '{:.5g}')
         else:
-            fig_info.add('median', (median, self.zunit), r'{:.5g} {}')
-            fig_info.add('spread', (spread, self.zunit), r'{:.5g} {}')
+            fig_info.add('median', (median, self.zunit), '{:.5g} {}')
+            fig_info.add('spread', (spread, self.zunit), '{:.5g} {}')
 
         self.__add_fig_box(fig, fig_info)
         self.__close_this_page(fig)
@@ -1148,9 +1147,9 @@ class S5Pplot:
 
         # add annotation and save figure
         if ref_data is None:
-            fig_info.add('{} (quality < {})'.format(qlabels[2], thres_bad),
+            fig_info.add(f'{qlabels[2]} (quality < {thres_bad})',
                          np.sum((qdata == 1) | (qdata == 2)))
-            fig_info.add('{} (quality < {})'.format(qlabels[1], thres_worst),
+            fig_info.add(f'{qlabels[1]} (quality < {thres_worst})',
                          np.sum(qdata == 1))
         else:
             fig_info.add(qlabels[3], np.sum(qdata == 4))
@@ -1299,8 +1298,8 @@ class S5Pplot:
             fig_info.add('median', median, '{:.5g}')
             fig_info.add('spread', spread, '{:.5g}')
         else:
-            fig_info.add('median', (median, self.zunit), r'{:.5g} {}')
-            fig_info.add('spread', (spread, self.zunit), r'{:.5g} {}')
+            fig_info.add('median', (median, self.zunit), '{:.5g} {}')
+            fig_info.add('spread', (spread, self.zunit), '{:.5g} {}')
 
         self.__add_fig_box(fig, fig_info)
         self.__close_this_page(fig)
@@ -1715,7 +1714,7 @@ class S5Pplot:
                              color=cset[indx_color % 6],
                              transform=ccrs.PlateCarree())
             if icid not in icid_found:
-                line.set_label('ICID: {}'.format(icid))
+                line.set_label(f'ICID: {icid}')
                 icid_found.append(icid)
 
         # finalize figure

@@ -92,7 +92,7 @@ class LV2io():
            full path to S5P Tropomi level 2 product
         """
         if not Path(lv2_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(lv2_product))
+            raise FileNotFoundError(f'{lv2_product} does not exist')
 
         # initialize class-attributes
         self.filename = lv2_product
@@ -114,7 +114,7 @@ class LV2io():
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r})'.format(class_name, self.filename)
+        return f'{class_name}({self.filename!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -215,7 +215,7 @@ class LV2io():
         read attributes from operational products using hdf5
         """
         if ds_name is not None:
-            dset = self.fid['/PRODUCT/{}'.format(ds_name)]
+            dset = self.fid[f'/PRODUCT/{ds_name}']
             if attr_name not in dset.attrs.keys():
                 return None
 
@@ -243,7 +243,7 @@ class LV2io():
                 if ds_name not in self.fid[grp_name].variables:
                     continue
 
-                dset = self.fid['/{}/{}'.format(grp_name, ds_name)]
+                dset = self.fid[f'/{grp_name}/{ds_name}']
                 if attr_name in dset.ncattrs():
                     return dset.getncattr(attr_name)
 
@@ -307,7 +307,7 @@ class LV2io():
             for grp_name in ['/PRODUCT', '/PRODUCT/SUPPORT_DATA/GEOLOCATIONS']:
                 if key in self.fid[grp_name]:
                     res[key] = np.squeeze(
-                        self.fid['{}/{}'.format(grp_name, key)])
+                        self.fid[f'{grp_name}/{key}'])
                     continue
 
         return res
@@ -322,7 +322,7 @@ class LV2io():
 
         for key in geo_dsets.split(','):
             if key in self.fid['/instrument'].variables.keys():
-                ds_name = '/instrument/{}'.format(key)
+                ds_name = f'/instrument/{key}'
                 res[key] = self.fid[ds_name][:].reshape(
                     self.scanline, self.ground_pixel)
 
@@ -463,9 +463,9 @@ class LV2io():
         fillvalue = float.fromhex('0x1.ep+122')
 
         if name not in self.fid['/PRODUCT']:
-            raise ValueError('dataset {} for found'.format(name))
+            raise ValueError(f'dataset {name} for found')
 
-        dset = self.fid['/PRODUCT/{}'.format(name)]
+        dset = self.fid[f'/PRODUCT/{name}']
         if data_sel is None:
             if dset.dtype == np.float32:
                 res = dset.astype(float)[0, ...]
@@ -491,9 +491,9 @@ class LV2io():
         elif name in self.fid['/instrument'].variables.keys():
             group = '/instrument'
         else:
-            raise ValueError('dataset {} for found'.format(name))
+            raise ValueError(f'dataset {name} for found')
 
-        dset = self.fid['{}/{}'.format(group, name)]
+        dset = self.fid[f'{group}/{name}']
         if dset.size == self.scanline * self.ground_pixel:
             res = dset[:].reshape(self.scanline, self.ground_pixel)
         else:
@@ -538,8 +538,8 @@ class LV2io():
         Return: xarray.Dataset
         """
         if name not in self.fid['/PRODUCT']:
-            raise ValueError('dataset {} for found'.format(name))
-        dset = self.fid['/PRODUCT/{}'.format(name)]
+            raise ValueError(f'dataset {name} for found')
+        dset = self.fid[f'/PRODUCT/{name}']
 
         # ToDo handle parameter mol_m2
         return h5_to_xr(dset, (0,) + data_sel).squeeze()
@@ -557,7 +557,7 @@ class LV2io():
         elif name in self.fid['/instrument'].variables.keys():
             group = '/instrument'
         else:
-            raise ValueError('dataset {} for found'.format(name))
+            raise ValueError('dataset {name} for found')
 
         return data_to_xr(self.get_dataset(name, data_sel),
                           dims=['scanline', 'ground_pixel'], name=name,

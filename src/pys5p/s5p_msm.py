@@ -168,9 +168,9 @@ class S5Pmsm():
             if key.startswith('__'):
                 continue
             if isinstance(value, np.ndarray):
-                res.append('{}: {}'.format(key, value.shape))
+                res.append(f'{key}: {value.shape}')
             else:
-                res.append('{}: {}'.format(key, value))
+                res.append(f'{key}: {value}')
 
         return '\n'.join(res)
 

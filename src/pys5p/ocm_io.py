@@ -159,7 +159,7 @@ class OCMio():
 
         """
         if not Path(ocm_product).is_file():
-            raise FileNotFoundError('{} does not exist'.format(ocm_product))
+            raise FileNotFoundError(f'{ocm_product} does not exist')
 
         # initialize class-attributes
         self.__msm_path = None
@@ -171,7 +171,7 @@ class OCMio():
 
     def __repr__(self):
         class_name = type(self).__name__
-        return '{}({!r})'.format(class_name, self.filename)
+        return f'{class_name}({self.filename!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -255,7 +255,7 @@ class OCMio():
         if not self.__msm_path:
             return {}
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
@@ -271,7 +271,7 @@ class OCMio():
         if not self.__msm_path:
             return {}
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
@@ -286,7 +286,7 @@ class OCMio():
         if not self.__msm_path:
             return {}
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
@@ -301,7 +301,7 @@ class OCMio():
         if not self.__msm_path:
             return {}
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
@@ -316,7 +316,7 @@ class OCMio():
         if not self.__msm_path:
             return None
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         msm = self.__msm_path[0]  # all measurement sets have the same ICID
         sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
         instr = np.squeeze(sgrp['instrument_settings'])
@@ -333,7 +333,7 @@ class OCMio():
         if not self.__msm_path:
             return {}
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
@@ -366,12 +366,12 @@ class OCMio():
         self.band = ''
         self.__msm_path = []
         for ii in '87654321':
-            if 'BAND{}'.format(ii) in self.fid:
+            if f'BAND{ii}' in self.fid:
                 self.band = ii
                 break
 
         if self.band:
-            gid = self.fid['BAND{}'.format(self.band)]
+            gid = self.fid[f'BAND{self.band}']
             if msm_grp is not None and msm_grp in gid:
                 self.__msm_path = [msm_grp]
             elif ic_id is None:
@@ -380,7 +380,7 @@ class OCMio():
                     if kk.startswith(grp_name):
                         print(kk)
             else:
-                grp_name = 'ICID_{:05}_GROUP'.format(ic_id)
+                grp_name = f'ICID_{ic_id:05}_GROUP'
                 self.__msm_path = [s for s in gid if s.startswith(grp_name)]
 
         return len(self.__msm_path)
@@ -406,7 +406,7 @@ class OCMio():
         if not self.__msm_path:
             return ''
 
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         for msm_path in self.__msm_path:
             ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
 
@@ -451,7 +451,7 @@ class OCMio():
             return {}
 
         # show HDF5 dataset names and return
-        grp = self.fid['BAND{}'.format(self.band)]
+        grp = self.fid[f'BAND{self.band}']
         if msm_dset is None:
             ds_path = str(PurePosixPath(self.__msm_path[0], 'OBSERVATIONS'))
             for kk in grp[ds_path]:
@@ -460,7 +460,7 @@ class OCMio():
 
         # skip row257 from the SWIR detector
         rows = None
-        if self.band == '7' or self.band == '8':
+        if self.band in ('7', '8'):
             rows = [0, -1]
 
         # combine data of all measurement groups in dictionary
@@ -536,7 +536,7 @@ class OCMio():
         res = {}
         for msm_grp in sorted(self.__msm_path):
             dset = self.fid[str(PurePosixPath(
-                'BAND{}'.format(self.band), msm_grp,
+                f'BAND{self.band}', msm_grp,
                 'OBSERVATIONS', msm_dset))]
 
             if dest_dtype is None:
