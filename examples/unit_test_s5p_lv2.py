@@ -19,6 +19,7 @@ from pys5p.lv2_io import LV2io
 
 def read_lv2(l2_product):
     """
+    Read Tropomi level 2 product
     """
     with LV2io(l2_product) as lv2:
         # Class properties
@@ -67,11 +68,11 @@ def read_lv2(l2_product):
 
 def main():
     """
+    Main function
     """
     # parse command-line parameters
     parser = argparse.ArgumentParser(
-        description='{}: run units-test on class LV2io'.format(
-            Path(__file__).name))
+        description=f'{Path(__file__).name}: run units-test on class LV2io')
     parser.add_argument('lv2_product', nargs=1, type=str, default=None,
                         help='use this Tropomi level2 product')
     args = parser.parse_args()

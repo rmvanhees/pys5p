@@ -21,8 +21,7 @@ def main():
     main function
     """
     parser = argparse.ArgumentParser(
-        description='{}: run units-test on class CKDio'.format(
-            Path(__file__).name))
+        description=f'{Path(__file__).name}: run units-test on class CKDio')
     parser.add_argument('ckd_dir', nargs=1, type=str, default=None,
                         help=('directory with CKD data with'
                               ' static CKD in a subdirectory static'))

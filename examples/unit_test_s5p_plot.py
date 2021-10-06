@@ -47,7 +47,7 @@ def run_draw_signal(plot):
     nlines = 40 # 35
     fig_info_in = FIGinfo('right')
     for ii in range(nlines):
-        fig_info_in.add('line {:02d}'.format(ii), 5 * '0123456789')
+        fig_info_in.add(f'line {ii:02d}', 5 * '0123456789')
 
     plot.draw_signal(msm,
                      title='Unit test of S5Pplot [draw_signal]',

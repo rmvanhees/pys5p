@@ -51,25 +51,25 @@ def run_l1b_tests(plot, l1b_product):
     plot.draw_geo_subsat(geo_sat['satellite_longitude'][mask],
                          geo_sat['satellite_latitude'][mask],
                          title='S5Pgeoplot::draw_geo_subsat',
-                         sub_title='orbit={}'.format(orbit),
+                         sub_title=f'orbit={orbit}',
                          fig_info=fig_info_in.copy())
 
     plot.draw_geo_tiles(geo['longitude'][mask, :],
                         geo['latitude'][mask, :],
                         title='S5Pgeoplot::draw_geo_tiles',
-                        sub_title='orbit={}'.format(orbit),
+                        sub_title=f'orbit={orbit}',
                         fig_info=fig_info_in.copy())
 
     plot.draw_geo_tiles(geo['longitude'][mask, :], geo['latitude'][mask, :],
                         sequence=seq['sequence'][mask],
                         title='S5Pgeoplot::draw_geo_tiles',
-                        sub_title='orbit={}'.format(orbit),
+                        sub_title=f'orbit={orbit}',
                         fig_info=fig_info_in.copy())
 
     plot.draw_geo_msm(geo['longitude'][mask, :], geo['latitude'][mask, :],
                       np.nanmean(l1b_data, axis=2)[mask, :],
                       title='S5Pgeoplot::draw_geo_msm',
-                      sub_title='orbit={}'.format(orbit),
+                      sub_title=f'orbit={orbit}',
                       fig_info=fig_info_in.copy())
 
 
@@ -98,7 +98,7 @@ def run_lv2_tests(plot, lv2_product):
     print(lv2_msm.attrs['long_name'])
     plot.draw_geo_msm(geo['longitude'], geo['latitude'], lv2_msm,
                       title=lv2_msm.attrs['long_name'],
-                      sub_title='orbit={}'.format(orbit))
+                      sub_title=f'orbit={orbit}')
 
 
 # --------------------------------------------------
@@ -108,8 +108,8 @@ def main():
     """
     # parse command-line parameters
     parser = argparse.ArgumentParser(
-        description='{}: run units-test on class S5Pgeoplot'.format(
-            Path(__file__).name))
+        description=(f'{Path(__file__).name}:'
+                     ' run units-test on class S5Pgeoplot'))
     parser.add_argument('--l1b_file', type=str, default=None,
                         help='Use S5P_L1B_RAD_PRODUCT to run unit-test on ...')
     parser.add_argument('--lv2_file', type=str, default=None,
