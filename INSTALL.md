@@ -1,22 +1,22 @@
 Installing pyS5p
 ================
 
+Wheels
+------
+I you have an existing Python (v3.7+) installation, pyS5p can be installed
+via pip from PyPI:
+
+    pip install pys5p [--user]
+
+
 Python Distributions
 --------------------
 If you use a Python Distribution, the installation of pyS5p can be done on
 the command line via:
 
->  `conda install pys5p`
+    conda install pys5p
 
 for [Anaconda](https://www.anaconda.com/)/[MiniConda](http://conda.pydata.org/miniconda.html).
-
-
-Wheels
-------
-I you have an existing Python installation, pyS5p can be installed via pip
-from PyPI:
-
->  `pip install pys5p`
 
 
 Source installation
@@ -24,53 +24,45 @@ Source installation
 
 The latest release of pyS5p is available from
 [gitHub](https://github.com/rmvanhees/pys5p).
+Where you can download the source code as a tar-file or zipped archive.
+Or you can use git do download the repository:
 
-Once you have satisfied the requirements detailed below, simply run:
+    git clone https://github.com/rmvanhees/pys5p.git
 
->  `pip install .`
+Before you can install pyspex, you need:
 
-or
+ * Python version 3.7+ with development headers
+ * HDF5, installed with development headers
+ * netCDF4, installed with development headers
 
->  'pip install . --user`
+And have the following Python modules available:
 
-You may need to use the environment variable SETUPTOOLS\_SCM\_PRETEND\_VERSION
+ * setuptools v57+
+ * setuptools-scm v6+
+ * numpy v1.19+
+ * h5py v3.40+
+ * netCDF4 v1.5+
+ * xarray v0.16+
+ * matplotlib v3.3+
+ * cartopy v0.19+ [''required when you want to draw maps'']
+
+The software is known to work using:
+
+ * HDF5 v1.8.21, netCDF4 v4.7.3 and python-netCDF4 v1.5+
+ * HDF5 v1.10+, netCDF4 v4.7.3 or v4.8+ and python-netCDF4 v1.5+
+ * HDF5 v1.12+, netCDF4 v4.8+ and python-netCDF4 v1.5+
+
+You can install pySpexCal once you have satisfied the requirements listed above.
+Run at the top of the source tree:
+
+    python3 -m build  
+    pip3 install dist/pys5p-<version>.whl [--user]
+
+The Python scripts can be found under `/usr/local/bin` or `$USER/.local/bin`.
+
+
+Known Issues
+------------
+
+* You may need to use the environment variable SETUPTOOLS\_SCM\_PRETEND\_VERSION
 if your source tree is not a git clone.
-
-### Requirements
-
-These external packages are required to install pyS5p or gain access to
-significant pyS5p functionality.
-
-It is adviced to use pip to install the Python packages and to use the latest
-versions of the software libraries. However, many of these packages are also
-available in Linux package managers such as aptitude and yum.
-
-**python** 3.7 or later (https://www.python.org/)
-    pyS5p requires Python 3.7 or later.
-
-**Cython** 0.25 or later (http://cython.org/)
-    The Cython compiler for writing C extensions for the Python language.
-
-**numpy** 1.17 or later (http://www.numpy.org/)
-    Python package for scientific computing including a powerful N-dimensional array object.
-
-**h5py** 2.10  or later (https://www.h5py.org/)
-    HDF5 for Python
-
-**matplotlib** 3.1 or later (http://matplotlib.org/)
-    Python package for 2D plotting.  This package is required for any graphical capability.
-
-**PROJ.4** 7.0 or later (https://trac.osgeo.org/proj/)
-    Cartographic Projections library.
-
-**GEOS** 3.7 or later (https://trac.osgeo.org/geos/)
-    GEOS is an API of spatial predicates and functions for processing geometry written in C++.
-
-**shapely** 1.7 0r later (https://github.com/Toblerity/Shapely)
-    Shapely is a BSD-licensed Python package for manipulation and analysis of planar geometric objects.
-
-**cartopy** 0.17 or later (http://scitools.org.uk/cartopy/)
-    Cartopy is a Python package designed to make drawing maps for data analysis and visualisation as easy as possible.
-    
-**setuptools-scm** 3.1 or later (https://github.com/pypa/setuptools_scm/)
-    The blessed package to manage your versions by scm tags
