@@ -44,7 +44,7 @@ And have the following Python modules available:
  * netCDF4 v1.5+
  * xarray v0.16+
  * matplotlib v3.3+
- * cartopy v0.19+ [''required when you want to draw maps'']
+ * cartopy v0.19+ [*required only when you want to draw maps*]
 
 The software is known to work using:
 
