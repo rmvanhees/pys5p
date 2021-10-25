@@ -1,9 +1,9 @@
-Installing pyS5p
+Installing pys5p
 ================
 
 Wheels
 ------
-I you have an existing Python (v3.7+) installation, pyS5p can be installed
+I you have an existing Python (v3.7+) installation, pys5p can be installed
 via pip from PyPI:
 
     pip install pys5p [--user]
@@ -19,17 +19,17 @@ the command line via:
 for [Anaconda](https://www.anaconda.com/)/[MiniConda](http://conda.pydata.org/miniconda.html).
 
 
-Source installation
---------------------
+Install from source
+-------------------
 
-The latest release of pyS5p is available from
+The latest release of pys5p is available from
 [gitHub](https://github.com/rmvanhees/pys5p).
 Where you can download the source code as a tar-file or zipped archive.
 Or you can use git do download the repository:
 
     git clone https://github.com/rmvanhees/pys5p.git
 
-Before you can install pyspex, you need:
+Before you can install pys5p, you need:
 
  * Python version 3.7+ with development headers
  * HDF5, installed with development headers
@@ -52,7 +52,7 @@ The software is known to work using:
  * HDF5 v1.10+, netCDF4 v4.7.3 or v4.8+ and python-netCDF4 v1.5+
  * HDF5 v1.12+, netCDF4 v4.8+ and python-netCDF4 v1.5+
 
-You can install pySpexCal once you have satisfied the requirements listed above.
+You can install pys5p once you have satisfied the requirements listed above.
 Run at the top of the source tree:
 
     python3 -m build  
