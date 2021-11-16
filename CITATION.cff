@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "van Hees"
+  given-names: "Richard"
+  orcid: "https://orcid.org/0000-0002-3846-0753"
+title: "pyS5p: a Python interface to S5p Tropomi products"
+version: 2.0.2
+doi: 10.5281/zenodo.5665827
+date-released: 2021-11-10
+url: "https://github.com/rmvanhees/pys5p"
