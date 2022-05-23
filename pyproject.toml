@@ -1,8 +1,6 @@
 # pyproject.toml
 [build-system]
-requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
-
 build-backend = "setuptools.build_meta"
-build_requires = ["setuptools_scm"]
+requires = ["setuptools", "wheel", "setuptools_scm[toml]"]
 
 [tool.setuptools_scm]
