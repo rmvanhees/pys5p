@@ -22,7 +22,7 @@ import numpy as np
 from numpy import ma
 
 
-def rls_fit(xx, yy):
+def rls_fit(xx, yy) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
 
@@ -36,7 +36,7 @@ def rls_fit(xx, yy):
 
     Returns
     -------
-    c0, c1, std_c0, std_c1 : tuple of ndarrays
+    c0, c1, std_c0, std_c1 : tuple of MaskedArrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
@@ -92,19 +92,19 @@ def rls_fit(xx, yy):
     # calculate fit parameters and their uncertainties
     num = yy1.count(axis=1)
     cc0 = zz2 / zz1
-    cc0[num < 2] = np.nan
+    cc0[num < 2] = ma.masked
     cc1 = zz3 / zz1
-    cc1[num < 2] = np.nan
-    chi2 = np.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
-    chi2[num <= 2] = 0
-    sc0 = np.sqrt(q00 * chi2 / zz1)
-    sc1 = np.sqrt(q02 * chi2 / zz1)
+    cc1[num < 2] = ma.masked
+    chi2 = ma.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
+    chi2[num <= 2] = ma.masked
+    sc0 = ma.sqrt(q00 * chi2 / zz1)
+    sc1 = ma.sqrt(q02 * chi2 / zz1)
 
     return (cc0.reshape(img_shape), cc1.reshape(img_shape),
             sc0.reshape(img_shape), sc1.reshape(img_shape))
 
 
-def rls_fit0(xx, yy):
+def rls_fit0(xx, yy) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c1 * x
 
@@ -118,7 +118,7 @@ def rls_fit0(xx, yy):
 
     Returns
     -------
-    c1, std_c1 : tuple of ndarrays
+    c1, std_c1 : tuple of MaskedArrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
@@ -165,9 +165,9 @@ def rls_fit0(xx, yy):
     # calculate fit parameter and its variance
     num = yy1.count(axis=1)
     cc1 = q11 / q00
-    cc1[num < 1] = np.nan
-    chi2 = np.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
-    chi2[num <= 1] = 0
-    sc1 = np.sqrt(chi2 / q00)
+    cc1[num < 1] = ma.masked
+    chi2 = ma.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
+    chi2[num <= 1] = ma.masked
+    sc1 = ma.sqrt(chi2 / q00)
 
     return (cc1.reshape(img_shape), sc1.reshape(img_shape))
