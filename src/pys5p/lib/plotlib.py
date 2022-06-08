@@ -37,8 +37,9 @@ class MidpointNormalize(mpl.colors.Normalize):
     def __call__(self, value, clip=None):
         # I'm ignoring masked values and all kinds of edge cases to make a
         # simple example...
-        xx, yy = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, xx, yy), np.isnan(value))
+        xdata, ydata = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, xdata, ydata),
+                                  np.isnan(value))
 
 
 # define a class to handle the figure information

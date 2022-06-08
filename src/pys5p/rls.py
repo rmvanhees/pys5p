@@ -22,16 +22,16 @@ import numpy as np
 from numpy import ma
 
 
-def rls_fit(xx, yy) -> tuple:
+def rls_fit(xdata, ydata) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
 
     Parameters
     ----------
-    xx :  ndarray, shape (M,)
-       X-coordinates of the M sample points (xx[i], yy[..., i])
+    xdata :  ndarray, shape (M,)
+       X-coordinates of the M sample points (xdata[i], ydata[..., i])
        The array values have to be positive and increasing
-    yy :  MaskedArray or ndarray, shape (..., M)
+    ydata :  MaskedArray or ndarray, shape (..., M)
        Y-coordinates of the sample points
 
     Returns
@@ -43,9 +43,9 @@ def rls_fit(xx, yy) -> tuple:
     ------
     RuntimeError
        if M < 2: too few points for a fit
-       if M_xx != M_yy: number of samples not equal for xx, yy
-       if yy.shape[:-1] != samples_not_saturated.shape:
-          arrays yy and mask do not have equal shapes
+       if M_xx != M_yy: number of samples not equal for xdata, ydata
+       if ydata.shape[:-1] != samples_not_saturated.shape:
+          arrays ydata and mask do not have equal shapes
 
     Notes
     -----
@@ -54,26 +54,26 @@ def rls_fit(xx, yy) -> tuple:
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
     """
-    if xx.size < 2:
+    if xdata.size < 2:
         raise RuntimeError('too few sample points for a fit')
-    if xx.size != yy.shape[-1]:
-        raise RuntimeError('number of samples not equal for xx, yy')
+    if xdata.size != ydata.shape[-1]:
+        raise RuntimeError('number of samples not equal for xdata, ydata')
 
     # perform all computations on 2 dimensional arrays
-    img_shape = yy.shape[:-1]
-    if isinstance(yy, ma.MaskedArray):
-        yy1 = yy.reshape(-1, xx.size)
+    img_shape = ydata.shape[:-1]
+    if isinstance(ydata, ma.MaskedArray):
+        yy1 = ydata.reshape(-1, xdata.size)
     else:
-        yy1 = ma.array(yy).reshape(-1, xx.size)
+        yy1 = ma.array(ydata).reshape(-1, xdata.size)
 
     # generate weight factor per pixel
     wght = np.empty(yy1.shape, dtype=float)
-    wght[:] = np.concatenate(([2 * (xx[1] - xx[0])],
-                              xx[2:] - xx[0:-2],
-                              [2 * (xx[-1] - xx[-2])]))
+    wght[:] = np.concatenate(([2 * (xdata[1] - xdata[0])],
+                              xdata[2:] - xdata[0:-2],
+                              [2 * (xdata[-1] - xdata[-2])]))
     wght = ma.array(wght, mask=yy1.mask, hard_mask=True)
-    wx1 = wght / xx
-    wx2 = wght / xx ** 2
+    wx1 = wght / xdata
+    wx2 = wght / xdata ** 2
 
     # calculate the Q elements
     q00 = wght.sum(axis=1)
@@ -104,16 +104,16 @@ def rls_fit(xx, yy) -> tuple:
             sc0.reshape(img_shape), sc1.reshape(img_shape))
 
 
-def rls_fit0(xx, yy) -> tuple:
+def rls_fit0(xdata, ydata) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c1 * x
 
     Parameters
     ----------
-    xx :  ndarray, shape (M,)
-       X-coordinates of the M sample points (xx[i], yy[..., i])
+    xdata :  ndarray, shape (M,)
+       X-coordinates of the M sample points (xdata[i], ydata[..., i])
        The array values have to be positive and increasing
-    yy :  MaskedArray or ndarray, shape (..., M)
+    ydata :  MaskedArray or ndarray, shape (..., M)
        Y-coordinates of the sample points
 
     Returns
@@ -125,9 +125,9 @@ def rls_fit0(xx, yy) -> tuple:
     ------
     RuntimeError
        if M < 2: too few points for a fit
-       if M_xx != M_yy: number of samples not equal for xx, yy
-       if yy.shape[:-1] != samples_not_saturated.shape:
-          arrays yy and mask do not have equal shapes
+       if M_xx != M_yy: number of samples not equal for xdata, ydata
+       if ydata.shape[:-1] != samples_not_saturated.shape:
+          arrays ydata and mask do not have equal shapes
 
     Notes
     -----
@@ -136,26 +136,26 @@ def rls_fit0(xx, yy) -> tuple:
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
     """
-    if xx.size < 2:
+    if xdata.size < 2:
         raise RuntimeError('too few points for a fit')
-    if xx.size != yy.shape[-1]:
-        raise RuntimeError('number of samples not equal for xx, yy')
+    if xdata.size != ydata.shape[-1]:
+        raise RuntimeError('number of samples not equal for xdata, ydata')
 
     # perform all computations on 2 dimensional arrays
-    img_shape = yy.shape[:-1]
-    if isinstance(yy, np.ma.MaskedArray):
-        yy1 = yy.reshape(-1, xx.size)
+    img_shape = ydata.shape[:-1]
+    if isinstance(ydata, np.ma.MaskedArray):
+        yy1 = ydata.reshape(-1, xdata.size)
     else:
-        yy1 = ma.array(yy).reshape(-1, xx.size)
+        yy1 = ma.array(ydata).reshape(-1, xdata.size)
 
     # generate weight factor per pixel
     wght = np.empty(yy1.shape, dtype=float)
-    wght[:] = np.concatenate(([2 * (xx[1] - xx[0])],
-                              xx[2:] - xx[0:-2],
-                              [2 * (xx[-1] - xx[-2])]))
+    wght[:] = np.concatenate(([2 * (xdata[1] - xdata[0])],
+                              xdata[2:] - xdata[0:-2],
+                              [2 * (xdata[-1] - xdata[-2])]))
     wght = ma.array(wght, mask=yy1.mask, hard_mask=True)
-    wx1 = wght / xx
-    wx2 = wght / xx ** 2
+    wx1 = wght / xdata
+    wx2 = wght / xdata ** 2
 
     # calculate the Q elements
     q00 = wght.sum(axis=1)

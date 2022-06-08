@@ -1549,9 +1549,9 @@ class S5Pplot:
 
         use_steps = False
         if use_steps:
-            xx = np.append(xdata, xdata[-1])
-            yy = np.append(ydata, ydata[-1])
-            self.__mpl['axarr'].step(xx, yy, where='post',
+            xval = np.append(xdata, xdata[-1])
+            yval = np.append(ydata, ydata[-1])
+            self.__mpl['axarr'].step(xval, yval, where='post',
                                      color=cset[color % c_max],
                                      **kwargs)
         else:

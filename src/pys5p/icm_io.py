@@ -807,11 +807,11 @@ class ICMio():
 
                 skipped = 0
                 data_sel = ()
-                for xx in range(dset.ndim):
-                    if len(dset.dims[xx][0][:]) == 1:
+                for ix in range(dset.ndim):
+                    if len(dset.dims[ix][0][:]) == 1:
                         skipped += 1
 
-                    dim_name = PurePosixPath(dset.dims[xx][0].name).name
+                    dim_name = PurePosixPath(dset.dims[ix][0].name).name
                     if dim_name in time_list:
                         data_sel += (slice(None),)
                     elif dim_name in row_list:
@@ -820,7 +820,7 @@ class ICMio():
                         else:
                             data_sel += (slice(*rows),)
                     elif dim_name in column_list:
-                        column_dim = xx - skipped
+                        column_dim = ix - skipped
                         if columns is None:
                             data_sel += (slice(None),)
                         else:
@@ -991,10 +991,10 @@ class ICMio():
                 dset = self.fid[str(ds_path)]
 
                 data_sel = ()
-                for xx in range(dset.ndim):
-                    dim_name = PurePosixPath(dset.dims[xx][0].name).name
+                for ix in range(dset.ndim):
+                    dim_name = PurePosixPath(dset.dims[ix][0].name).name
 
-                    if len(dset.dims[xx][0][:]) == 1:
+                    if len(dset.dims[ix][0][:]) == 1:
                         data_sel += (0,)
                     elif dim_name in time_list:
                         data_sel += (slice(None),)
