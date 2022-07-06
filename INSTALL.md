@@ -3,7 +3,7 @@ Installing pys5p
 
 Wheels
 ------
-I you have an existing Python (v3.7+) installation, pys5p can be installed
+I you have an existing Python (v3.8+) installation, pys5p can be installed
 via pip from PyPI:
 
     pip install pys5p [--user]
@@ -31,14 +31,14 @@ Or you can use git do download the repository:
 
 Before you can install pys5p, you need:
 
-* Python version 3.7+ with development headers
+* Python version 3.8+ with development headers
 * HDF5, installed with development headers
 * netCDF4, installed with development headers
 
 And have the following Python modules available:
 
 * numpy v1.19+
-* h5py v3.50+
+* h5py v3.5+
 * netCDF4 v1.5+
 * xarray v0.20+
 
