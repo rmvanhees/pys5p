@@ -31,31 +31,27 @@ Or you can use git do download the repository:
 
 Before you can install pys5p, you need:
 
- * Python version 3.7+ with development headers
- * HDF5, installed with development headers
- * netCDF4, installed with development headers
+* Python version 3.7+ with development headers
+* HDF5, installed with development headers
+* netCDF4, installed with development headers
 
 And have the following Python modules available:
 
- * setuptools v57+
- * setuptools-scm v6+
- * numpy v1.19+
- * h5py v3.40+
- * netCDF4 v1.5+
- * xarray v0.16+
- * matplotlib v3.3+
- * cartopy v0.19+ [*required only when you want to draw maps*]
+* numpy v1.19+
+* h5py v3.50+
+* netCDF4 v1.5+
+* xarray v0.20+
 
 The software is known to work using:
 
- * HDF5 v1.8.21, netCDF4 v4.7.3 and python-netCDF4 v1.5+
- * HDF5 v1.10+, netCDF4 v4.7.3 or v4.8+ and python-netCDF4 v1.5+
- * HDF5 v1.12+, netCDF4 v4.8+ and python-netCDF4 v1.5+
+* HDF5 v1.8.21, netCDF4 v4.7.3 and python-netCDF4 v1.5+
+* HDF5 v1.10+, netCDF4 v4.7.3 or v4.8+ and python-netCDF4 v1.5+
+* HDF5 v1.12+, netCDF4 v4.8+ and python-netCDF4 v1.5+
 
 You can install pys5p once you have satisfied the requirements listed above.
 Run at the top of the source tree:
 
-    python3 -m build  
+    python3 -m build
     pip3 install dist/pys5p-<version>.whl [--user]
 
 The Python scripts can be found under `/usr/local/bin` or `$USER/.local/bin`.
