@@ -5,7 +5,7 @@ https://github.com/rmvanhees/pys5p.git
 
 The class LV2io provides read access to S5p Tropomi S5P_OFFL_L2 products
 
-Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2022 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -17,7 +17,7 @@ import h5py
 from netCDF4 import Dataset
 import numpy as np
 
-from .s5p_xarray import data_to_xr, h5_to_xr
+from moniplot.image_to_xarray import data_to_xr, h5_to_xr
 
 
 # - global parameters ------------------------------

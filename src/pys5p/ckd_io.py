@@ -10,7 +10,7 @@ ToDo
  - access to UVN CKD, still incomplete
  - identify latest Static CKD product, e.g. using the validity period
 
-Copyright (c) 2018-2021 SRON - Netherlands Institute for Space Research
+Copyright (c) 2018-2022 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -21,7 +21,7 @@ import h5py
 import numpy as np
 import xarray as xr
 
-from pys5p.s5p_xarray import h5_to_xr
+from moniplot.image_to_xarray import h5_to_xr
 
 
 # - local functions ------------------------------

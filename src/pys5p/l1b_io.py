@@ -7,7 +7,7 @@ The classes L1Bio, L1BioIRR, L1BioRAD and L1BioENG provide read/write access to
 offline level 1b products, resp. calibration, irradiance, radiance
 and engineering.
 
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -19,7 +19,8 @@ from setuptools_scm import get_version
 import h5py
 import numpy as np
 
-from .biweight import biweight
+from moniplot.biweight import biweight
+
 from .swir_texp import swir_exp_time
 
 # - global parameters ------------------------------

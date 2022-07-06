@@ -21,7 +21,7 @@ dimensions. Initialization:
 
 Limited to 3 dimensions
 
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -33,7 +33,7 @@ from pathlib import PurePath
 from h5py import Dataset
 import numpy as np
 
-from .biweight import biweight
+from moniplot.biweight import biweight
 
 
 # - local functions --------------------------------

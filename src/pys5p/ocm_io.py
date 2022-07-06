@@ -6,7 +6,7 @@ https://github.com/rmvanhees/pys5p.git
 The classe OCMio provide read access to Tropomi on-ground calibration products
 (Lx)
 
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
+Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
    All Rights Reserved
 
 License:  BSD-3-Clause
@@ -17,7 +17,7 @@ from pathlib import Path, PurePosixPath
 import h5py
 import numpy as np
 
-from .biweight import biweight
+from moniplot.biweight import biweight
 
 # - global parameters ------------------------------
 
