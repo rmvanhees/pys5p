@@ -67,11 +67,21 @@ def rls_fit(xdata, ydata) -> tuple:
         yy1 = ma.array(ydata).reshape(-1, xdata.size)
 
     # generate weight factor per pixel
-    wght = np.empty(yy1.shape, dtype=float)
-    wght[:] = np.concatenate(([2 * (xdata[1] - xdata[0])],
-                              xdata[2:] - xdata[0:-2],
-                              [2 * (xdata[-1] - xdata[-2])]))
-    wght = ma.array(wght, mask=yy1.mask, hard_mask=True)
+    def calc_weights(row):
+        mask = ma.getmaskarray(row)
+        valid = ma.compressed(row)
+        if len(valid) > 1:
+            weights = np.concatenate(([2 * (valid[1] - valid[0])],
+                                      valid[2:] - valid[0:-2],
+                                      [2 * (valid[-1] - valid[-2])]))
+        else:
+            weights = ma.masked
+        np.put(row, np.where(~mask), weights)
+
+        return row
+
+    wght = ma.array(np.ones(yy1.shape) * xdata, mask=yy1.mask, hard_mask=True)
+    wght = ma.apply_along_axis(calc_weights, 1, wght)
     wx1 = wght / xdata
     wx2 = wght / xdata ** 2
 
@@ -92,16 +102,16 @@ def rls_fit(xdata, ydata) -> tuple:
     # calculate fit parameters and their uncertainties
     num = yy1.count(axis=1)
     cc0 = zz2 / zz1
-    cc0[num < 2] = ma.masked
     cc1 = zz3 / zz1
-    cc1[num < 2] = ma.masked
     chi2 = ma.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
-    chi2[num <= 2] = ma.masked
+    chi2[num <= 2] = 0
     sc0 = ma.sqrt(q00 * chi2 / zz1)
     sc1 = ma.sqrt(q02 * chi2 / zz1)
 
-    return (cc0.reshape(img_shape), cc1.reshape(img_shape),
-            sc0.reshape(img_shape), sc1.reshape(img_shape))
+    return (cc0.reshape(img_shape).filled(np.nan),
+            cc1.reshape(img_shape).filled(np.nan),
+            sc0.reshape(img_shape).filled(np.nan),
+            sc1.reshape(img_shape).filled(np.nan))
 
 
 def rls_fit0(xdata, ydata) -> tuple:
