@@ -22,6 +22,23 @@ import numpy as np
 from numpy import ma
 
 
+def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
+    """
+    Generate weight factor per pixel
+    """
+    buff = ma.array(np.repeat([xdata], masked.shape[0], axis=0), mask=masked)
+    for row in buff:
+        valid = ma.compressed(row)
+        if len(valid) < 2:
+            continue
+        wght = np.concatenate(([2 * (valid[1] - valid[0])],
+                               valid[2:] - valid[0:-2],
+                               [2 * (valid[-1] - valid[-2])]))
+        row[~row.mask] = wght
+
+    return buff
+
+
 def rls_fit(xdata, ydata) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
@@ -36,7 +53,7 @@ def rls_fit(xdata, ydata) -> tuple:
 
     Returns
     -------
-    c0, c1, std_c0, std_c1 : tuple of MaskedArrays
+    c0, c1, std_c0, std_c1 : tuple of MaskedArrays or ndarrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
@@ -49,11 +66,15 @@ def rls_fit(xdata, ydata) -> tuple:
 
     Notes
     -----
+    Calling a rls-function with MaskedArrays is much slower than with
+    plain ndarrays.
+
     The coefficients are set to NaN when the number of samples are less than 2.
 
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
     """
+    # pylint: disable=too-many-locals
     if xdata.size < 2:
         raise RuntimeError('too few sample points for a fit')
     if xdata.size != ydata.shape[-1]:
@@ -61,32 +82,21 @@ def rls_fit(xdata, ydata) -> tuple:
 
     # perform all computations on 2 dimensional arrays
     img_shape = ydata.shape[:-1]
-    if isinstance(ydata, ma.MaskedArray):
-        yy1 = ydata.reshape(-1, xdata.size)
+    yy1 = ydata.reshape(-1, xdata.size)
+
+    # calculate weights
+    if ma.isMaskedArray(ydata):
+        wghts = calc_ma_weights(xdata, ma.getmaskarray(yy1))
     else:
-        yy1 = ma.array(ydata).reshape(-1, xdata.size)
-
-    # generate weight factor per pixel
-    def calc_weights(row):
-        mask = ma.getmaskarray(row)
-        valid = ma.compressed(row)
-        if len(valid) > 1:
-            weights = np.concatenate(([2 * (valid[1] - valid[0])],
-                                      valid[2:] - valid[0:-2],
-                                      [2 * (valid[-1] - valid[-2])]))
-        else:
-            weights = ma.masked
-        np.put(row, np.where(~mask), weights)
-
-        return row
-
-    wght = ma.array(np.ones(yy1.shape) * xdata, mask=yy1.mask, hard_mask=True)
-    wght = ma.apply_along_axis(calc_weights, 1, wght)
-    wx1 = wght / xdata
-    wx2 = wght / xdata ** 2
+        buff = np.concatenate(([2 * (xdata[1] - xdata[0])],
+                               xdata[2:] - xdata[0:-2],
+                               [2 * (xdata[-1] - xdata[-2])]))
+        wghts = np.repeat([buff], yy1.shape[0], axis=0)
+    wx1 = wghts / xdata
+    wx2 = wghts / xdata ** 2
 
     # calculate the Q elements
-    q00 = wght.sum(axis=1)
+    q00 = wghts.sum(axis=1)
     q01 = wx1.sum(axis=1)
     q02 = wx2.sum(axis=1)
 
@@ -103,15 +113,26 @@ def rls_fit(xdata, ydata) -> tuple:
     num = yy1.count(axis=1)
     cc0 = zz2 / zz1
     cc1 = zz3 / zz1
-    chi2 = ma.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
-    chi2[num <= 2] = 0
-    sc0 = ma.sqrt(q00 * chi2 / zz1)
-    sc1 = ma.sqrt(q02 * chi2 / zz1)
+    if ma.isMaskedArray(ydata):
+        chi2 = ma.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
+        chi2[num <= 2] = 0
+        sc0 = ma.sqrt(q00 * chi2 / zz1)
+        sc1 = ma.sqrt(q02 * chi2 / zz1)
 
-    return (cc0.reshape(img_shape).filled(np.nan),
-            cc1.reshape(img_shape).filled(np.nan),
-            sc0.reshape(img_shape).filled(np.nan),
-            sc1.reshape(img_shape).filled(np.nan))
+        return (cc0.reshape(img_shape).filled(np.nan),
+                cc1.reshape(img_shape).filled(np.nan),
+                sc0.reshape(img_shape).filled(np.nan),
+                sc1.reshape(img_shape).filled(np.nan))
+
+    chi2 = np.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
+    chi2[num <= 2] = 0
+    sc0 = np.sqrt(q00 * chi2 / zz1)
+    sc1 = np.sqrt(q02 * chi2 / zz1)
+
+    return (cc0.reshape(img_shape), cc1.reshape(img_shape),
+            sc0.reshape(img_shape), sc1.reshape(img_shape))
+
+
 
 
 def rls_fit0(xdata, ydata) -> tuple:
@@ -128,7 +149,7 @@ def rls_fit0(xdata, ydata) -> tuple:
 
     Returns
     -------
-    c1, std_c1 : tuple of MaskedArrays
+    c1, std_c1 : tuple of MaskedArrays or ndarrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
@@ -153,31 +174,37 @@ def rls_fit0(xdata, ydata) -> tuple:
 
     # perform all computations on 2 dimensional arrays
     img_shape = ydata.shape[:-1]
-    if isinstance(ydata, np.ma.MaskedArray):
-        yy1 = ydata.reshape(-1, xdata.size)
-    else:
-        yy1 = ma.array(ydata).reshape(-1, xdata.size)
+    yy1 = ydata.reshape(-1, xdata.size)
 
-    # generate weight factor per pixel
-    wght = np.empty(yy1.shape, dtype=float)
-    wght[:] = np.concatenate(([2 * (xdata[1] - xdata[0])],
-                              xdata[2:] - xdata[0:-2],
-                              [2 * (xdata[-1] - xdata[-2])]))
-    wght = ma.array(wght, mask=yy1.mask, hard_mask=True)
-    wx1 = wght / xdata
-    wx2 = wght / xdata ** 2
+    # calculate weights
+    if ma.isMaskedArray(ydata):
+        wghts = calc_ma_weights(xdata, ma.getmaskarray(yy1))
+    else:
+        buff = np.concatenate(([2 * (xdata[1] - xdata[0])],
+                               xdata[2:] - xdata[0:-2],
+                               [2 * (xdata[-1] - xdata[-2])]))
+        wghts = np.repeat([buff], yy1.shape[0], axis=0)
+    wx1 = wghts / xdata
+    wx2 = wghts / xdata ** 2
 
     # calculate the Q elements
-    q00 = wght.sum(axis=1)
+    q00 = wghts.sum(axis=1)
     q11 = (wx1 * yy1).sum(axis=1)
     q22 = (wx2 * yy1 ** 2).sum(axis=1)
 
     # calculate fit parameter and its variance
     num = yy1.count(axis=1)
     cc1 = q11 / q00
-    cc1[num < 1] = ma.masked
-    chi2 = ma.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
-    chi2[num <= 1] = ma.masked
-    sc1 = ma.sqrt(chi2 / q00)
+    if ma.isMaskedArray(ydata):
+        cc1[num < 1] = ma.masked
+        chi2 = ma.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
+        chi2[num <= 1] = ma.masked
+        sc1 = ma.sqrt(chi2 / q00)
+        return (cc1.reshape(img_shape).filled(np.nan),
+                sc1.reshape(img_shape).filled(np.nan))
 
+    cc1[num < 1] = np.nan
+    chi2 = np.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
+    chi2[num <= 1] = np.nan
+    sc1 = np.sqrt(chi2 / q00)
     return (cc1.reshape(img_shape), sc1.reshape(img_shape))
