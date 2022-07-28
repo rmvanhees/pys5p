@@ -110,7 +110,7 @@ def rls_fit(xdata, ydata) -> tuple:
     zz3 = q02 * q11 - q01 * q12
 
     # calculate fit parameters and their uncertainties
-    num = yy1.count(axis=1)
+    num = yy1.count(axis=1) if ma.isMaskedArray(ydata) else len(xdata)
     cc0 = zz2 / zz1
     cc1 = zz3 / zz1
     if ma.isMaskedArray(ydata):
@@ -193,7 +193,7 @@ def rls_fit0(xdata, ydata) -> tuple:
     q22 = (wx2 * yy1 ** 2).sum(axis=1)
 
     # calculate fit parameter and its variance
-    num = yy1.count(axis=1)
+    num = yy1.count(axis=1) if ma.isMaskedArray(ydata) else len(xdata)
     cc1 = q11 / q00
     if ma.isMaskedArray(ydata):
         cc1[num < 1] = ma.masked
