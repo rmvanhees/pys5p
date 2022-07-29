@@ -25,6 +25,13 @@ from numpy import ma
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     """
     Generate weight factor per pixel
+
+    Notes
+    -----
+    It might be that np.apply_along_axis() is slightly faster, however, the
+    for-loop 'row in buff' is also very efficient when using the specially
+    designed MaskedArray 'buff' which we eventually use to store the weight
+    values per pixel.
     """
     buff = ma.array(np.repeat([xdata], masked.shape[0], axis=0), mask=masked)
     for row in buff:
@@ -93,7 +100,7 @@ def rls_fit(xdata, ydata) -> tuple:
                                [2 * (xdata[-1] - xdata[-2])]))
         wghts = np.repeat([buff], yy1.shape[0], axis=0)
     wx1 = wghts / xdata
-    wx2 = wghts / xdata ** 2
+    wx2 = wghts / xdata ** 2   # is wx1 / xdata faster? 
 
     # calculate the Q elements
     q00 = wghts.sum(axis=1)
@@ -124,6 +131,7 @@ def rls_fit(xdata, ydata) -> tuple:
                 sc0.reshape(img_shape).filled(np.nan),
                 sc1.reshape(img_shape).filled(np.nan))
 
+    # using only non-MaskedArray functions
     chi2 = np.abs(q22 - q12 * cc0 - q11 * cc1) / np.clip(num - 2, 1, None)
     chi2[num <= 2] = 0
     sc0 = np.sqrt(q00 * chi2 / zz1)
@@ -203,6 +211,7 @@ def rls_fit0(xdata, ydata) -> tuple:
         return (cc1.reshape(img_shape).filled(np.nan),
                 sc1.reshape(img_shape).filled(np.nan))
 
+    # using only non-MaskedArray functions
     cc1[num < 1] = np.nan
     chi2 = np.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
     chi2[num <= 1] = np.nan
