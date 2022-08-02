@@ -46,7 +46,7 @@ def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     return buff
 
 
-def rls_fit(xdata, ydata) -> tuple:
+def rls_fit(xdata: np.ndarray, ydata) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
 
@@ -60,7 +60,7 @@ def rls_fit(xdata, ydata) -> tuple:
 
     Returns
     -------
-    c0, c1, std_c0, std_c1 : tuple of MaskedArrays or ndarrays
+    c0, c1, std_c0, std_c1 : tuple of ndarrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
@@ -143,7 +143,7 @@ def rls_fit(xdata, ydata) -> tuple:
 
 
 
-def rls_fit0(xdata, ydata) -> tuple:
+def rls_fit0(xdata: np.ndarray, ydata) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c1 * x
 
@@ -157,7 +157,7 @@ def rls_fit0(xdata, ydata) -> tuple:
 
     Returns
     -------
-    c1, std_c1 : tuple of MaskedArrays or ndarrays
+    c1, std_c1 : tuple of ndarrays
        coefficients of the linear dependence and their standard deviations
 
     Raises
