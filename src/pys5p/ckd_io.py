@@ -77,13 +77,13 @@ class CKDio():
        Returns definition of the SAA region.
     wavelength(bands='78')
        Returns wavelength CKD.
-    darkflux()
+    darkflux(bands='78')
        Returns dark-flux CKD, SWIR only.
-    offset()
+    offset(bands='78')
        Returns offset CKD, SWIR only.
-    pixel_quality()
+    pixel_quality(bands='78')
        Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only.
-    dpqf(threshold=None)
+    dpqf(threshold=None, bands='78')
        Returns Detector Pixel Quality Mask (boolean), SWIR only.
     saturation()
        Returns saturation values (pre-offset), SWIR only
@@ -413,11 +413,10 @@ class CKDio():
 
         Parameters
         ----------
-        bands : str
-          Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-          default: '78'
-        qvd : int
-          Tropomi QVD identifier. Valid values are 1 or 2, default: 1
+        qvd : int, default: 1
+          Tropomi QVD identifier. Valid values are 1 or 2
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -439,9 +438,8 @@ class CKDio():
 
         Parameters
         ----------
-        bands : str
-          Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-          default: '78'
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -459,11 +457,6 @@ class CKDio():
     def memory(self):
         """
         Returns memory CKD, SWIR only
-
-        Parameters
-        ----------
-        bands : str
-          Tropomi bands [7,8] or channels ['78'], default: '78'
         """
         column = None
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
@@ -491,12 +484,17 @@ class CKDio():
 
         return ckd
 
-    def noise(self):
+    def noise(self, bands='78'):
         """
         Returns readout-noise CKD, SWIR only
+
+        Parameters
+        ----------
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
         """
         dset_name = '/BAND{}/readout_noise_swir'
-        ckd = reject_row257(self.__rd_dataset(dset_name, '78'))
+        ckd = reject_row257(self.__rd_dataset(dset_name, bands))
         ckd.attrs["long_name"] = 'SWIR readout-noise CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
@@ -507,9 +505,8 @@ class CKDio():
 
         Parameters
         ----------
-        bands : str
-          Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-          default: '78'
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -529,9 +526,8 @@ class CKDio():
 
         Parameters
         ----------
-        bands : str
-          Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-          default: '78'
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
         qvd : int
           Tropomi QVD identifier. Valid values are 1 or 2, default: 1
 
@@ -585,9 +581,8 @@ class CKDio():
 
         Parameters
         ----------
-        bands : str
-          Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-          default: '78'
+        bands : str, default: '78'
+          Tropomi bands [1..8] or channels ['12', '34', '56', '78']
 
         Notes
         -----
@@ -607,67 +602,93 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     # ---------- static or dynamic CKD's ----------
-    def darkflux(self):
+    def darkflux(self, bands='78'):
         """
         Returns dark-flux CKD, SWIR only
+
+        Parameters
+        ----------
+        bands : str, default: '78'
+          Tropomi SWIR bands '7', '8' or both '78'
         """
         dset_name = '/BAND{}/long_term_swir'
-        ckd = reject_row257(self.__rd_datapoints(dset_name, '78'))
+        ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
         ckd.attrs["long_name"] = 'SWIR dark-flux CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def offset(self):
+    def offset(self, bands='78'):
         """
         Returns offset CKD, SWIR only
+
+        Parameters
+        ----------
+        bands : str, default: '78'
+          Tropomi SWIR bands '7', '8' or both '78'
         """
         dset_name = '/BAND{}/analog_offset_swir'
-        ckd = reject_row257(self.__rd_datapoints(dset_name, '78'))
+        ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
         ckd.attrs["long_name"] = 'SWIR offset CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def pixel_quality(self):
+    def pixel_quality(self, bands='78'):
         """
         Returns detector pixel-quality mask (float [0, 1]), SWIR only
+
+        Parameters
+        ----------
+        bands : str, default: '78'
+          Tropomi SWIR bands '7', '8' or both '78'
         """
         dset_name = '/BAND{}/dpqf_map'
-        ckd = reject_row257(self.__rd_dataset(dset_name, '78'))
+        ckd = reject_row257(self.__rd_dataset(dset_name, bands))
         ckd.attrs["long_name"] = 'SWIR pixel-quality CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def dpqf(self, threshold=None):
+    def dpqf(self, threshold=None, bands='78'):
         """
         Returns detector pixel-quality flags (boolean), SWIR only
 
         Parameters
         ----------
-        threshold: float
-          Value between [0..1]
+        threshold: float, optional
+          Value between [0..1], default is to read the threshold from CKD
+        bands : str, default='78'
+          Tropomi SWIR bands '7', '8', or both '78'
 
         Returns
         -------
         numpy ndarray
         """
+        dpqf = None
         if threshold is None:
             threshold = self.fid['/BAND7/dpqf_threshold'][:]
 
         # try Static-CKD product
         if '/BAND7/dpqf_map' in self.fid:
-            dset = self.fid['/BAND7/dpqf_map']
-            dpqf_b7 = dset[:-1, :]
-            dset = self.fid['/BAND8/dpqf_map']
-            dpqf_b8 = dset[:-1, :]
+            if bands == '7':
+                dpqf = self.fid['/BAND7/dpqf_map'][:-1, :] < threshold
+            elif bands == '8':
+                dpqf = self.fid['/BAND8/dpqf_map'][:-1, :] < threshold
+            elif bands == '78':
+                dpqf_b7 = self.fid['/BAND7/dpqf_map'][:-1, :]
+                dpqf_b8 = self.fid['/BAND8/dpqf_map'][:-1, :]
+                dpqf = np.hstack((dpqf_b7, dpqf_b8)) < threshold
         else:
             # try Dynamic-CKD product
             with h5py.File(self.ckd_dyn_file, 'r') as fid:
-                dset = fid['/BAND7/dpqf_map']
-                dpqf_b7 = dset[:-1, :]
-                dset = fid['/BAND8/dpqf_map']
-                dpqf_b8 = dset[:-1, :]
+                if bands == '7':
+                    dpqf = fid['/BAND7/dpqf_map'][:-1, :] < threshold
+                elif bands == '8':
+                    dpqf = fid['/BAND8/dpqf_map'][:-1, :] < threshold
+                elif bands == '78':
+                    dpqf_b7 = fid['/BAND7/dpqf_map'][:-1, :]
+                    dpqf_b8 = fid['/BAND8/dpqf_map'][:-1, :]
+                    dpqf = np.hstack((dpqf_b7, dpqf_b8)) < threshold
 
-        return np.hstack((dpqf_b7, dpqf_b8)) < threshold
+        return dpqf
 
     def saturation(self):
         """
