@@ -1,6 +1,6 @@
 # pyS5p
 [![PyPI Latest Release](https://img.shields.io/pypi/v/pys5p.svg)](https://pypi.org/project/pys5p/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7024743.svg)](https://doi.org/10.5281/zenodo.7024743)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5665827.svg)](https://doi.org/10.5281/zenodo.5665827)
 [![Package Status](https://img.shields.io/pypi/status/pys5p.svg)](https://pypi.org/project/pys5p/)
 [![License](https://img.shields.io/pypi/l/pys5p.svg)](https://github.com/rmvanhees/pys5p/LICENSE)
 [![Downloads](https://static.pepy.tech/personalized-badge/pys5p?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/pys5p/)
