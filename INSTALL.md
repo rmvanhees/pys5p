@@ -1,16 +1,13 @@
-Installing pys5p
-================
+# Installing pys5p
 
-Wheels
-------
+## Wheels
 I you have an existing Python (v3.8+) installation, pys5p can be installed
 via pip from PyPI:
 
     pip install pys5p [--user]
 
 
-Python Distributions
---------------------
+## Python Distributions
 If you use a Python Distribution, the installation of pyS5p can be done on
 the command line via:
 
@@ -19,9 +16,7 @@ the command line via:
 for [Anaconda](https://www.anaconda.com/)/[MiniConda](http://conda.pydata.org/miniconda.html).
 
 
-Install from source
--------------------
-
+## Install from source
 The latest release of pys5p is available from
 [gitHub](https://github.com/rmvanhees/pys5p).
 Where you can download the source code as a tar-file or zipped archive.
@@ -57,8 +52,6 @@ Run at the top of the source tree:
 The Python scripts can be found under `/usr/local/bin` or `$USER/.local/bin`.
 
 
-Known Issues
-------------
-
+## Known Issues
 * You may need to use the environment variable SETUPTOOLS\_SCM\_PRETEND\_VERSION
 if your source tree is not a git clone.
