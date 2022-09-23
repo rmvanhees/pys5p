@@ -24,4 +24,7 @@ Removed are th following modules:
 people by [Paul Tol](https://personal.sron.nl/~pault/).
 * module s5p_plot.py - the class S5Pplot is rewritten and now available as MONplot in the module mon_plot.py.
 
+## Installation
 The module pys5p requires Python3.8+ and Python modules: h5py, netCDF4, numpy and xarray.
+
+Installation instructions are provided in the INSTALL file.
