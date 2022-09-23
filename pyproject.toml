@@ -10,7 +10,8 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
 authors = [
-  {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"}
+  {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"},
+  {name = "Paul Tol", email = "P.J.J.Tol@sron.nl"}
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
