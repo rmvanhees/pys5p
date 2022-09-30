@@ -76,10 +76,12 @@ class L1Bpatch():
 
         In case the L1b product is altered, the attributes listed below are
         added to the group: '/METADATA/SRON_METADATA':
-             - dateStamp ('now')
-             - Git-version of S/W
-             - list of patched datasets
-             - auxiliary datasets used by patch-routines
+
+        - dateStamp ('now')
+        - Git-version of S/W
+        - list of patched datasets
+        - auxiliary datasets used by patch-routines
+
         """
         if not self.l1b_patched.is_file():
             return

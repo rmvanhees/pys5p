@@ -30,57 +30,6 @@ class CKDio():
     """
     Read Tropomi CKD from the Static CKD product or from dynamic CKD products
 
-    Attributes
-    ----------
-    ckd_dir : pathlib.Path
-    ckd_version : int
-    ckd_file : pathlib.Path
-    ckd_dyn_file : pathlib.Path
-    fid : h5py.File
-
-    Methods
-    -------
-    close()
-       Close resources.
-    creation_time()
-       Returns datetime when the L1b product was created.
-    creator_version()
-       Returns version of Tropomi L01B processor used to generate this procuct.
-    validity_period()
-       Return validity period of CKD product as a tuple of 2 datetime objects.
-    get_param(ds_name, band='7')
-       Returns value(s) of a CKD parameter from the Static CKD product.
-    dn2v_factors()
-       Returns digital number to Volt CKD, SWIR only.
-    v2c_factors()
-       Returns Voltage to Charge CKD, SWIR only.
-    absirr(qvd=1, bands='78')
-       Returns absolute irradiance responsivity.
-    absrad(bands='78')
-       Returns absolute radiance responsivity.
-    memory()
-       Returns memory CKD, SWIR only.
-    noise()
-       Returns pixel read-noise CKD, SWIR only
-    prnu(bands='78')
-       Returns Pixel Response Non-Uniformity (PRNU).
-    relirr(qvd=1, bands='78')
-       Returns relative irradiance correction.
-    saa()
-       Returns definition of the SAA region.
-    wavelength(bands='78')
-       Returns wavelength CKD.
-    darkflux(bands='78')
-       Returns dark-flux CKD, SWIR only.
-    offset(bands='78')
-       Returns offset CKD, SWIR only.
-    pixel_quality(bands='78')
-       Returns Detector Pixel Quality Mask (float [0, 1]), SWIR only.
-    dpqf(threshold=None, bands='78')
-       Returns Detector Pixel Quality Mask (boolean), SWIR only.
-    saturation()
-       Returns saturation values (pre-offset), SWIR only
-
     Notes
     -----
     Not all CKD are defined or derived for all bands.
@@ -94,23 +43,26 @@ class CKDio():
     in-flight degradation.
 
     Therefore, the logic to find a CKD is implemented as follows:
+
     1) ckd_dir, defines the base directory to search for the CKD products
-    (see below)
+       (see below).
     2) ckd_file, defines the full path to (static) CKD product;
-    (version 1) any product with dynamic CKD has to be in the same directory
+       (version 1) any product with dynamic CKD has to be in the same
+       directory.
 
     Version 1:
+    
     * Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
     * Dynamic CKD are stored in two files:
+
       - UVN, use glob('*_ICM_CKDUVN_*')
       - SWIR, use glob('*_ICM_CKDSIR_*')
 
     Version 2+:
+
     * All CKD in one file: glob('*_AUX_L1_CKD_*')
     * Dynamic CKD are empty
 
-    Examples
-    --------
     """
     def __init__(self, ckd_dir=None, ckd_version=1, ckd_file=None):
         """

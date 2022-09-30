@@ -8,7 +8,7 @@ name = "pys5p"
 description = "Software package to access Sentinel-5p Tropomi data products"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {file = "LICENSE"}
+license = {text = "BSD-3-Clause"}
 authors = [
   {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"},
   {name = "Paul Tol", email = "P.J.J.Tol@sron.nl"}
@@ -26,16 +26,19 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Atmospheric Scienc",
 ]
 dependencies = [
-  "h5py>=3.5",
+  "h5py~=2.10.0; python_version=='3.9'",
+  "h5py>=3.5; python_version!='3.9'",
   "moniplot>=0.5",
-  "netCDF4>=1.5",
   "numpy>=1.19",
-  "xarray>=0.21",
+  "netCDF4>=1.5",
+  "xarray~=0.19.0; python_version=='3.9'",
+  "xarray>=2022.3; python_version!='3.9'",
 ]
 dynamic = ["version"]
 
 [project.urls]
 homepage = "https://github.com/rmvanhees/pys5p"
+documentation = "https://pys5p.readthedocs.io/en/latest/"
 # Source = "https://github.com/rmvanhees/pys5p"
 # Changelog = "https://github.com/rmvanhees/pys5p/HISTORY.rst"
 "Issue tracker" = "https://github.com/rmvanhees/pys5p/issues"

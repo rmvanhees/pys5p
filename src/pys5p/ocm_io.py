@@ -29,12 +29,18 @@ def band2channel(dict_a, dict_b, mode=None):
     dict_a      :  dictionary
     dict_b      :  dictionary
     mode        :  list ['combined', 'mean', 'median', 'biweight']
-        'combined' will combine data using np.concatenate((data_a, data_b),
-                                                          axis=data_a.ndim-1)
-        'mean' is calculated using np.nanmean(data, axis=0)
-        'median' is calculated using np.nanmedian(data, axis=0)
-        'biweight' is calculated using pys5p.biweight(data, axis=0)
-        default is None
+        'combined'
+             will combine data using np.concatenate((data_a, data_b),
+                                                     axis=data_a.ndim-1)
+
+        'mean' 
+             is calculated using np.nanmean(data, axis=0)
+
+        'median'
+             is calculated using np.nanmedian(data, axis=0)
+
+        'biweight'
+             is calculated using pys5p.biweight(data, axis=0)
 
     Returns
     -------
@@ -100,50 +106,6 @@ class OCMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
-
-    Attributes
-    ----------
-    fid : h5py.File
-    filename : string
-    band : string
-
-    Methods
-    -------
-    close()
-       Close resources.
-    get_processor_version()
-       Returns version of the L01b processor used to generate this product.
-    get_coverage_time()
-       Returns start and end of the measurement coverage time.
-    get_attr(attr_name)
-       Obtain value of an HDF5 file attribute.
-    get_ref_time()
-       Returns reference start time of measurements.
-    get_delta_time()
-       Returns offset from the reference start time of measurement.
-    get_instrument_settings()
-       Returns instrument settings of measurement.
-    get_gse_stimuli()
-       Returns GSE stimuli parameters.
-    get_exposure_time()
-       Returns the exact pixel exposure time of the measurements.
-    get_housekeeping_data()
-       Returns housekeeping data of measurements.
-    select(ic_id=None, *, msm_grp=None)
-       Select a measurement as BAND%/ICID_<ic_id>_GROUP_%
-    get_msm_attr(msm_dset, attr_name)
-       Returns attribute of measurement dataset 'msm_dset'
-    get_msm_data(msm_dset, fill_as_nan=True, frames=None, columns=None)
-       Returns data of measurement dataset 'msm_dset'
-    read_direct_msm(msm_dset, dest_sel=None, dest_dtype=None,
-                    fill_as_nan=False)
-       The faster implementation of class method 'get_msm_data'.
-
-    Notes
-    -----
-
-    Examples
-    --------
     """
     def __init__(self, ocm_product):
         """

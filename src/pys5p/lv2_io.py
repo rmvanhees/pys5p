@@ -30,45 +30,6 @@ class LV2io():
     This class should offer all the necessary functionality to read Tropomi
     S5P_OFFL_L2 products
 
-    Attributes
-    ----------
-    fid : h5py.File
-    filename : string
-    science_product : bool
-    ground_pixel : int
-    scanline : int
-
-    Methods
-    -------
-    close()
-       Close resources.
-    get_attr(attr_name, ds_name=None)
-       Obtain value of an HDF5 file attribute or dataset attribute.
-    get_orbit()
-       Returns reference orbit number
-    get_algorithm_version()
-       Returns version of the level-2 algorithm.
-    get_processor_version()
-       Returns version of the L12 processor used to generate this product.
-    get_product_version()
-       Returns version of the level-2 product
-    get_coverage_time()
-       Returns start and end of the measurement coverage time.
-    get_creation_time()
-       Returns creation date/time of the level-2 product.
-    get_ref_time()
-       Returns reference start time of measurements.
-    get_delta_time()
-       Returns offset from the reference start time of measurement.
-    get_geo_data(geo_dsets=None)
-       Returns data of selected datasets from the GEOLOCATIONS group.
-    get_geo_bounds(extent=None, data_sel=None)
-       Returns bounds of latitude/longitude as a mesh for plotting.
-    get_dataset(name, data_sel=None, fill_as_nan=True)
-       Read level-2 dataset from PRODUCT group.
-    get_data_as_s5pmsm(name, data_sel=None, fill_as_nan=True, mol_m2=False)
-       Read dataset from group PRODUCT/target_product group.
-
     Notes
     -----
     The Python h5py module can read the operational netCDF4 products without
@@ -76,9 +37,6 @@ class LV2io():
     attributes. Thus should be fixed when more up-to-date netCDF software is
     used to generate the products. Currently, the Python netCDF4 module is
     used to read the science products.
-
-    Examples
-    --------
     """
     def __init__(self, lv2_product: str):
         """
@@ -333,10 +291,10 @@ class LV2io():
         Parameters
         ----------
         geo_dset  :  string
-            Name(s) of datasets, comma separated
-            Default:
-              * operational: 'latitude,longitude'
-              * science: 'latitude_center,longitude_center'
+            Name(s) of datasets, comma separated. Default:
+
+            * operational: 'latitude,longitude'
+            * science: 'latitude_center,longitude_center'
 
         Returns
         -------

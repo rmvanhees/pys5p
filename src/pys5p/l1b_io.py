@@ -58,57 +58,6 @@ class L1Bio:
 
     The L1b calibration products are available for UVN (band 1-6)
     and SWIR (band 7-8).
-
-    Attributes
-    ----------
-    fid : h5py.File
-    filename : string
-    bands : string
-
-    Methods
-    -------
-    close()
-       Close recources.
-    get_attr(attr_name)
-       Obtain value of an HDF5 file attribute.
-    get_orbit()
-       Returns absolute orbit number.
-    get_processor_version()
-       Returns version of the L01b processor used to generate this product.
-    get_coverage_time()
-       Returns start and end of the measurement coverage time.
-    get_creation_time()
-       Returns datetime when the L1b product was created.
-    select(msm_type=None)
-       Select a calibration measurement as <processing class>_<ic_id>.
-    sequence(band=None)
-       Returns sequence number for each unique measurement based on ICID
-       and delta_time.
-    get_ref_time(band=None)
-       Returns reference start time of measurements.
-    get_delta_time(band=None)
-       Returns offset from the reference start time of measurement.
-    get_instrument_settings(band=None)
-       Returns instrument settings of measurement.
-    get_exposure_time(band=None)
-       Returns pixel exposure time of the measurements, which is calculated
-       from the parameters 'int_delay' and 'int_hold' for SWIR.
-    get_housekeeping_data(band=None)
-       Returns housekeeping data of measurements.
-    get_geo_data(geo_dset=None, band=None)
-       Returns data of selected datasets from the GEODATA group.
-    get_msm_attr(msm_dset, attr_name, band=None)
-       Returns value attribute of measurement dataset "msm_dset".
-    get_msm_data(msm_dset, band=None, fill_as_nan=False, msm_to_row=None)
-       Reads data from dataset "msm_dset".
-    set_msm_data(msm_dset, new_data)
-       Replace data of dataset "msm_dset" with new_data.
-
-    Notes
-    -----
-
-    Examples
-    --------
     """
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
                    '/BAND%_RADIANCE')
@@ -170,10 +119,12 @@ class L1Bio:
 
         In case the L1b product is altered, the attributes listed below are
         added to the group: "/METADATA/SRON_METADATA":
-             - dateStamp ('now')
-             - Git-version of S/W
-             - list of patched datasets
-             - auxiliary datasets used by patch-routines
+
+        - dateStamp ('now')
+        - Git-version of S/W
+        - list of patched datasets
+        - auxiliary datasets used by patch-routines
+
         """
         if self.fid is None:
             return
@@ -567,9 +518,14 @@ class L1Bio:
             Name of measurement dataset.
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
-            Default is 'None' which returns
-                  both bands (Calibration, Irradiance)
-                  or one band (Radiance)
+            Default is 'None' which returns:
+
+            Radiance
+               one band
+            
+            Calibration, Irradiance
+               both bands (Calibration, Irradiance)
+
         fill_as_nan :  boolean
             Set data values equal (KNMI) FillValue to NaN
         msm_to_row : boolean
@@ -673,43 +629,10 @@ class L1BioENG:
     """
     class with methods to access Tropomi offline L1b engineering products
 
-    Attributes
-    ----------
-    fid : HDF5 file object
-    filename : string
-
-    Methods
-    -------
-    close()
-       Close recources.
-    get_attr(attr_name)
-       Obtain value of an HDF5 file attribute.
-    get_orbit()
-       Returns absolute orbit number.
-    get_processor_version()
-       Returns version of the L01b processor used to generate this product.
-    get_coverage_time()
-       Returns start and end of the measurement coverage time.
-    get_creation_time()
-       Returns datetime when the L1b product was created.
-    get_ref_time()
-       Returns reference start time of measurements.
-    get_delta_time()
-       Returns offset from the reference start time of measurement.
-    get_msmtset()
-       Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos.
-    get_msmtset_db()
-       Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset.
-    get_swir_hk_db(stats=None, fill_as_nan=False)
-       Returns the most important SWIR house keeping parameters.
-
     Notes
     -----
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
-
-    Examples
-    --------
     """
     def __init__(self, l1b_product):
         """
