@@ -1,20 +1,13 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Provides access to the S5P Tropomi CKD (static and dynamic)
-
-ToDo
-----
- - access to UVN CKD, still incomplete
- - identify latest Static CKD product, e.g. using the validity period
-
-Copyright (c) 2018-2022 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 from pathlib import Path, PosixPath
 
 import h5py
@@ -428,7 +421,7 @@ class CKDio():
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
         ckd.attrs["long_name"] = \
-                            f'{channel} absolute irradiance CKD (QVD={qvd})'
+            f'{channel} absolute irradiance CKD (QVD={qvd})'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 

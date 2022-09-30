@@ -1,15 +1,13 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Implement function to obtain path to test-data
-
-Copyright (c) 2016-2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 from os import environ
 from pathlib import Path
 

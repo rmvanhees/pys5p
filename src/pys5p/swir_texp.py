@@ -1,21 +1,15 @@
-"""
-This file is part of pys5p
-
-https://github.com/rmvanhees/pys5p.git
-
-Calculates the exact pixel exposure time of the SWIR measurements
-
-Requires parameters int_delay and int_holt from the instrument_settings
-
-Copyright (c) 2019-2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
-
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
 def swir_exp_time(int_delay: int, int_hold: int) -> float:
-    """
+    """Calculates the correct SWIR exposure time from detector settings.
+
     Parameters
     ----------
     int_delay :  int

@@ -1,3 +1,4 @@
+#
 # This file is part of pys5p
 #
 # https://github.com/rmvanhees/pys5p.git

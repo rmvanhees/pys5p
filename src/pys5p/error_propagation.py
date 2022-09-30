@@ -1,15 +1,13 @@
-"""
-This file is part of pys5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Implement some function for error propagation
-
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 import numpy as np
 
 

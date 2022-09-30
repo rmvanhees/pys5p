@@ -1,15 +1,12 @@
-"""
-This file is part of pyS5p
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Performs unit-tests on class CKDio (xarray version)
-
-Copyright (c) 2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 import argparse
 from pathlib import Path
 
@@ -17,8 +14,7 @@ from pys5p.ckd_io import CKDio
 
 
 def main():
-    """
-    main function
+    """Performs unit-tests on class CKDio (xarray version).
     """
     parser = argparse.ArgumentParser(
         description=f'{Path(__file__).name}: run units-test on class CKDio')
@@ -48,6 +44,7 @@ def main():
             print('-------------------------', meth, '[v2]',
                   '-------------------------')
             print(meth, getattr(ckd, meth)())
+
 
 # - main code --------------------------------------
 if __name__ == '__main__':

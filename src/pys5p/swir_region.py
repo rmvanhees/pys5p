@@ -1,23 +1,22 @@
-"""
-This file is part of pyS5p
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-There are two definitions of the usable area on the SWIR detector:
- - 'illuminated' - detector area illuminated by external sources,
- defined as an rectangular area where the signal is at least 50% of the
- maximum signal. Coordinates: rows [11:228], columns [16:991].
- - 'level2' - a smaller area used in official SWIR level 1B (ir)radiance
- products. Coordinates: rows [12:227], columns [20:980].
-
-Note row 257 of the SWIR detector is neglected
-
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 import numpy as np
+
+# There are two definitions of the usable area on the SWIR detector:
+#  - 'illuminated' - detector area illuminated by external sources,
+#  defined as an rectangular area where the signal is at least 50% of the
+#  maximum signal. Coordinates: rows [11:228], columns [16:991].
+#  - 'level2' - a smaller area used in official SWIR level 1B (ir)radiance
+#  products. Coordinates: rows [12:227], columns [20:980].
+#
+# Note that row 257 of the SWIR detector is neglected.
 
 
 def coords(mode='illuminated', band='78') -> slice:

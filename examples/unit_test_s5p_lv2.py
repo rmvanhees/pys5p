@@ -1,21 +1,19 @@
-"""
-This file is part of pyS5p
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Performs unit-tests on class CKDio (xarray version)
-
-Copyright (c) 2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 import argparse
 from pathlib import Path
 
 import numpy as np
 
 from pys5p.lv2_io import LV2io
+
 
 def read_lv2(l2_product):
     """
@@ -67,8 +65,7 @@ def read_lv2(l2_product):
 
 
 def main():
-    """
-    Main function
+    """Perform unit testing on SWIR Level-2 products.
     """
     # parse command-line parameters
     parser = argparse.ArgumentParser(

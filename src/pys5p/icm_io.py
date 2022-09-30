@@ -1,15 +1,13 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-The class ICMio provides read access to S5p Tropomi ICM_CA_SIR products
-
-Copyright (c) 2017-2021 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version

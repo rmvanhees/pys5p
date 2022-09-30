@@ -1,31 +1,13 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-The class S5Pmsm read HDF5 measurement data including its attributes and
-dimensions. Initialization:
-
-  S5Pmsm attribute | hdf5 dataset           | Numpy array
-  -------------------------------------------------------------------------
-  name             | h5_dset.name           | 'value'
-  value            | h5_dset.value['value'] | np.squeeze(data)
-                   | or h5_dset.value       |
-  error            | h5_dset.value['error'] | None
-                   | or None                |
-  coords           | h5_dset.dims           | [[['time',] 'row',] 'column']
-  units            | attrs['units']         | None
-  long_name        | attrs['long_name']     | ''
-  fillvalue        | h5_dset.fillvalue      | None
-  coverage         | None                   | None
-
-Limited to 3 dimensions
-
-Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 from collections import namedtuple
 from copy import deepcopy
 from pathlib import PurePath
@@ -34,6 +16,24 @@ from h5py import Dataset
 import numpy as np
 
 from moniplot.biweight import biweight
+
+# The class S5Pmsm read HDF5 measurement data including its attributes and
+# dimensions. Initialization:
+#
+#  S5Pmsm attribute | hdf5 dataset           | Numpy array
+#  -------------------------------------------------------------------------
+#  name             | h5_dset.name           | 'value'
+#  value            | h5_dset.value['value'] | np.squeeze(data)
+#                   | or h5_dset.value       |
+#  error            | h5_dset.value['error'] | None
+#                   | or None                |
+#  coords           | h5_dset.dims           | [[['time',] 'row',] 'column']
+#  units            | attrs['units']         | None
+#  long_name        | attrs['long_name']     | ''
+#  fillvalue        | h5_dset.fillvalue      | None
+#  coverage         | None                   | None
+#
+# Limited to 3 dimensions
 
 
 # - local functions --------------------------------

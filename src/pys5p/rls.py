@@ -1,25 +1,25 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-Implementation of the Relative Least-Squares regression (RLS).
-
-The RLS regression is used to find the linear dependence y(x) = c0 + c1 * x
-that best describes the data before and after correction, using absolute
-residuals y_i - (c0 + c1 * x_i) divided by the expected signals c1 * x_i in
-the least-squares sum. Offset c0 has an arbitrary size and should not affect
-the fit result. Weight factors are determined such to effectively spread the
-data points evenly over the whole range of x, making the result less
-sensitive to the actual spacing between the data points.
-
-Copyright (c) 2019-2022 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 import numpy as np
 from numpy import ma
+
+# Implementation of the Relative Least-Squares regression (RLS).
+#
+# The RLS regression is used to find the linear dependence y(x) = c0 + c1 * x
+# that best describes the data before and after correction, using absolute
+# residuals y_i - (c0 + c1 * x_i) divided by the expected signals c1 * x_i in
+# the least-squares sum. Offset c0 has an arbitrary size and should not affect
+# the fit result. Weight factors are determined such to effectively spread the
+# data points evenly over the whole range of x, making the result less
+# sensitive to the actual spacing between the data points.
 
 
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
@@ -100,7 +100,7 @@ def rls_fit(xdata: np.ndarray, ydata) -> tuple:
                                [2 * (xdata[-1] - xdata[-2])]))
         wghts = np.repeat([buff], yy1.shape[0], axis=0)
     wx1 = wghts / xdata
-    wx2 = wghts / xdata ** 2   # is wx1 / xdata faster? 
+    wx2 = wghts / xdata ** 2   # is wx1 / xdata faster?
 
     # calculate the Q elements
     q00 = wghts.sum(axis=1)
@@ -139,8 +139,6 @@ def rls_fit(xdata: np.ndarray, ydata) -> tuple:
 
     return (cc0.reshape(img_shape), cc1.reshape(img_shape),
             sc0.reshape(img_shape), sc1.reshape(img_shape))
-
-
 
 
 def rls_fit0(xdata: np.ndarray, ydata) -> tuple:

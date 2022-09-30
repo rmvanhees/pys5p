@@ -1,17 +1,13 @@
-"""
-This file is part of pyS5p
+#
+# This file is part of pyS5p
+#
+# https://github.com/rmvanhees/pys5p.git
+#
+# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+#   All Rights Reserved
+#
+# License:  BSD-3-Clause
 
-https://github.com/rmvanhees/pys5p.git
-
-The classes L1Bio, L1BioIRR, L1BioRAD and L1BioENG provide read/write access to
-offline level 1b products, resp. calibration, irradiance, radiance
-and engineering.
-
-Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
-   All Rights Reserved
-
-License:  BSD-3-Clause
-"""
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
