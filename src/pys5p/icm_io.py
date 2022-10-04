@@ -25,17 +25,16 @@ class ICMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
+
+    Parameters
+    ----------
+    icm_product :  string
+        full path to in-flight calibration measurement product
+    readwrite   :  boolean
+        open product in read-write mode (default is False)
     """
     def __init__(self, icm_product, readwrite=False):
-        """
-        Initialize access to an ICM product
-
-        Parameters
-        ----------
-        icm_product :  string
-           full path to in-flight calibration measurement product
-        readwrite   :  boolean
-           open product in read-write mode (default is False)
+        """Initialize access to an ICM product.
         """
         if not Path(icm_product).is_file():
             raise FileNotFoundError(f'{icm_product} does not exist')
@@ -69,14 +68,12 @@ class ICMio():
     #    self.close()
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
@@ -87,11 +84,13 @@ class ICMio():
         describes what has been altered by the S/W. To keep any change
         traceable.
 
-        as attributes of this group, we write:
-         - dateStamp ('now')
-         - Git-version of S/W
-         - list of patched datasets
-         - auxiliary datasets used by patch-routines
+        As attributes of this group, we write:
+        
+          - dateStamp ('now')
+          - Git-version of S/W
+          - list of patched datasets
+          - auxiliary datasets used by patch-routines
+
         """
         if self.fid is None:
             return
@@ -119,8 +118,7 @@ class ICMio():
 
     # ---------- RETURN VERSION of the S/W ----------
     def find(self, msm_class) -> list:
-        """
-        find a measurement as <processing-class name>
+        """Find a measurement as <processing-class name>.
 
         Parameters
         ----------
@@ -129,7 +127,7 @@ class ICMio():
 
         Returns
         -------
-        out  :  list of strings
+        list of strings
            String with msm_type as used by ICMio.select
         """
         res = []
@@ -146,8 +144,7 @@ class ICMio():
 
     # -------------------------
     def select(self, msm_type: str, msm_path=None) -> str:
-        """
-        Select a measurement as <processing class>_<ic_id>
+        """Select a measurement as <processing class>_<ic_id>.
 
         Parameters
         ----------
@@ -200,8 +197,7 @@ class ICMio():
     # ---------- Functions that work before MSM selection ----------
     @property
     def orbit(self) -> int:
-        """
-        Returns reference orbit number
+        """Returns reference orbit number.
         """
         if 'reference_orbit' in self.fid.attrs:
             return int(self.fid.attrs['reference_orbit'])
@@ -210,8 +206,7 @@ class ICMio():
 
     @property
     def processor_version(self) -> str:
-        """
-        Returns version of the L01b processor
+        """Returns version of the L01b processor.
         """
         if 'processor_version' not in self.fid.attrs:
             return None
@@ -225,8 +220,7 @@ class ICMio():
 
     @property
     def coverage_time(self) -> tuple:
-        """
-        Returns start and end of the measurement coverage time
+        """Returns start and end of the measurement coverage time.
         """
         if 'time_coverage_start' not in self.fid.attrs \
            or 'time_coverage_end' not in self.fid.attrs:
@@ -246,16 +240,14 @@ class ICMio():
 
     @property
     def creation_time(self) -> str:
-        """
-        Returns version of the L01b processor
+        """Returns version of the L01b processor.
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
 
     def get_attr(self, attr_name):
-        """
-        Obtain value of an HDF5 file attribute
+        """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
@@ -273,8 +265,7 @@ class ICMio():
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self, band=None) -> datetime:
-        """
-        Returns reference start time of measurements
+        """Returns reference start time of measurements
 
         Parameters
         ----------
@@ -323,8 +314,7 @@ class ICMio():
         return ref_time
 
     def get_delta_time(self, band=None):
-        """
-        Returns offset from the reference start time of measurement
+        """Returns offset from the reference start time of measurement.
 
         Parameters
         ----------
@@ -379,8 +369,7 @@ class ICMio():
         return res
 
     def get_instrument_settings(self, band=None) -> np.ndarray:
-        """
-        Returns instrument settings of measurement
+        """Returns instrument settings of measurement.
 
         Parameters
         ----------
@@ -444,9 +433,10 @@ class ICMio():
         return res
 
     def get_exposure_time(self, band=None) -> list:
-        """
-        Returns pixel exposure time of the measurements, which is calculated
-        from the parameters 'int_delay' and 'int_hold' for SWIR.
+        """Returns pixel exposure time of the measurements.
+
+        The exposure time is calculated from the parameters 'int_delay' and
+        'int_hold' for SWIR.
 
         Parameters
         ----------
@@ -476,8 +466,7 @@ class ICMio():
         return res
 
     def get_housekeeping_data(self, band=None):
-        """
-        Returns housekeeping data of measurements
+        """Returns housekeeping data of measurements.
 
         Parameters
         ----------
@@ -533,8 +522,13 @@ class ICMio():
 
     # -------------------------
     def get_msmt_keys(self, band=None):
-        """
-        Read msmt_keys from the analysis groups
+        """Read msmt_keys from an analysis groups.
+
+        The msmt_keys are available for the following `analysis`:
+
+           * [ANALOG_OFFSET_SWIR]: analog_offset_swir_group_keys
+           * [LONG_TERM_SWIR]: long_term_swir_group_keys
+           * [NOISE]: noise_msmt_keys
 
         Parameters
         ----------
@@ -544,10 +538,8 @@ class ICMio():
 
         Returns
         -------
-         [ANALOG_OFFSET_SWIR] analog_offset_swir_group_keys
-         [LONG_TERM_SWIR]     long_term_swir_group_keys
-         [NOISE]              noise_msmt_keys
-         else                 None
+        numpy.ndarray
+            msmt_keys from an analysis groups
         """
         if not self.__msm_path:
             return None
@@ -572,8 +564,7 @@ class ICMio():
 
     # -------------------------
     def get_msm_attr(self, msm_dset, attr_name, band=None):
-        """
-        Returns attribute of measurement dataset "msm_dset"
+        """Returns attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -587,7 +578,7 @@ class ICMio():
 
         Returns
         -------
-        out   :   scalar or numpy array
+        numpy.ndarray
            value of attribute "attr_name"
         """
         if not self.__msm_path:
@@ -615,8 +606,7 @@ class ICMio():
 
     def get_geo_data(self, band=None,
                      geo_dset='satellite_latitude,satellite_longitude'):
-        """
-        Returns data of selected datasets from the GEODATA group
+        """Returns data of selected datasets from the GEODATA group.
 
         Parameters
         ----------
@@ -629,9 +619,9 @@ class ICMio():
 
         Returns
         -------
-        out   :   dictionary
-           dictionary data of selected datasets from the GEODATA group
-           names of dictionary are taken from parameter geo_dset
+        dict
+           dictionary with data of a selected datasets from the GEODATA group;
+           the keys of dictionary have the same names as the datasets.
         """
         if not self.__msm_path:
             return None
@@ -678,8 +668,7 @@ class ICMio():
 
     def get_msm_data(self, msm_dset, band='78', *, read_raw=False,
                      columns=None, fill_as_nan=True):
-        """
-        Read datasets from a measurement selected by class-method "select"
+        """Read datasets from a measurement selected by class-method "select"
 
         Parameters
         ----------
@@ -700,8 +689,8 @@ class ICMio():
 
         Returns
         -------
-        out  :  array
-           Data of measurement dataset "msm_dset"
+        numpy.ndarray
+           data of measurement dataset "msm_dset"
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -796,8 +785,7 @@ class ICMio():
 
     def read_direct_msm(self, msm_dset, dest_sel=None,
                         dest_dtype=None, fill_as_nan=False):
-        """
-        The faster implementation of get_msm_data()
+        """The faster implementation of get_msm_data().
 
         Parameters
         ----------
@@ -812,8 +800,8 @@ class ICMio():
 
         Returns
         -------
-        out  :  list
-           list with data of all available bands
+        list
+           data of all available bands
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -850,8 +838,7 @@ class ICMio():
 
     # -------------------------
     def set_housekeeping_data(self, data, band=None) -> None:
-        """
-        Returns housekeeping data of measurements
+        """Returns housekeeping data of measurements.
 
         Parameters
         ----------
@@ -884,8 +871,7 @@ class ICMio():
             self.__patched_msm.append(str(ds_path))
 
     def set_msm_data(self, msm_dset, data, band='78') -> None:
-        """
-        Alter dataset from a measurement selected using function "select"
+        """Alter dataset from a measurement selected using function "select"
 
         Parameters
         ----------
@@ -896,7 +882,6 @@ class ICMio():
             Default is '78' which combines band 7/8 to SWIR detector layout
         data       :  array-like
             data to be written with same dimensions as dataset "msm_dset"
-
         """
         fillvalue = float.fromhex('0x1.ep+122')
 

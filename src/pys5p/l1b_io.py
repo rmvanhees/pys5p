@@ -58,6 +58,15 @@ class L1Bio:
 
     The L1b calibration products are available for UVN (band 1-6)
     and SWIR (band 7-8).
+
+    Parameters
+    ----------
+    l1b_product : str
+       name of the Tropomi L1B product
+    readwrite : bool, default=False
+       open file in read/write mode
+    verbose : bool, default=False
+       be verbose
     """
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
                    '/BAND%_RADIANCE')
@@ -65,8 +74,7 @@ class L1Bio:
     msm_type = None
 
     def __init__(self, l1b_product, readwrite=False, verbose=False):
-        """
-        Initialize access to a Tropomi offline L1b product
+        """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
         if not Path(l1b_product).is_file():
@@ -95,21 +103,18 @@ class L1Bio:
                 yield attr
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """
-        Close resources.
+        """Close resources.
 
         Notes
         -----
@@ -118,7 +123,7 @@ class L1Bio:
         traceable.
 
         In case the L1b product is altered, the attributes listed below are
-        added to the group: "/METADATA/SRON_METADATA":
+        added to the group: ``/METADATA/SRON_METADATA``:
 
         - dateStamp ('now')
         - Git-version of S/W
@@ -151,8 +156,7 @@ class L1Bio:
 
     # ---------- PUBLIC FUNCTIONS ----------
     def get_attr(self, attr_name):
-        """
-        Obtain value of an HDF5 file attribute
+        """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
@@ -169,8 +173,7 @@ class L1Bio:
         return attr
 
     def get_orbit(self):
-        """
-        Returns absolute orbit number
+        """Returns absolute orbit number.
         """
         res = self.get_attr('orbit')
         if res is None:
@@ -179,8 +182,7 @@ class L1Bio:
         return int(res)
 
     def get_processor_version(self):
-        """
-        Returns version of the L01b processor
+        """Returns version of the L01b processor.
         """
         attr = self.get_attr('processor_version')
         if attr is None:
@@ -190,8 +192,7 @@ class L1Bio:
         return attr.decode('ascii')
 
     def get_coverage_time(self):
-        """
-        Returns start and end of the measurement coverage time
+        """Returns start and end of the measurement coverage time.
         """
         attr_start = self.get_attr('time_coverage_start')
         if attr_start is None:
@@ -206,8 +207,7 @@ class L1Bio:
                 attr_end.decode('ascii'))
 
     def get_creation_time(self):
-        """
-        Returns datetime when the L1b product was created
+        """Returns datetime when the L1b product was created.
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
@@ -221,8 +221,7 @@ class L1Bio:
         return None
 
     def select(self, msm_type=None):
-        """
-        Select a calibration measurement as <processing class>_<ic_id>
+        """Select a calibration measurement as <processing class>_<ic_id>.
 
         Parameters
         ----------
@@ -231,7 +230,7 @@ class L1Bio:
 
         Returns
         -------
-        out  :   string
+        str
            String with spectral bands found in product
 
         Updated object attributes:
@@ -259,9 +258,8 @@ class L1Bio:
         return self.bands
 
     def sequence(self, band=None):
-        """
-        Returns sequence number for each unique measurement based on ICID
-          and delta_time
+        """Returns sequence number for each unique measurement based on ICID
+        and delta_time.
 
         Parameters
         ----------
@@ -271,7 +269,7 @@ class L1Bio:
 
         Returns
         -------
-        out  :  array-like
+        numpy.ndarray
           Numpy rec-array with sequence number, ICID and delta-time
         """
         if self.__msm_path is None:
@@ -317,8 +315,7 @@ class L1Bio:
         return res
 
     def get_ref_time(self, band=None):
-        """
-        Returns reference start time of measurements
+        """Returns reference start time of measurements.
 
         Parameters
         ----------
@@ -339,8 +336,7 @@ class L1Bio:
             + timedelta(seconds=int(grp['time'][0]))
 
     def get_delta_time(self, band=None):
-        """
-        Returns offset from the reference start time of measurement
+        """Returns offset from the reference start time of measurement.
 
         Parameters
         ----------
@@ -360,8 +356,7 @@ class L1Bio:
         return grp['delta_time'][0, :].astype(int)
 
     def get_instrument_settings(self, band=None):
-        """
-        Returns instrument settings of measurement
+        """Returns instrument settings of measurement.
 
         Parameters
         ----------
@@ -392,9 +387,10 @@ class L1Bio:
         return instr
 
     def get_exposure_time(self, band=None):
-        """
-        Returns pixel exposure time of the measurements, which is calculated
-        from the parameters 'int_delay' and 'int_hold' for SWIR.
+        """Returns pixel exposure time of the measurements.
+
+        The exposure time is calculated from the parameters `int_delay` and
+        `int_hold` for SWIR.
 
         Parameters
         ----------
@@ -415,8 +411,7 @@ class L1Bio:
                 for instr in instr_arr]
 
     def get_housekeeping_data(self, band=None):
-        """
-        Returns housekeeping data of measurements
+        """Returns housekeeping data of measurements.
 
         Parameters
         ----------
@@ -436,8 +431,7 @@ class L1Bio:
         return np.squeeze(grp['housekeeping_data'])
 
     def get_geo_data(self, geo_dset=None, band=None):
-        """
-        Returns data of selected datasets from the GEODATA group
+        """Returns data of selected datasets from the GEODATA group.
 
         Parameters
         ----------
@@ -450,8 +444,8 @@ class L1Bio:
 
         Returns
         -------
-        out   :   dict of numpy
-           Compound array with data of selected datasets from the GEODATA group
+        dict
+           data of selected datasets from the GEODATA group
         """
         if self.__msm_path is None:
             return None
@@ -472,8 +466,7 @@ class L1Bio:
         return res
 
     def get_msm_attr(self, msm_dset, attr_name, band=None):
-        """
-        Returns value attribute of measurement dataset "msm_dset"
+        """Returns value attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -487,7 +480,7 @@ class L1Bio:
 
         Returns
         -------
-        out   :   scalar or numpy array
+        scalar or numpy.ndarray 
             Value of attribute "attr_name"
         """
         if self.__msm_path is None:
@@ -509,8 +502,7 @@ class L1Bio:
 
     def get_msm_data(self, msm_dset, band=None,
                      fill_as_nan=False, msm_to_row=None):
-        """
-        Reads data from dataset "msm_dset"
+        """Reads data from dataset "msm_dset".
 
         Parameters
         ----------
@@ -533,7 +525,8 @@ class L1Bio:
 
         Returns
         -------
-        out   :  values read from or written to dataset "msm_dset"
+        numpy.ndarray
+            values read from or written to dataset "msm_dset"
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -572,8 +565,7 @@ class L1Bio:
         return np.concatenate(data, axis=data[0].ndim-1)
 
     def set_msm_data(self, msm_dset, new_data):
-        """
-        Replace data of dataset "msm_dset" with new_data
+        """Replace data of dataset "msm_dset" with new_data.
 
         Parameters
         ----------
@@ -606,8 +598,7 @@ class L1Bio:
 
 # --------------------------------------------------
 class L1BioIRR(L1Bio):
-    """
-    class with methods to access Tropomi L1B irradiance products
+    """Class with methods to access Tropomi L1B irradiance products.
     """
     band_groups = ('/BAND%_IRRADIANCE',)
     geo_dset = 'earth_sun_distance'
@@ -616,8 +607,7 @@ class L1BioIRR(L1Bio):
 
 # --------------------------------------------------
 class L1BioRAD(L1Bio):
-    """
-    class with function to access Tropomi L1B radiance products
+    """Class with function to access Tropomi L1B radiance products.
     """
     band_groups = ('/BAND%_RADIANCE',)
     geo_dset = 'latitude,longitude'
@@ -626,17 +616,20 @@ class L1BioRAD(L1Bio):
 
 # --------------------------------------------------
 class L1BioENG:
-    """
-    class with methods to access Tropomi offline L1b engineering products
+    """Class with methods to access Tropomi offline L1b engineering products.
 
+    Parameters
+    ----------
+    l1b_product : str
+       name of the L1b engineering product
+    
     Notes
     -----
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
     """
-    def __init__(self, l1b_product):
-        """
-        Initialize access to a Tropomi offline L1b product
+    def __init__(self, l1b_product: str):
+        """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
         if not Path(l1b_product).is_file():
@@ -656,21 +649,18 @@ class L1BioENG:
                 yield attr
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """
-        close access to product
+        """Close access to product.
         """
         if self.fid is None:
             return
@@ -680,8 +670,7 @@ class L1BioENG:
 
     # ---------- PUBLIC FUNCTIONS ----------
     def get_attr(self, attr_name):
-        """
-        Obtain value of an HDF5 file attribute
+        """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
@@ -698,8 +687,7 @@ class L1BioENG:
         return attr
 
     def get_orbit(self):
-        """
-        Returns absolute orbit number
+        """Returns absolute orbit number.
         """
         res = self.get_attr('orbit')
         if res is None:
@@ -708,8 +696,7 @@ class L1BioENG:
         return int(res)
 
     def get_processor_version(self):
-        """
-        Returns version of the L01b processor
+        """Returns version of the L01b processor
         """
         attr = self.get_attr('processor_version')
         if attr is None:
@@ -719,8 +706,7 @@ class L1BioENG:
         return attr.decode('ascii')
 
     def get_coverage_time(self):
-        """
-        Returns start and end of the measurement coverage time
+        """Returns start and end of the measurement coverage time.
         """
         attr_start = self.get_attr('time_coverage_start')
         if attr_start is None:
@@ -735,8 +721,7 @@ class L1BioENG:
                 attr_end.decode('ascii'))
 
     def get_creation_time(self):
-        """
-        Returns datetime when the L1b product was created
+        """Returns datetime when the L1b product was created
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
@@ -750,26 +735,22 @@ class L1BioENG:
         return None
 
     def get_ref_time(self):
-        """
-        Returns reference start time of measurements
+        """Returns reference start time of measurements.
         """
         return self.fid['reference_time'][0].astype(int)
 
     def get_delta_time(self):
-        """
-        Returns offset from the reference start time of measurement
+        """Returns offset from the reference start time of measurement.
         """
         return self.fid['/MSMTSET/msmtset']['delta_time'][:].astype(int)
 
     def get_msmtset(self):
-        """
-        Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos
+        """Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos.
         """
         return self.fid['/SATELLITE_INFO/satellite_pos'][:]
 
     def get_msmtset_db(self):
-        """
-        Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset
+        """Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset.
 
         Notes
         -----
@@ -819,8 +800,7 @@ class L1BioENG:
         return msmt
 
     def get_swir_hk_db(self, stats=None, fill_as_nan=False):
-        """
-        Returns the most important SWIR house keeping parameters
+        """Returns the most important SWIR house keeping parameters.
 
         Parameters
         ----------

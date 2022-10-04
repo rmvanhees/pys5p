@@ -30,8 +30,16 @@ _MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'
 
 # - class definition -------------------------------
 class L1Bpatch():
-    """
-    Definition off class L1Bpatch
+    """Definition off class L1Bpatch.
+
+    Parameters
+    ----------
+    l1b_product : str
+       name of the L1B product
+    data_dir : str, default='/tmp'
+       output directory for the patched L1B product
+    ckd_dir : str, default='/nfs/Tropomi/share/ckd'
+       location of the Tropomi CKD
     """
     def __init__(self, l1b_product: str, data_dir='/tmp',
                  ckd_dir='/nfs/Tropomi/share/ckd') -> None:
@@ -113,11 +121,12 @@ class L1Bpatch():
         Patched dataset: 'quality_level' and 'spectral_channel_quality'
 
         Requires (naive approach):
-        * read original dataset 'spectral_channel_quality'
-        * read pixel quality ckd
-        * adjust second pixel of each byte of spectral_channel_quality
-        * quality_level = int(100 * dpqm)
-        * write updated datasets to patched product
+        
+           * read original dataset 'spectral_channel_quality'
+           * read pixel quality ckd
+           * adjust second pixel of each byte of spectral_channel_quality
+           * quality_level = int(100 * dpqm)
+           * write updated datasets to patched product
 
         Parameters
         ----------
@@ -169,16 +178,17 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires (naive approach):
-        * reverse applied radiance calibration
-        * reverse applied stray-light correction
-        * reverse applied PRNU correction
-        * reverse applied dark-flux correction
-        * reverse applied offset correction
-        * apply (alternative) offset correction
-        * apply (alternative) dark-flux correction
-        * apply (alternative) PRNU correction
-        * apply (alternative) stray-light correction
-        * apply (alternative) radiance calibration
+        
+           * reverse applied radiance calibration
+           * reverse applied stray-light correction
+           * reverse applied PRNU correction
+           * reverse applied dark-flux correction
+           * reverse applied offset correction
+           * apply (alternative) offset correction
+           * apply (alternative) dark-flux correction
+           * apply (alternative) PRNU correction
+           * apply (alternative) stray-light correction
+           * apply (alternative) radiance calibration
 
         Parameters
         ----------
@@ -214,14 +224,15 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires (naive approach):
-        * reverse applied radiance calibration
-        * reverse applied stray-light correction
-        * reverse applied PRNU correction
-        * reverse applied dark-flux correction
-        * apply (alternative) dark-flux correction
-        * apply (alternative) PRNU correction
-        * apply (alternative) stray-light correction
-        * apply (alternative) radiance calibration
+
+           * reverse applied radiance calibration
+           * reverse applied stray-light correction
+           * reverse applied PRNU correction
+           * reverse applied dark-flux correction
+           * apply (alternative) dark-flux correction
+           * apply (alternative) PRNU correction
+           * apply (alternative) stray-light correction
+           * apply (alternative) radiance calibration
 
         Parameters
         ----------
@@ -257,12 +268,13 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires (naive approach):
-        * reverse applied radiance calibration
-        * reverse applied stray-light correction
-        * reverse applied PRNU correction
-        * apply (alternative) PRNU correction
-        * apply (alternative) stray-light correction
-        * apply (alternative) radiance calibration
+
+           * reverse applied radiance calibration
+           * reverse applied stray-light correction
+           * reverse applied PRNU correction
+           * apply (alternative) PRNU correction
+           * apply (alternative) stray-light correction
+           * apply (alternative) radiance calibration
 
         Alternative: neglect impact stray-light, but apply patch to correct for
         spectral features.
@@ -306,8 +318,9 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires:
-        * reverse applied radiance calibration
-        * apply alternative radiance calibration
+
+           * reverse applied radiance calibration
+           * apply alternative radiance calibration
 
         Parameters
         ----------
@@ -343,8 +356,9 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires:
-        * reverse applied irradiance calibration
-        * apply alternative irradiance calibration
+
+           * reverse applied irradiance calibration
+           * apply alternative irradiance calibration
 
         Parameters
         ----------

@@ -11,16 +11,17 @@
 import numpy as np
 from numpy import ma
 
-# Implementation of the Relative Least-Squares regression (RLS).
-#
-# The RLS regression is used to find the linear dependence y(x) = c0 + c1 * x
-# that best describes the data before and after correction, using absolute
-# residuals y_i - (c0 + c1 * x_i) divided by the expected signals c1 * x_i in
-# the least-squares sum. Offset c0 has an arbitrary size and should not affect
-# the fit result. Weight factors are determined such to effectively spread the
-# data points evenly over the whole range of x, making the result less
-# sensitive to the actual spacing between the data points.
+"""
+Implementation of the Relative Least-Squares regression (RLS).
 
+The RLS regression is used to find the linear dependence y(x) = c0 + c1 * x
+that best describes the data before and after correction, using absolute
+residuals y_i - (c0 + c1 * x_i) divided by the expected signals c1 * x_i in
+the least-squares sum. Offset c0 has an arbitrary size and should not affect
+the fit result. Weight factors are determined such to effectively spread the
+data points evenly over the whole range of x, making the result less
+sensitive to the actual spacing between the data points.
+"""
 
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     """
@@ -62,14 +63,6 @@ def rls_fit(xdata: np.ndarray, ydata) -> tuple:
     -------
     c0, c1, std_c0, std_c1 : tuple of ndarrays
        coefficients of the linear dependence and their standard deviations
-
-    Raises
-    ------
-    RuntimeError
-       if M < 2: too few points for a fit
-       if M_xx != M_yy: number of samples not equal for xdata, ydata
-       if ydata.shape[:-1] != samples_not_saturated.shape:
-          arrays ydata and mask do not have equal shapes
 
     Notes
     -----
@@ -157,14 +150,6 @@ def rls_fit0(xdata: np.ndarray, ydata) -> tuple:
     -------
     c1, std_c1 : tuple of ndarrays
        coefficients of the linear dependence and their standard deviations
-
-    Raises
-    ------
-    RuntimeError
-       if M < 2: too few points for a fit
-       if M_xx != M_yy: number of samples not equal for xdata, ydata
-       if ydata.shape[:-1] != samples_not_saturated.shape:
-          arrays ydata and mask do not have equal shapes
 
     Notes
     -----

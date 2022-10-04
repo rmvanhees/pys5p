@@ -30,6 +30,17 @@ class CKDio():
     """
     Read Tropomi CKD from the Static CKD product or from dynamic CKD products
 
+    Parameters
+    ----------
+    ckd_dir :  str, optional
+        Directory where the CKD files are stored,
+        default='/nfs/Tropomi/share/ckd'
+    ckd_version :  int, optional
+        Version of the CKD, default=1
+    ckd_file : str, optional
+        Name of the CKD file, default=None then the CKD file is searched
+        in the directory ckd_dir with ckd_version in the glob-string
+
     Notes
     -----
     Not all CKD are defined or derived for all bands.
@@ -65,19 +76,7 @@ class CKDio():
 
     """
     def __init__(self, ckd_dir=None, ckd_version=1, ckd_file=None):
-        """
-        Initialize access to a Tropomi Static CKD product
-
-        Parameters
-        ----------
-        ckd_dir :  str, optional
-           Directory where the CKD files are stored,
-           default='/nfs/Tropomi/share/ckd'
-        ckd_version :  int, optional
-           Version of the CKD, default=1
-        ckd_file : str, optional
-           Name of the CKD file, default=None then the CKD file is searched
-           in the directory ckd_dir with ckd_version in the glob-string
+        """Create CKDio object.
         """
         if ckd_dir is None:
             ckd_dir = '/nfs/Tropomi/share/ckd'
@@ -116,28 +115,24 @@ class CKDio():
         self.fid = h5py.File(self.ckd_file, "r")
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self) -> None:
-        """
-        Make sure that we close all resources
+        """Make sure that we close all resources.
         """
         if self.fid is not None:
             self.fid.close()
 
     def creation_time(self) -> str:
-        """
-        Returns datetime when the L1b product was created
+        """Returns datetime when the L1b product was created.
         """
         if self.ckd_version == 2:
             attr = self.fid['METADATA'].attrs['production_datetime']
@@ -151,8 +146,7 @@ class CKDio():
         return attr
 
     def creator_version(self) -> str:
-        """
-        Returns version of Tropomi L01B processor used to generate this procuct
+        """Returns version of Tropomi L01B processor.
         """
         group = PosixPath('METADATA', 'earth_explorer_header', 'fixed_header')
         attr = self.fid[str(group)].attrs['File_Version']
@@ -164,14 +158,12 @@ class CKDio():
 
     @staticmethod
     def __get_spectral_channel(bands: str):
-        """
-        Check bands is valid: single band or belong to one channel
+        """Check bands is valid: single band or belong to one channel
 
         Parameters
         ----------
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-           default: '78'
         """
         band2channel = ['UNKNOWN', 'UV', 'UV', 'VIS', 'VIS',
                         'NIR', 'NIR', 'SWIR', 'SWIR']
@@ -186,29 +178,31 @@ class CKDio():
         return band2channel[int(bands[0])]
 
     def get_param(self, ds_name: str, band='7'):
-        """
-        Returns value(s) of a CKD parameter from the Static CKD product.
+        """Returns value(s) of a CKD parameter from the Static CKD product.
 
         Parameters
         ----------
-        ds_name  :  string
+        ds_name  :  str
            Name of the HDF5 dataset, default='pixel_full_well'
-        band     : string
-           Band identifier '1', '2', ..., '8', default='7'
+        band     : str, default='7'
+           Band identifier '1', '2', ..., '8'
 
         Returns
         -------
         numpy.ndarray or scalar
+           CKD parameter value
 
         Notes
         -----
         Datasets of size=1 are return as scalar
 
         Handy function for scalar HDF5 datasets, such as:
+
          - dc_reference_temp
          - dpqf_threshold
          - pixel_full_well
          - pixel_fw_flag_thresh
+
         """
         if not 1 <= int(band) <= 8:
             raise ValueError('band must be between and 1 and 8')
@@ -220,8 +214,7 @@ class CKDio():
 
     # ---------- band or channel CKD's ----------
     def dn2v_factors(self):
-        """
-        Returns digital number to Volt CKD, SWIR only
+        """Returns digital number to Volt CKD, SWIR only.
 
         Notes
         -----
@@ -232,8 +225,7 @@ class CKDio():
              self.fid['/BAND8/dn2v_factor_swir'][2:]))
 
     def v2c_factors(self):
-        """
-        Returns Voltage to Charge CKD, SWIR only
+        """Returns Voltage to Charge CKD, SWIR only.
 
         Notes
         -----
@@ -246,8 +238,7 @@ class CKDio():
 
     # ---------- spectral-channel CKD's ----------
     def __rd_dataset(self, dset_name: str, bands: str):
-        """
-        General function to read non-compound dataset into xarray::Dataset
+        """General function to read non-compound dataset into xarray::Dataset.
 
         Parameters
         ----------
@@ -255,7 +246,11 @@ class CKDio():
            name (including path) of the dataset as '/BAND{}/<name>'
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
-           default: '78'
+
+        Returns
+        -------
+        xarray.Dataset
+           parameters of CKD with name 'dset_name'
         """
         ckd_val = None
         for band in bands:
@@ -292,8 +287,7 @@ class CKDio():
         return xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
 
     def __rd_datapoints(self, dset_name: str, bands: str):
-        """
-        General function to read datapoint dataset into xarray::Dataset
+        """General function to read datapoint dataset into xarray::Dataset
 
         Parameters
         ----------
@@ -302,6 +296,11 @@ class CKDio():
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
            default: '78'
+
+        Returns
+        -------
+        xarray.Dataset
+           parameters (value and uncertainty) of CKD with name 'dset_name'
         """
         ckd_val = None
         ckd_err = None
@@ -353,8 +352,7 @@ class CKDio():
 
     # ---------- static CKD's ----------
     def absirr(self, qvd=1, bands='78'):
-        """
-        Returns absolute irradiance responsivity
+        """Returns absolute irradiance responsivity.
 
         Parameters
         ----------
@@ -378,8 +376,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def absrad(self, bands='78'):
-        """
-        Returns absolute radiance responsivity
+        """Returns absolute radiance responsivity.
 
         Parameters
         ----------
@@ -400,8 +397,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def memory(self):
-        """
-        Returns memory CKD, SWIR only
+        """Returns memory CKD, SWIR only.
         """
         column = None
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
@@ -430,8 +426,7 @@ class CKDio():
         return ckd
 
     def noise(self, bands='78'):
-        """
-        Returns readout-noise CKD, SWIR only
+        """Returns readout-noise CKD, SWIR only.
 
         Parameters
         ----------
@@ -445,8 +440,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def prnu(self, bands='78'):
-        """
-        Returns Pixel Response Non-Uniformity (PRNU)
+        """Returns Pixel Response Non-Uniformity (PRNU).
 
         Parameters
         ----------
@@ -466,8 +460,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def relirr(self, qvd=1, bands='78'):
-        """
-        Returns relative irradiance correction
+        """Returns relative irradiance correction.
 
         Parameters
         ----------
@@ -478,12 +471,15 @@ class CKDio():
 
         Returns
         -------
-        dictionary with keys:
-         - band           :    Tropomi spectral band ID
-         - mapping_cols   :    coarse irregular mapping of the columns
-         - mapping_rows   :    coarse irregular mapping of the rows
-         - cheb_coefs     :    chebyshev parameters for elevation and azimuth
-                               for pixels on a coarse irregular grid
+        dict
+           CKD for relative irradiance correction as dictionaries with keys:
+
+             - band: Tropomi spectral band ID
+             - mapping_cols: coarse irregular mapping of the columns
+             - mapping_rows: coarse irregular mapping of the rows
+             - cheb_coefs: Chebyshev parameters for elevation and azimuth \
+                  for pixels on a coarse irregular grid
+
         """
         try:
             _ = self.__get_spectral_channel(bands)
@@ -511,8 +507,7 @@ class CKDio():
         return res
 
     def saa(self) -> dict:
-        """
-        Returns definition of the SAA region
+        """Returns definition of the SAA region.
         """
         saa_region = {}
         saa_region['lat'] = self.fid['saa_latitude'][:]
@@ -521,8 +516,7 @@ class CKDio():
         return saa_region
 
     def wavelength(self, bands='78'):
-        """
-        Returns wavelength CKD
+        """Returns wavelength CKD.
 
         Parameters
         ----------
@@ -531,7 +525,7 @@ class CKDio():
 
         Notes
         -----
-        * The wavelength CKD has no error attached to it.
+        The wavelength CKD has no error attached to it.
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -548,8 +542,7 @@ class CKDio():
 
     # ---------- static or dynamic CKD's ----------
     def darkflux(self, bands='78'):
-        """
-        Returns dark-flux CKD, SWIR only
+        """Returns dark-flux CKD, SWIR only.
 
         Parameters
         ----------
@@ -563,8 +556,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def offset(self, bands='78'):
-        """
-        Returns offset CKD, SWIR only
+        """Returns offset CKD, SWIR only.
 
         Parameters
         ----------
@@ -578,8 +570,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def pixel_quality(self, bands='78'):
-        """
-        Returns detector pixel-quality mask (float [0, 1]), SWIR only
+        """Returns detector pixel-quality mask (float [0, 1]), SWIR only.
 
         Parameters
         ----------
@@ -593,8 +584,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def dpqf(self, threshold=None, bands='78'):
-        """
-        Returns detector pixel-quality flags (boolean), SWIR only
+        """Returns detector pixel-quality flags (boolean), SWIR only.
 
         Parameters
         ----------
@@ -636,8 +626,7 @@ class CKDio():
         return dpqf
 
     def saturation(self):
-        """
-        Returns pixel-saturation values (pre-offset), SWIR only
+        """Returns pixel-saturation values (pre-offset), SWIR only.
         """
         ckd_val = None
         dset_name = '/BAND{}/saturation_preoffset'

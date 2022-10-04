@@ -30,6 +30,11 @@ class LV2io():
     This class should offer all the necessary functionality to read Tropomi
     S5P_OFFL_L2 products
 
+    Parameters
+    ----------
+    lv2_product :  string
+        full path to S5P Tropomi level 2 product
+
     Notes
     -----
     The Python h5py module can read the operational netCDF4 products without
@@ -39,13 +44,7 @@ class LV2io():
     used to read the science products.
     """
     def __init__(self, lv2_product: str):
-        """
-        Initialize access to an S5P_L2 product
-
-        Parameters
-        ----------
-        lv2_product :  string
-           full path to S5P Tropomi level 2 product
+        """Initialize access to an S5P_L2 product.
         """
         if not Path(lv2_product).is_file():
             raise FileNotFoundError(f'{lv2_product} does not exist')
@@ -78,21 +77,18 @@ class LV2io():
                 yield attr
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """
-        Close the product.
+        """Close the product.
         """
         if self.fid is not None:
             self.fid.close()
@@ -100,8 +96,7 @@ class LV2io():
     # ----- Class properties --------------------
     @property
     def science_product(self) -> bool:
-        """
-        Returns if the product is a science product
+        """Returns if the product is a science product.
         """
         science_inst = b'SRON Netherlands Institute for Space Research'
 
@@ -115,8 +110,7 @@ class LV2io():
 
     @property
     def orbit(self) -> int:
-        """
-        Returns reference orbit number
+        """Returns reference orbit number.
         """
         if self.science_product:
             return int(self.__nc_attr('orbit', 'l1b_file'))
@@ -125,8 +119,7 @@ class LV2io():
 
     @property
     def algorithm_version(self) -> str:
-        """
-        Returns version of the level 2 algorithm
+        """Returns version of the level 2 algorithm.
         """
         res = self.get_attr('algorithm_version')
 
@@ -134,8 +127,7 @@ class LV2io():
 
     @property
     def processor_version(self) -> str:
-        """
-        Returns version of the level 2 processor
+        """Returns version of the level 2 processor.
         """
         res = self.get_attr('processor_version')
 
@@ -143,8 +135,7 @@ class LV2io():
 
     @property
     def product_version(self) -> str:
-        """
-        Returns version of the level 2 product
+        """Returns version of the level 2 product.
         """
         res = self.get_attr('product_version')
 
@@ -152,23 +143,20 @@ class LV2io():
 
     @property
     def coverage_time(self) -> tuple:
-        """
-        Returns start and end of the measurement coverage time
+        """Returns start and end of the measurement coverage time.
         """
         return (self.get_attr('time_coverage_start'),
                 self.get_attr('time_coverage_end'))
 
     @property
     def creation_time(self) -> str:
-        """
-        Returns creation date/time of the level 2 product
+        """Returns creation date/time of the level 2 product.
         """
         return self.get_attr('date_created')
 
     # ----- Attributes --------------------
     def __h5_attr(self, attr_name, ds_name):
-        """
-        read attributes from operational products using hdf5
+        """Read attributes from operational products using hdf5.
         """
         if ds_name is not None:
             dset = self.fid[f'/PRODUCT/{ds_name}']
@@ -188,8 +176,7 @@ class LV2io():
         return attr
 
     def __nc_attr(self, attr_name, ds_name):
-        """
-        read attributes from science products using netCDF4
+        """Read attributes from science products using netCDF4.
         """
         if ds_name is not None:
             for grp_name in ['target_product', 'side_product', 'instrument']:
@@ -211,8 +198,7 @@ class LV2io():
         return self.fid.getncattr(attr_name)
 
     def get_attr(self, attr_name, ds_name=None):
-        """
-        Obtain value of an HDF5 file attribute or dataset attribute
+        """Obtain value of an HDF5 file attribute or dataset attribute.
 
         Parameters
         ----------
@@ -229,8 +215,7 @@ class LV2io():
     # ----- Time information ---------------
     @property
     def ref_time(self) -> datetime:
-        """
-        Returns reference start time of measurements
+        """Returns reference start time of measurements.
         """
         if self.science_product:
             return None
@@ -239,8 +224,7 @@ class LV2io():
                 + timedelta(seconds=int(self.fid['/PRODUCT/time'][0])))
 
     def get_time(self):
-        """
-        Returns start time of measurement per scan-line
+        """Returns start time of measurement per scan-line.
         """
         if self.science_product:
             buff = self.get_dataset('time')[::self.ground_pixel, :]
@@ -252,8 +236,7 @@ class LV2io():
 
     # ----- Geolocation --------------------
     def __h5_geo_data(self, geo_dsets):
-        """
-        read gelocation datasets from operational products using HDF5
+        """Read gelocation datasets from operational products using HDF5.
         """
         res = {}
         if geo_dsets is None:
@@ -269,8 +252,7 @@ class LV2io():
         return res
 
     def __nc_geo_data(self, geo_dsets):
-        """
-        read gelocation datasets from science products using netCDF4
+        """Read gelocation datasets from science products using netCDF4.
         """
         res = {}
         if geo_dsets is None:
@@ -285,8 +267,7 @@ class LV2io():
         return res
 
     def get_geo_data(self, geo_dsets=None):
-        """
-        Returns data of selected datasets from the GEOLOCATIONS group
+        """Returns data of selected datasets from the GEOLOCATIONS group.
 
         Parameters
         ----------
@@ -298,8 +279,8 @@ class LV2io():
 
         Returns
         -------
-        out   :   dictonary with arrays
-           arrays of selected datasets
+        dict
+           dictonary with arrays of selected datasets
         """
         if self.science_product:
             return self.__nc_geo_data(geo_dsets)
@@ -308,8 +289,8 @@ class LV2io():
 
     # ----- Footprints --------------------
     def __h5_geo_bounds(self, extent, data_sel):
-        """
-        read bounds of latitude/longitude from operational products using HDF5
+        """Read bounds of latitude/longitude from operational products
+        using HDF5.
         """
         indx = None
         if extent is not None:
@@ -336,8 +317,8 @@ class LV2io():
         return (data_sel, lon_bounds, lat_bounds)
 
     def __nc_geo_bounds(self, extent, data_sel):
-        """
-        read bounds of latitude/longitude from science products using netCDF4
+        """Read bounds of latitude/longitude from science products
+        using netCDF4
         """
         indx = None
         if extent is not None:
@@ -366,8 +347,7 @@ class LV2io():
         return (data_sel, lon_bounds, lat_bounds)
 
     def get_geo_bounds(self, extent=None, data_sel=None):
-        """
-        Returns bounds of latitude/longitude as a mesh for plotting
+        """Returns bounds of latitude/longitude as a mesh for plotting.
 
         Parameters
         ----------
@@ -413,8 +393,7 @@ class LV2io():
 
     # ----- Datasets (numpy) --------------------
     def __h5_dataset(self, name, data_sel, fill_as_nan):
-        """
-        read dataset from operational products using HDF5
+        """Read dataset from operational products using HDF5.
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -439,8 +418,7 @@ class LV2io():
         return res
 
     def __nc_dataset(self, name, data_sel, fill_as_nan):
-        """
-        read dataset from science products using netCDF4
+        """Read dataset from science products using netCDF4.
         """
         if name in self.fid['/target_product'].variables.keys():
             group = '/target_product'
@@ -463,8 +441,7 @@ class LV2io():
         return res.data
 
     def get_dataset(self, name, data_sel=None, fill_as_nan=True):
-        """
-        Read level 2 dataset from PRODUCT group
+        """Read level 2 dataset from PRODUCT group.
 
         Parameters
         ----------
@@ -477,7 +454,7 @@ class LV2io():
 
         Returns
         -------
-        out  :  array
+        numpy.ndarray
         """
         if self.science_product:
             return self.__nc_dataset(name, data_sel, fill_as_nan)
@@ -486,8 +463,7 @@ class LV2io():
 
     # ----- Dataset (xarray) --------------------
     def __h5_data_as_xds(self, name, data_sel, mol_m2):
-        """
-        Read dataset from group target_product using HDF5
+        """Read dataset from group target_product using HDF5.
 
         Input: operational product
 
@@ -501,8 +477,7 @@ class LV2io():
         return h5_to_xr(dset, (0,) + data_sel).squeeze()
 
     def __nc_data_as_xds(self, name, data_sel):
-        """
-        Read dataset from group PRODUCT using netCDF4
+        """Read dataset from group PRODUCT using netCDF4.
 
         Input: science product
 
@@ -521,8 +496,7 @@ class LV2io():
                           units=self.get_attr('units', name))
 
     def get_data_as_xds(self, name, data_sel=None, mol_m2=False):
-        """
-        Read dataset from group PRODUCT/target_product group
+        """Read dataset from group PRODUCT/target_product group.
 
         Parameters
         ----------
@@ -535,7 +509,7 @@ class LV2io():
 
         Returns
         -------
-        out  :  xarray.DataArray
+        xarray.DataArray
         """
         if self.science_product:
             return self.__nc_data_as_xds(name, data_sel)

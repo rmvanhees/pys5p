@@ -26,12 +26,14 @@ def band2channel(dict_a, dict_b, mode=None):
 
     Parameters
     ----------
-    dict_a      :  dictionary
-    dict_b      :  dictionary
+    dict_a      :  dict
+       data of the one spectral band
+    dict_b      :  dict
+       data of another spectral band
     mode        :  list ['combined', 'mean', 'median', 'biweight']
         'combined'
-             will combine data using np.concatenate((data_a, data_b),
-                                                     axis=data_a.ndim-1)
+             will combine data using np.concatenate((data_a, data_b),\
+             axis=data_a.ndim-1)
 
         'mean' 
              is calculated using np.nanmean(data, axis=0)
@@ -44,16 +46,12 @@ def band2channel(dict_a, dict_b, mode=None):
 
     Returns
     -------
-    out  :  ndarray
+    numpy.ndarray
         Data from dictionary stored in a numpy array
-
-    Notes
-    -----
 
     Examples
     --------
     >>> data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
-    >>>
     """
     if mode is None:
         mode = []
@@ -106,16 +104,14 @@ class OCMio():
     """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
+
+    Parameters
+    ----------
+    ocm_product :  str
+        Full path to on-ground calibration measurement
     """
-    def __init__(self, ocm_product):
-        """
-        Initialize access to an OCAL Lx product
-
-        Parameters
-        ----------
-        ocm_product :  string
-           Full path to on-ground calibration measurement
-
+    def __init__(self, ocm_product: str):
+        """Initialize access to an OCAL Lx product.
         """
         if not Path(ocm_product).is_file():
             raise FileNotFoundError(f'{ocm_product} does not exist')
@@ -144,21 +140,18 @@ class OCMio():
     #    self.close()
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
+        """Method called to initiate the context manager.
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        method called when exiting the context manager
+        """Method called when exiting the context manager.
         """
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """
-        Close resources
+        """Close resources.
         """
         self.band = None
         if self.fid is not None:
@@ -168,8 +161,7 @@ class OCMio():
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self):
-        """
-        Returns version of the L01b processor
+        """Returns version of the L01b processor.
         """
         res = self.fid.attrs['processor_version']
         if isinstance(res, bytes):
@@ -178,8 +170,7 @@ class OCMio():
         return res
 
     def get_coverage_time(self):
-        """
-        Returns start and end of the measurement coverage time
+        """Returns start and end of the measurement coverage time.
         """
         t_bgn = self.fid.attrs['time_coverage_start']
         if isinstance(t_bgn, bytes):
@@ -193,8 +184,7 @@ class OCMio():
         return (t_bgn, t_end)
 
     def get_attr(self, attr_name):
-        """
-        Obtain value of an HDF5 file attribute
+        """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
@@ -208,8 +198,7 @@ class OCMio():
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self):
-        """
-        Returns reference start time of measurements
+        """Returns reference start time of measurements.
         """
         if not self.__msm_path:
             return {}
@@ -224,8 +213,7 @@ class OCMio():
         return res
 
     def get_delta_time(self):
-        """
-        Returns offset from the reference start time of measurement
+        """Returns offset from the reference start time of measurement.
         """
         if not self.__msm_path:
             return {}
@@ -239,8 +227,7 @@ class OCMio():
         return res
 
     def get_instrument_settings(self):
-        """
-        Returns instrument settings of measurement
+        """Returns instrument settings of measurement.
         """
         if not self.__msm_path:
             return {}
@@ -254,8 +241,7 @@ class OCMio():
         return res
 
     def get_gse_stimuli(self):
-        """
-        Returns GSE stimuli parameters
+        """Returns GSE stimuli parameters.
         """
         if not self.__msm_path:
             return {}
@@ -269,8 +255,7 @@ class OCMio():
         return res
 
     def get_exposure_time(self):
-        """
-        Returns the exact pixel exposure time of the measurements
+        """Returns the exact pixel exposure time of the measurements.
         """
         if not self.__msm_path:
             return None
@@ -286,8 +271,7 @@ class OCMio():
         return instr['exposure_time']
 
     def get_housekeeping_data(self):
-        """
-        Returns housekeeping data of measurements
+        """Returns housekeeping data of measurements.
         """
         if not self.__msm_path:
             return {}
@@ -302,8 +286,7 @@ class OCMio():
 
     # -------------------------
     def select(self, ic_id=None, *, msm_grp=None):
-        """
-        Select a measurement as BAND%/ICID_<ic_id>_GROUP_%
+        """Select a measurement as BAND%/ICID_<ic_id>_GROUP_%.
 
         Parameters
         ----------
@@ -316,9 +299,11 @@ class OCMio():
 
         Returns
         -------
-        out  :  scalar
+        scalar
            Number of measurements found
-
+           
+        Notes
+        -----
         Updated object attributes:
           - bands               : available spectral bands
         """
@@ -346,8 +331,7 @@ class OCMio():
 
     # -------------------------
     def get_msm_attr(self, msm_dset, attr_name):
-        """
-        Returns attribute of measurement dataset "msm_dset"
+        """Returns attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -358,9 +342,8 @@ class OCMio():
 
         Returns
         -------
-        out   :   scalar or numpy array
+        scalar or numpy.ndarray
            value of attribute "attr_name"
-
         """
         if not self.__msm_path:
             return ''
@@ -381,8 +364,7 @@ class OCMio():
     # -------------------------
     def get_msm_data(self, msm_dset, fill_as_nan=True,
                      frames=None, columns=None):
-        """
-        Returns data of measurement dataset "msm_dset"
+        """Returns data of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -401,7 +383,7 @@ class OCMio():
 
         Returns
         -------
-        out   :   dictionary
+        dict
            Python dictionary with names of msm_groups as keys
         """
         fillvalue = float.fromhex('0x1.ep+122')
@@ -464,8 +446,7 @@ class OCMio():
     # -------------------------
     def read_direct_msm(self, msm_dset, dest_sel=None,
                         dest_dtype=None, fill_as_nan=False):
-        """
-        The faster implementation of get_msm_data()
+        """The faster implementation of get_msm_data().
 
         Parameters
         ----------
@@ -480,7 +461,7 @@ class OCMio():
 
         Returns
         -------
-        out   :   dictionary
+        dict
            Python dictionary with names of msm_groups as keys
         """
         fillvalue = float.fromhex('0x1.ep+122')
