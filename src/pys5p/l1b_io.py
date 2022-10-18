@@ -7,6 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contains the class `L1Bio` to access Tropomi level-1B products.
+"""
+__all__ = ['L1Bio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -304,7 +308,8 @@ class L1Bio:
         buff_icid = np.concatenate(([icid_list[0]-10], icid_list,
                                     [icid_list[-1]+10]))
         dt_thres = 10 * master_cycle
-        buff_time = np.concatenate(([delta_time[0] - 10 * dt_thres], delta_time,
+        buff_time = np.concatenate(([delta_time[0] - 10 * dt_thres],
+                                    delta_time,
                                     [delta_time[-1] + 10 * dt_thres]))
 
         indx = (((buff_time[1:] - buff_time[0:-1]) > dt_thres)
@@ -480,7 +485,7 @@ class L1Bio:
 
         Returns
         -------
-        scalar or numpy.ndarray 
+        scalar or numpy.ndarray
             Value of attribute "attr_name"
         """
         if self.__msm_path is None:
@@ -514,7 +519,7 @@ class L1Bio:
 
             Radiance
                one band
-            
+
             Calibration, Irradiance
                both bands (Calibration, Irradiance)
 
@@ -622,7 +627,7 @@ class L1BioENG:
     ----------
     l1b_product : str
        name of the L1b engineering product
-    
+
     Notes
     -----
     The L1b engineering products are available for UVN (band 1-6)

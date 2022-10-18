@@ -6,7 +6,9 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-
+"""
+Provide access to the software version as obtained from git.
+"""
 from pys5p import __version__
 
 

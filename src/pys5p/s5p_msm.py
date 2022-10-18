@@ -7,6 +7,12 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contains the class `S5Pmsm`
+
+.. warning:: Depreciated, this module is no longer maintained.
+"""
+__all__ = ['S5Pmsm']
 
 from collections import namedtuple
 from copy import deepcopy
@@ -70,7 +76,7 @@ class S5Pmsm():
     including its attributes (CF convension)
     """
     def __init__(self, dset, data_sel=None, datapoint=False):
-        """
+        r"""
         Read measurement data from a Tropomi OCAL, ICM, of L1B product
 
         Parameters
@@ -79,7 +85,7 @@ class S5Pmsm():
            h5py dataset from which the data is read, data is used to
            initalize S5Pmsm object
         data_sel  :  numpy slice
-           a numpy slice generated for example 'numpy.s\_'
+           a numpy slice generated for example `numpy.s\_`
         datapoint :  boolean
            to indicate that the dataset is a compound of type datapoint
 
@@ -456,7 +462,7 @@ class S5Pmsm():
         return self
 
     def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
-        """
+        r"""
         Returns percentile(s) of the data in the S5Pmsm
 
         Parameters
@@ -465,7 +471,7 @@ class S5Pmsm():
            range to normalize luminance data between percentiles min and max of
            array data.
         data_sel  :  numpy slice
-           A numpy slice generated for example 'numpy.s\_'. Can be used to skip
+           A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
         axis      : int, optional
            Axis or axes along which the medians are computed. Default is 0.
@@ -544,13 +550,13 @@ class S5Pmsm():
         return self
 
     def biweight(self, data_sel=None, axis=0, keepdims=False):
-        """
+        r"""
         Returns biweight median of the data in the S5Pmsm
 
         Parameters
         ----------
         data_sel  :  numpy slice
-           A numpy slice generated for example 'numpy.s\_'. Can be used to skip
+           A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
         axis  : int, optional
            Axis or axes along which the medians are computed. Default is 0.
@@ -603,14 +609,14 @@ class S5Pmsm():
         return self
 
     def nanmedian(self, data_sel=None, axis=0, keepdims=False):
-        """
+        r"""
         Returns S5Pmsm object containing median & standard deviation of the
         original data
 
         Parameters
         ----------
         data_sel  :  numpy slice, optional
-           A numpy slice generated for example 'numpy.s\_'. Can be used to skip
+           A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
         axis      : int, optional
            Axis or axes along which the medians are computed. Default is 0.
@@ -664,14 +670,14 @@ class S5Pmsm():
         return self
 
     def nanmean(self, data_sel=None, axis=0, keepdims=False):
-        """
+        r"""
         Returns S5Pmsm object containing mean & standard deviation of the
         original data
 
         Parameters
         ----------
         data_sel  :  numpy slice, optional
-           A numpy slice generated for example 'numpy.s\_'. Can be used to skip
+           A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
         axis      : int, optional
            Axis or axes along which the mean are computed. Default is 0.

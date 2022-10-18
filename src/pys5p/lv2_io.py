@@ -7,6 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contains the class `LV2io` to access Tropomi level-2 products.
+"""
+__all__ = ['LV2io']
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,7 +20,6 @@ from netCDF4 import Dataset
 import numpy as np
 
 from moniplot.image_to_xarray import data_to_xr, h5_to_xr
-
 
 # - global parameters ------------------------------
 
@@ -476,7 +479,7 @@ class LV2io():
         # ToDo handle parameter mol_m2
         return h5_to_xr(dset, (0,) + data_sel).squeeze()
 
-    def __nc_data_as_xds(self, name, data_sel):
+    def __nc_data_as_xds(self, name: str, data_sel: slice):
         """Read dataset from group PRODUCT using netCDF4.
 
         Input: science product
@@ -484,13 +487,13 @@ class LV2io():
         Return: xarray.DataArray
         """
         if name in self.fid['/target_product'].variables.keys():
-            group = '/target_product'
+            group = '/target_product/'
         elif name in self.fid['/instrument'].variables.keys():
-            group = '/instrument'
+            group = '/instrument/'
         else:
             raise ValueError('dataset {name} for found')
 
-        return data_to_xr(self.get_dataset(name, data_sel),
+        return data_to_xr(self.get_dataset(group + name, data_sel),
                           dims=['scanline', 'ground_pixel'], name=name,
                           long_name=self.get_attr('long_name', name),
                           units=self.get_attr('units', name))

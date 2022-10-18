@@ -7,10 +7,6 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-
-import numpy as np
-from numpy import ma
-
 """
 Implementation of the Relative Least-Squares regression (RLS).
 
@@ -22,6 +18,11 @@ the fit result. Weight factors are determined such to effectively spread the
 data points evenly over the whole range of x, making the result less
 sensitive to the actual spacing between the data points.
 """
+__all__ = ['rls_fit', 'rls_fit0']
+
+import numpy as np
+from numpy import ma
+
 
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     """

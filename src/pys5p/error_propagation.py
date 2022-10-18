@@ -7,13 +7,15 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-
+"""
+This module contains routines to divide or add uncertainties.
+"""
+__all__ = ['unc_div', 'unc_sum']
 import numpy as np
 
 
 def unc_div(value_a, sigma_a, value_b, sigma_b):
-    """
-    absolute error for parameter `a` divided by `b`:
+    r"""Absolute error for parameter `a` divided by `b`:
 
     .. math:: (a / b) * \sqrt{(\sigma_a / a)^2 + (\sigma_b / b)^2}
     """
@@ -35,8 +37,7 @@ def unc_div(value_a, sigma_a, value_b, sigma_b):
 
 
 def unc_sum(sigma_a, sigma_b):
-    """
-    absolute error for the sum of the parameters `a` and `b`:
+    r"""Absolute error for the sum of the parameters `a` and `b`:
 
     .. math:: \sqrt{\sigma_a^2 + \sigma_b^2}
     """

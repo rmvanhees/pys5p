@@ -7,6 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contains the class `CKDio`.
+"""
+__all__ = ['CKDio']
 
 from pathlib import Path, PosixPath
 
@@ -62,7 +66,7 @@ class CKDio():
        directory.
 
     Version 1:
-    
+
     * Static CKD are stored in one file: glob('*_AUX_L1_CKD_*')
     * Dynamic CKD are stored in two files:
 

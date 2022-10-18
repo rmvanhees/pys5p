@@ -7,6 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contain class `OCMio` to access on-ground calibration data.
+"""
+__all__ = ['OCMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -35,7 +39,7 @@ def band2channel(dict_a, dict_b, mode=None):
              will combine data using np.concatenate((data_a, data_b),\
              axis=data_a.ndim-1)
 
-        'mean' 
+        'mean'
              is calculated using np.nanmean(data, axis=0)
 
         'median'
@@ -301,7 +305,7 @@ class OCMio():
         -------
         scalar
            Number of measurements found
-           
+
         Notes
         -----
         Updated object attributes:

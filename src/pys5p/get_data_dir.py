@@ -7,7 +7,9 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-
+"""
+This module contains routine `get_data_dir`.
+"""
 from os import environ
 from pathlib import Path
 

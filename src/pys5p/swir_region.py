@@ -6,17 +6,25 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+There are two definitions of the usable area on the SWIR detector:
+
+ 'illuminated':
+    Detector area illuminated by external sources, defined as
+    an rectangular area where the signal is at least 50% of the
+    maximum signal. Coordinates: rows [11:228], columns [16:991].
+
+ 'level2':
+    A smaller area used in official SWIR level 1B (ir)radiance
+    products. Coordinates: rows [12:227], columns [20:980].
+
+Notes
+-----
+Row 257 of the SWIR detector is neglected.
+"""
+__all__ = ['coords', 'mask']
 
 import numpy as np
-
-# There are two definitions of the usable area on the SWIR detector:
-#  - 'illuminated' - detector area illuminated by external sources,
-#  defined as an rectangular area where the signal is at least 50% of the
-#  maximum signal. Coordinates: rows [11:228], columns [16:991].
-#  - 'level2' - a smaller area used in official SWIR level 1B (ir)radiance
-#  products. Coordinates: rows [12:227], columns [20:980].
-#
-# Note that row 257 of the SWIR detector is neglected.
 
 
 def coords(mode='illuminated', band='78') -> slice:

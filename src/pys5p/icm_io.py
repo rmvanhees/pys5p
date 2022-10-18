@@ -7,6 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contain class `ICMio` to access in-flight calibration data.
+"""
+__all__ = ['ICMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -85,7 +89,7 @@ class ICMio():
         traceable.
 
         As attributes of this group, we write:
-        
+
           - dateStamp ('now')
           - Git-version of S/W
           - list of patched datasets
@@ -458,8 +462,8 @@ class ICMio():
         res = []
         for instr in instr_arr:
             if int(band) > 6:
-                res.append(1.25e-6 * (65540
-                                      - instr['int_delay'] + instr['int_hold']))
+                res.append(1.25e-6 *
+                           (65540 - instr['int_delay'] + instr['int_hold']))
             else:
                 res.append(instr['exposure_time'])
 
@@ -470,7 +474,7 @@ class ICMio():
 
         Parameters
         ----------
-        band      :  None or {'1', '2', '3', ..., '8'}
+        band :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
@@ -842,7 +846,7 @@ class ICMio():
 
         Parameters
         ----------
-        band      :  None or {'1', '2', '3', ..., '8'}
+        band :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
         """
@@ -865,7 +869,8 @@ class ICMio():
         elif msm_type in ['DPQF_MAP', 'NOISE']:
             pass
         else:
-            ds_path = PurePosixPath(msm_path, 'INSTRUMENT', 'housekeeping_data')
+            ds_path = PurePosixPath(msm_path,
+                                    'INSTRUMENT', 'housekeeping_data')
             self.fid[str(ds_path)][0, :] = data
 
             self.__patched_msm.append(str(ds_path))

@@ -7,6 +7,12 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""
+This module contains the class `L1Bpatch`.
+
+.. warning:: Depreciated, this module is no longer maintained.
+"""
+__all__ = ['L1Bpatch']
 
 from datetime import datetime
 from pathlib import Path
@@ -121,7 +127,7 @@ class L1Bpatch():
         Patched dataset: 'quality_level' and 'spectral_channel_quality'
 
         Requires (naive approach):
-        
+
            * read original dataset 'spectral_channel_quality'
            * read pixel quality ckd
            * adjust second pixel of each byte of spectral_channel_quality
@@ -178,7 +184,7 @@ class L1Bpatch():
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
         Requires (naive approach):
-        
+
            * reverse applied radiance calibration
            * reverse applied stray-light correction
            * reverse applied PRNU correction
