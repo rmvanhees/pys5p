@@ -514,7 +514,7 @@ class L1Bio:
         msm_dset :  string
             Name of measurement dataset.
         band      :  None or {'1', '2', '3', ..., '8'}
-            Select one of the band present in the product
+            Select one of the band present in the product.
             Default is 'None' which returns:
 
             Radiance
