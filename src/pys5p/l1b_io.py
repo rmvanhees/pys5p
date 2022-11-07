@@ -19,7 +19,7 @@ from setuptools_scm import get_version
 import h5py
 import numpy as np
 
-from moniplot.biweight import biweight
+from moniplot.biweight import Biweight
 
 from .swir_texp import swir_exp_time
 
@@ -877,7 +877,7 @@ class L1BioENG:
                 elif np.nanmin(swir_hk[key]) == np.nanmax(swir_hk[key]):
                     hk_median[key][0] = swir_hk[key][0]
                 else:
-                    hk_median[key][0] = biweight(swir_hk[key])
+                    hk_median[key][0] = Biweight(swir_hk[key]).median
             return hk_median
 
         if stats == 'range':

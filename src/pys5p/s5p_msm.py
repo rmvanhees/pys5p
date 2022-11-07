@@ -21,7 +21,7 @@ from pathlib import PurePath
 from h5py import Dataset
 import numpy as np
 
-from moniplot.biweight import biweight
+from moniplot.biweight import Biweight
 
 # The class S5Pmsm read HDF5 measurement data including its attributes and
 # dimensions. Initialization:
@@ -572,18 +572,20 @@ class S5Pmsm():
         """
         if data_sel is None:
             if self.error is not None:
-                self.value = biweight(self.value, axis=axis)
-                self.error = biweight(self.error, axis=axis)
+                self.value = Biweight(self.value, axis=axis).median
+                self.error = Biweight(self.error, axis=axis).median
             else:
-                (self.value, self.error) = biweight(self.value,
-                                                    axis=axis, spread=True)
+                biwght = Biweight(self.value, axis=axis)
+                self.value = biwght.median
+                self.error = biwght.spread
         else:
             if self.error is not None:
-                self.value = biweight(self.value[data_sel], axis=axis)
-                self.error = biweight(self.error[data_sel], axis=axis)
+                self.value = Biweight(self.value[data_sel], axis=axis).median
+                self.error = Biweight(self.error[data_sel], axis=axis).spread
             else:
-                (self.value, self.error) = biweight(self.value[data_sel],
-                                                    axis=axis, spread=True)
+                biwght = Biweight(self.value[data_sel], axis=axis)
+                self.value = biwght.median
+                self.error = biwght.spread
         if keepdims:
             self.value = np.expand_dims(self.value, axis=axis)
             self.error = np.expand_dims(self.error, axis=axis)

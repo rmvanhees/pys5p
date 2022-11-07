@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 import h5py
 import numpy as np
 
-from moniplot.biweight import biweight
+from moniplot.biweight import Biweight
 
 # - global parameters ------------------------------
 
@@ -75,7 +75,7 @@ def band2channel(dict_a, dict_b, mode=None):
         elif 'median' in mode:
             data_a = np.nanmedian(data_a, axis=0)
         elif 'biweight' in mode:
-            data_a = biweight(data_a, axis=0)
+            data_a = Biweight(data_a, axis=0).median
 
     if dict_b is None:
         return data_a
@@ -95,7 +95,7 @@ def band2channel(dict_a, dict_b, mode=None):
         elif 'median' in mode:
             data_b = np.nanmedian(data_b, axis=0)
         elif 'biweight' in mode:
-            data_b = biweight(data_b, axis=0)
+            data_b = Biweight(data_b, axis=0).median
 
     if 'combined' in mode:
         return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
