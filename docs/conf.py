@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from importlib import metadata
 sys.path.insert(0, os.path.abspath('..'))
 
 
@@ -22,7 +23,7 @@ copyright = '2022, SRON'
 author = 'Richard van Hees'
 
 # The full version, including alpha/beta/rc tags
-release = '2.1.3'
+release = metadata.version('pys5p').split('+')[0]
 
 
 # -- General configuration ---------------------------------------------------
