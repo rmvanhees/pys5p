@@ -10,6 +10,7 @@
 """
 This module contains the class `CKDio`.
 """
+from __future__ import annotations
 __all__ = ['CKDio']
 
 from pathlib import Path, PosixPath
@@ -22,7 +23,7 @@ from moniplot.image_to_xarray import h5_to_xr
 
 
 # - local functions ------------------------------
-def reject_row257(xarr):
+def reject_row257(xarr: xr.DataArray | xr.Dataset):
     """
     Remove row 257 from DataArray or Dataset
     """
@@ -30,7 +31,7 @@ def reject_row257(xarr):
 
 
 # - class definition -------------------------------
-class CKDio():
+class CKDio:
     """
     Read Tropomi CKD from the Static CKD product or from dynamic CKD products
 
@@ -79,7 +80,8 @@ class CKDio():
     * Dynamic CKD are empty
 
     """
-    def __init__(self, ckd_dir=None, ckd_version=1, ckd_file=None):
+    def __init__(self, ckd_dir: str = None, ckd_version: int = 1,
+                 ckd_file: str | None = None) -> None:
         """Create CKDio object.
         """
         if ckd_dir is None:
@@ -161,7 +163,7 @@ class CKDio():
         return attr
 
     @staticmethod
-    def __get_spectral_channel(bands: str):
+    def __get_spectral_channel(bands: str) -> str:
         """Check bands is valid: single band or belong to one channel
 
         Parameters
@@ -181,7 +183,8 @@ class CKDio():
 
         return band2channel[int(bands[0])]
 
-    def get_param(self, ds_name: str, band='7'):
+    def get_param(self, ds_name: str,
+                  band: str = '7') -> np.ndarray | float:
         """Returns value(s) of a CKD parameter from the Static CKD product.
 
         Parameters
@@ -217,7 +220,7 @@ class CKDio():
         return self.fid[f'/BAND{band}/{ds_name}'][()]
 
     # ---------- band or channel CKD's ----------
-    def dn2v_factors(self):
+    def dn2v_factors(self) -> np.ndarray:
         """Returns digital number to Volt CKD, SWIR only.
 
         Notes
@@ -228,7 +231,7 @@ class CKDio():
             (self.fid['/BAND7/dn2v_factor_swir'][2:],
              self.fid['/BAND8/dn2v_factor_swir'][2:]))
 
-    def v2c_factors(self):
+    def v2c_factors(self) -> np.ndarray:
         """Returns Voltage to Charge CKD, SWIR only.
 
         Notes
@@ -241,7 +244,7 @@ class CKDio():
              self.fid['/BAND8/v2c_factor_swir'].fields('value')[2:]))
 
     # ---------- spectral-channel CKD's ----------
-    def __rd_dataset(self, dset_name: str, bands: str):
+    def __rd_dataset(self, dset_name: str, bands: str) -> xr.Dataset | None:
         """General function to read non-compound dataset into xarray::Dataset.
 
         Parameters
@@ -290,7 +293,7 @@ class CKDio():
         # combine DataArrays to Dataset
         return xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
 
-    def __rd_datapoints(self, dset_name: str, bands: str):
+    def __rd_datapoints(self, dset_name: str, bands: str) -> xr.Dataset | None:
         """General function to read datapoint dataset into xarray::Dataset
 
         Parameters
@@ -355,7 +358,7 @@ class CKDio():
                           attrs=ckd_val.attrs)
 
     # ---------- static CKD's ----------
-    def absirr(self, qvd=1, bands='78'):
+    def absirr(self, qvd: int = 1, bands: str = '78') -> xr.Dataset:
         """Returns absolute irradiance responsivity.
 
         Parameters
@@ -379,7 +382,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def absrad(self, bands='78'):
+    def absrad(self, bands: str = '78') -> xr.Dataset:
         """Returns absolute radiance responsivity.
 
         Parameters
@@ -400,7 +403,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def memory(self):
+    def memory(self) -> xr.Dataset:
         """Returns memory CKD, SWIR only.
         """
         column = None
@@ -429,7 +432,7 @@ class CKDio():
 
         return ckd
 
-    def noise(self, bands='78'):
+    def noise(self, bands: str = '78') -> xr.Dataset:
         """Returns readout-noise CKD, SWIR only.
 
         Parameters
@@ -443,7 +446,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def prnu(self, bands='78'):
+    def prnu(self, bands: str = '78') -> xr.Dataset:
         """Returns Pixel Response Non-Uniformity (PRNU).
 
         Parameters
@@ -463,7 +466,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def relirr(self, qvd=1, bands='78'):
+    def relirr(self, qvd: int = 1, bands: str = '78') -> tuple:
         """Returns relative irradiance correction.
 
         Parameters
@@ -492,8 +495,7 @@ class CKDio():
 
         res = ()
         for band in bands:
-            ckd = {}
-            ckd['band'] = int(band)
+            ckd = {'band': int(band)}
 
             dsname = f'/BAND{band}/rel_irr_coarse_mapping_vert'
             ckd['mapping_rows'] = self.fid[dsname][:].astype(int)
@@ -513,13 +515,11 @@ class CKDio():
     def saa(self) -> dict:
         """Returns definition of the SAA region.
         """
-        saa_region = {}
-        saa_region['lat'] = self.fid['saa_latitude'][:]
-        saa_region['lon'] = self.fid['saa_longitude'][:]
+        return {
+            'lat': self.fid['saa_latitude'][:],
+            'lon': self.fid['saa_longitude'][:]}
 
-        return saa_region
-
-    def wavelength(self, bands='78'):
+    def wavelength(self, bands: str = '78') -> xr.Dataset:
         """Returns wavelength CKD.
 
         Parameters
@@ -545,7 +545,7 @@ class CKDio():
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     # ---------- static or dynamic CKD's ----------
-    def darkflux(self, bands='78'):
+    def darkflux(self, bands: str = '78') -> xr.Dataset:
         """Returns dark-flux CKD, SWIR only.
 
         Parameters
@@ -559,7 +559,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def offset(self, bands='78'):
+    def offset(self, bands: str = '78') -> xr.Dataset:
         """Returns offset CKD, SWIR only.
 
         Parameters
@@ -573,7 +573,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def pixel_quality(self, bands='78'):
+    def pixel_quality(self, bands: str = '78') -> xr.Dataset:
         """Returns detector pixel-quality mask (float [0, 1]), SWIR only.
 
         Parameters
@@ -587,7 +587,7 @@ class CKDio():
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def dpqf(self, threshold=None, bands='78'):
+    def dpqf(self, threshold: float = None, bands: str = '78') -> xr.Dataset:
         """Returns detector pixel-quality flags (boolean), SWIR only.
 
         Parameters
@@ -629,10 +629,9 @@ class CKDio():
 
         return dpqf
 
-    def saturation(self):
+    def saturation(self) -> xr.Dataset:
         """Returns pixel-saturation values (pre-offset), SWIR only.
         """
-        ckd_val = None
         dset_name = '/BAND{}/saturation_preoffset'
         ckd_file = (self.ckd_dir / 'OCAL'
                     / 'ckd.saturation_preoffset.detector4.nc')

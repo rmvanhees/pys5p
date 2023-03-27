@@ -18,20 +18,20 @@ def get_data_dir():
     """
     Obtain directory with test datasets
 
-    Limited to UNIX/Linux/MacOS operating systems
+    Limited to UNIX/Linux/macOS operating systems
 
     This module checks if the following directories are available:
      - /data/$USER/pys5p-data
      - /Users/$USER/pys5p-data
      - environment variable PYS5P_DATA_DIR
 
-    It expects the data to be organized in the sub-directories:
+    It expects the data to be organized in the subdirectories:
      - CKD which should contain the SWIR dpqf CKD
      - OCM which should contain at least one directory of an on-ground
        calibration measurement with one or more OCAL LX products.
      - L1B which should contain at least one offline calibration, irradiance
        and radiance product.
-     - ICM which contain at least one inflight calibration product.
+     - ICM which contain at least one in-flight calibration product.
     """
     try:
         user = environ['USER']

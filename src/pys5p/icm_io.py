@@ -10,11 +10,13 @@
 """
 This module contain class `ICMio` to access in-flight calibration data.
 """
+from __future__ import annotations
 __all__ = ['ICMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
+from typing import Iterable
 
 import h5py
 import numpy as np
@@ -25,19 +27,19 @@ import numpy as np
 # - local functions --------------------------------
 
 # - class definition -------------------------------
-class ICMio():
+class ICMio:
     """
     This class should offer all the necessary functionality to read Tropomi
     ICM_CA_SIR products
 
     Parameters
     ----------
-    icm_product :  string
+    icm_product :  str
         full path to in-flight calibration measurement product
-    readwrite   :  boolean
+    readwrite   :  bool
         open product in read-write mode (default is False)
     """
-    def __init__(self, icm_product, readwrite=False):
+    def __init__(self, icm_product: str, readwrite: bool = False):
         """Initialize access to an ICM product.
         """
         if not Path(icm_product).is_file():
@@ -121,18 +123,18 @@ class ICMio():
         self.fid = None
 
     # ---------- RETURN VERSION of the S/W ----------
-    def find(self, msm_class) -> list:
+    def find(self, msm_class: str) -> list[str]:
         """Find a measurement as <processing-class name>.
 
         Parameters
         ----------
-        msm_class :  string
+        msm_class :  str
           processing-class name without ICID
 
         Returns
         -------
-        list of strings
-           String with msm_type as used by ICMio.select
+        list of str
+           String with msm_type as used by ICMio.select()
         """
         res = []
 
@@ -147,7 +149,7 @@ class ICMio():
         return list(set(res))
 
     # -------------------------
-    def select(self, msm_type: str, msm_path=None) -> str:
+    def select(self, msm_type: str, msm_path: str = None) -> str:
         """Select a measurement as <processing class>_<ic_id>.
 
         Parameters
@@ -162,19 +164,12 @@ class ICMio():
         -------
         string
            String with spectral bands found in product or empty
-
-        Attributes
-        ----------
-        bands : string
-           Available spectral bands (or empty)
-        __msm_path : string
-           Full name of selected group in file (or None)
         """
         self.bands = ''
         self.__msm_path = None
 
-        # if path is given, then only determine avaialble spectral bands
-        # else determine path and avaialble spectral bands
+        # if path is given, then only determine available spectral bands
+        # else determine path and available spectral bands
         if msm_path is None:
             grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
             for ii in '12345678':
@@ -200,7 +195,7 @@ class ICMio():
 
     # ---------- Functions that work before MSM selection ----------
     @property
-    def orbit(self) -> int:
+    def orbit(self) -> int | None:
         """Returns reference orbit number.
         """
         if 'reference_orbit' in self.fid.attrs:
@@ -209,7 +204,7 @@ class ICMio():
         return None
 
     @property
-    def processor_version(self) -> str:
+    def processor_version(self) -> str | None:
         """Returns version of the L01b processor.
         """
         if 'processor_version' not in self.fid.attrs:
@@ -223,7 +218,7 @@ class ICMio():
         return res
 
     @property
-    def coverage_time(self) -> tuple:
+    def coverage_time(self) -> tuple[str, str] | None:
         """Returns start and end of the measurement coverage time.
         """
         if 'time_coverage_start' not in self.fid.attrs \
@@ -240,7 +235,7 @@ class ICMio():
             # pylint: disable=no-member
             res2 = res2.decode('ascii')
 
-        return (res1, res2)
+        return res1, res2
 
     @property
     def creation_time(self) -> str:
@@ -250,12 +245,12 @@ class ICMio():
         dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
 
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name: str) -> str | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
-        attr_name : string
+        attr_name : str
            name of the attribute
         """
         if attr_name not in self.fid.attrs:
@@ -268,7 +263,7 @@ class ICMio():
         return res
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time(self, band=None) -> datetime:
+    def get_ref_time(self, band: str | None = None) -> datetime:
         """Returns reference start time of measurements
 
         Parameters
@@ -317,7 +312,7 @@ class ICMio():
 
         return ref_time
 
-    def get_delta_time(self, band=None):
+    def get_delta_time(self, band: str | None = None) -> np.ndarray | None:
         """Returns offset from the reference start time of measurement.
 
         Parameters
@@ -372,7 +367,7 @@ class ICMio():
 
         return res
 
-    def get_instrument_settings(self, band=None) -> np.ndarray:
+    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
         """Returns instrument settings of measurement.
 
         Parameters
@@ -436,7 +431,7 @@ class ICMio():
 
         return res
 
-    def get_exposure_time(self, band=None) -> list:
+    def get_exposure_time(self, band: str | None = None) -> list | None:
         """Returns pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters 'int_delay' and
@@ -469,7 +464,7 @@ class ICMio():
 
         return res
 
-    def get_housekeeping_data(self, band=None):
+    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
         """Returns housekeeping data of measurements.
 
         Parameters
@@ -525,7 +520,7 @@ class ICMio():
         return res
 
     # -------------------------
-    def get_msmt_keys(self, band=None):
+    def get_msmt_keys(self, band: str | None = None) -> np.ndarray | None:
         """Read msmt_keys from an analysis groups.
 
         The msmt_keys are available for the following `analysis`:
@@ -567,14 +562,15 @@ class ICMio():
         return None
 
     # -------------------------
-    def get_msm_attr(self, msm_dset, attr_name, band=None):
+    def get_msm_attr(self, msm_dset: str, attr_name: str,
+                     band: str | None = None) -> np.ndarray | None:
         """Returns attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
-        msm_dset  :  string
+        msm_dset  :  str
             Name of measurement dataset
-        attr_name :  string
+        attr_name :  str
             Name of the attribute
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
@@ -608,18 +604,18 @@ class ICMio():
 
         return None
 
-    def get_geo_data(self, band=None,
-                     geo_dset='satellite_latitude,satellite_longitude'):
+    def get_geo_data(self, band: str | None = None,
+                     geo_dset: str | None = None) -> np.ndarray | None:
         """Returns data of selected datasets from the GEODATA group.
 
         Parameters
         ----------
-        geo_dset  :  string
-            Name(s) of datasets in the GEODATA group, comma separated
-            Default is 'satellite_latitude,satellite_longitude'
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
             Default is 'None' which returns the first available band
+        geo_dset  :  str, optional
+            Name(s) of datasets in the GEODATA group, comma separated
+            Default is 'satellite_latitude,satellite_longitude'
 
         Returns
         -------
@@ -634,6 +630,9 @@ class ICMio():
             band = str(self.bands[0])
         elif band not in self.bands:
             raise ValueError('band not found in product')
+
+        if geo_dset is None:
+            geo_dset = 'satellite_latitude,satellite_longitude'
 
         msm_path = str(self.__msm_path).replace('%', band)
         msm_type = self.__msm_path.name
@@ -670,25 +669,27 @@ class ICMio():
 
         return res
 
-    def get_msm_data(self, msm_dset, band='78', *, read_raw=False,
-                     columns=None, fill_as_nan=True):
+    def get_msm_data(self, msm_dset: str, band: str = '78', *,
+                     read_raw: bool = False,
+                     columns: list[int, int] | None = None,
+                     fill_as_nan: bool = True) -> np.ndarray | None:
         """Read datasets from a measurement selected by class-method "select"
 
         Parameters
         ----------
-        msm_dset   :  string
+        msm_dset   :  str
             name of measurement dataset
             if msm_dset is None then show names of available datasets
         band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
-        read_raw   : boolean
+        read_raw   : bool, optional
             Perform raw read: without slicing or data conversion,
             and ignore keywords: colums, fill_as_nan.
             Default: False
-        columns    : [i, j]
+        columns    : [i, j], optional
             Slice data on fastest axis (columns) as from index 'i' to 'j'
-        fill_as_nan :  boolean
+        fill_as_nan :  bool, optional
             Replace (float) FillValues with Nan's, when True
 
         Returns
@@ -787,19 +788,21 @@ class ICMio():
         # return band in detector layout
         return np.concatenate(data, axis=column_dim)
 
-    def read_direct_msm(self, msm_dset, dest_sel=None,
-                        dest_dtype=None, fill_as_nan=False):
+    def read_direct_msm(self, msm_dset: str,
+                        dest_sel: tuple[slice | int] | None = None,
+                        dest_dtype: np.dtype | None = None,
+                        fill_as_nan: bool = False) -> list[np.ndarray] | None:
         """The faster implementation of get_msm_data().
 
         Parameters
         ----------
-        msm_dset    :  string
+        msm_dset    :  str
             Name of measurement dataset
         dest_sel    :  numpy slice
             Selection must be the output of numpy.s_[<args>].
         dest_dtype  :  numpy dtype
             Perform type conversion
-        fill_as_nan :  boolean
+        fill_as_nan :  bool
             Replace (float) FillValues with Nan's, when True
 
         Returns
@@ -841,11 +844,13 @@ class ICMio():
         return data
 
     # -------------------------
-    def set_housekeeping_data(self, data, band=None) -> None:
+    def set_housekeeping_data(self, data: np.ndarray,
+                              band: str | None = None) -> None:
         """Returns housekeeping data of measurements.
 
         Parameters
         ----------
+        data : np.ndarray
         band :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
@@ -875,7 +880,8 @@ class ICMio():
 
             self.__patched_msm.append(str(ds_path))
 
-    def set_msm_data(self, msm_dset, data, band='78') -> None:
+    def set_msm_data(self, msm_dset: str, data: np.ndarray | Iterable,
+                     band: str = '78') -> None:
         """Alter dataset from a measurement selected using function "select"
 
         Parameters
@@ -886,7 +892,7 @@ class ICMio():
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
         data       :  array-like
-            data to be written with same dimensions as dataset "msm_dset"
+            data to be written with same dimensions as dataset 'msm_dset'
         """
         fillvalue = float.fromhex('0x1.ep+122')
 

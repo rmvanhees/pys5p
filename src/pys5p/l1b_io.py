@@ -10,11 +10,13 @@
 """
 This module contains the class `L1Bio` to access Tropomi level-1B products.
 """
+from __future__ import annotations
 __all__ = ['L1Bio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
+from typing import Iterable
 
 import h5py
 import numpy as np
@@ -27,7 +29,7 @@ from .swir_texp import swir_exp_time
 
 
 # - local functions --------------------------------
-def pad_rows(arr1, arr2):
+def pad_rows(arr1: np.ndarray, arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Pad the array with the least numer of rows with NaN's
     """
@@ -52,7 +54,7 @@ def pad_rows(arr1, arr2):
             arr2 = np.full(arr1.shape, np.nan, dtype=arr2.dtype)
             arr2[:, 0:buff.shape[1], :] = buff
 
-    return (arr1, arr2)
+    return arr1, arr2
 
 
 # - class definition -------------------------------
@@ -77,7 +79,8 @@ class L1Bio:
     geo_dset = 'satellite_latitude,satellite_longitude'
     msm_type = None
 
-    def __init__(self, l1b_product, readwrite=False, verbose=False):
+    def __init__(self, l1b_product: str,
+                 readwrite: bool = False, verbose: bool = False) -> None:
         """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
@@ -159,7 +162,7 @@ class L1Bio:
         self.fid = None
 
     # ---------- PUBLIC FUNCTIONS ----------
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name: str) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -176,7 +179,7 @@ class L1Bio:
 
         return attr
 
-    def get_orbit(self):
+    def get_orbit(self) -> int | None:
         """Returns absolute orbit number.
         """
         res = self.get_attr('orbit')
@@ -185,7 +188,7 @@ class L1Bio:
 
         return int(res)
 
-    def get_processor_version(self):
+    def get_processor_version(self) -> str | None:
         """Returns version of the L01b processor.
         """
         attr = self.get_attr('processor_version')
@@ -195,7 +198,7 @@ class L1Bio:
         # pylint: disable=no-member
         return attr.decode('ascii')
 
-    def get_coverage_time(self):
+    def get_coverage_time(self) -> tuple[str, str] | None:
         """Returns start and end of the measurement coverage time.
         """
         attr_start = self.get_attr('time_coverage_start')
@@ -210,7 +213,7 @@ class L1Bio:
         return (attr_start.decode('ascii'),
                 attr_end.decode('ascii'))
 
-    def get_creation_time(self):
+    def get_creation_time(self) -> str | None:
         """Returns datetime when the L1b product was created.
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
@@ -224,7 +227,7 @@ class L1Bio:
 
         return None
 
-    def select(self, msm_type=None):
+    def select(self, msm_type: str | None = None) -> str | None:
         """Select a calibration measurement as <processing class>_<ic_id>.
 
         Parameters
@@ -261,7 +264,7 @@ class L1Bio:
 
         return self.bands
 
-    def sequence(self, band=None):
+    def sequence(self, band: str | None = None) -> np.ndarray | None:
         """Returns sequence number for each unique measurement based on ICID
         and delta_time.
 
@@ -319,7 +322,7 @@ class L1Bio:
 
         return res
 
-    def get_ref_time(self, band=None):
+    def get_ref_time(self, band: str | None = None) -> datetime | None:
         """Returns reference start time of measurements.
 
         Parameters
@@ -340,7 +343,7 @@ class L1Bio:
         return datetime(2010, 1, 1, 0, 0, 0) \
             + timedelta(seconds=int(grp['time'][0]))
 
-    def get_delta_time(self, band=None):
+    def get_delta_time(self, band: str | None = None) -> np.ndarray | None:
         """Returns offset from the reference start time of measurement.
 
         Parameters
@@ -360,7 +363,7 @@ class L1Bio:
 
         return grp['delta_time'][0, :].astype(int)
 
-    def get_instrument_settings(self, band=None):
+    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
         """Returns instrument settings of measurement.
 
         Parameters
@@ -377,8 +380,8 @@ class L1Bio:
 
         msm_path = self.__msm_path.replace('%', band)
         #
-        # Due to a bug in python module h5py (v2.6.0), it fails to read
-        # the UVN instrument settings directy, with exception:
+        # Due to a bug in python module `h5py` (v2.6.0), it fails to read
+        # the UVN instrument settings direct, with exception:
         #    KeyError: 'Unable to open object (Component not found)'.
         # This is my workaround
         #
@@ -391,7 +394,7 @@ class L1Bio:
 
         return instr
 
-    def get_exposure_time(self, band=None):
+    def get_exposure_time(self, band: str | None = None) -> np.ndarray | None:
         """Returns pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters `int_delay` and
@@ -415,7 +418,7 @@ class L1Bio:
         return [swir_exp_time(instr['int_delay'], instr['int_hold'])
                 for instr in instr_arr]
 
-    def get_housekeeping_data(self, band=None):
+    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
         """Returns housekeeping data of measurements.
 
         Parameters
@@ -435,17 +438,18 @@ class L1Bio:
 
         return np.squeeze(grp['housekeeping_data'])
 
-    def get_geo_data(self, geo_dset=None, band=None):
+    def get_geo_data(self, band: str | None = None,
+                     geo_dset: str | None = None) -> dict | None:
         """Returns data of selected datasets from the GEODATA group.
 
         Parameters
         ----------
-        geo_dset  :  string
-            Name(s) of datasets in the GEODATA group, comma separated
-            Default is 'satellite_latitude,satellite_longitude'
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
             Default is 'None' which returns the first available band
+        geo_dset  :  str
+            Name(s) of datasets in the GEODATA group, comma separated
+            Default is 'satellite_latitude,satellite_longitude'
 
         Returns
         -------
@@ -470,14 +474,15 @@ class L1Bio:
 
         return res
 
-    def get_msm_attr(self, msm_dset, attr_name, band=None):
+    def get_msm_attr(self, msm_dset: str, attr_name: str,
+                     band: str | None = None) -> np.ndarray | float | None:
         """Returns value attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
-        attr_name : string
+        attr_name : str
             Name of the attribute
-        msm_dset  :  string
+        msm_dset  :  str
             Name of measurement dataset
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
@@ -505,13 +510,15 @@ class L1Bio:
 
         return None
 
-    def get_msm_data(self, msm_dset, band=None,
-                     fill_as_nan=False, msm_to_row=None):
+    def get_msm_data(self, msm_dset: str,
+                     band: str | None = None,
+                     fill_as_nan: bool = False,
+                     msm_to_row: bool = None) -> np.ndarray | None:
         """Reads data from dataset "msm_dset".
 
         Parameters
         ----------
-        msm_dset :  string
+        msm_dset :  str
             Name of measurement dataset.
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
@@ -523,9 +530,9 @@ class L1Bio:
             Calibration, Irradiance
                both bands (Calibration, Irradiance)
 
-        fill_as_nan :  boolean
+        fill_as_nan :  bool
             Set data values equal (KNMI) FillValue to NaN
-        msm_to_row : boolean
+        msm_to_row : bool
             Combine two bands using padding if necessary
 
         Returns
@@ -569,7 +576,7 @@ class L1Bio:
 
         return np.concatenate(data, axis=data[0].ndim-1)
 
-    def set_msm_data(self, msm_dset, new_data):
+    def set_msm_data(self, msm_dset: str, new_data: np.ndarray | Iterable):
         """Replace data of dataset "msm_dset" with new_data.
 
         Parameters
@@ -674,12 +681,12 @@ class L1BioENG:
         self.fid = None
 
     # ---------- PUBLIC FUNCTIONS ----------
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name: str) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
         ----------
-        attr_name :  string
+        attr_name :  str
            Name of the attribute
         """
         if attr_name not in self.fid.attrs.keys():
@@ -691,7 +698,7 @@ class L1BioENG:
 
         return attr
 
-    def get_orbit(self):
+    def get_orbit(self) -> int | None:
         """Returns absolute orbit number.
         """
         res = self.get_attr('orbit')
@@ -700,7 +707,7 @@ class L1BioENG:
 
         return int(res)
 
-    def get_processor_version(self):
+    def get_processor_version(self) -> str | None:
         """Returns version of the L01b processor
         """
         attr = self.get_attr('processor_version')
@@ -710,7 +717,7 @@ class L1BioENG:
         # pylint: disable=no-member
         return attr.decode('ascii')
 
-    def get_coverage_time(self):
+    def get_coverage_time(self) -> tuple[str, str] | None:
         """Returns start and end of the measurement coverage time.
         """
         attr_start = self.get_attr('time_coverage_start')
@@ -725,7 +732,7 @@ class L1BioENG:
         return (attr_start.decode('ascii'),
                 attr_end.decode('ascii'))
 
-    def get_creation_time(self):
+    def get_creation_time(self) -> str | None:
         """Returns datetime when the L1b product was created
         """
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
@@ -739,22 +746,22 @@ class L1BioENG:
 
         return None
 
-    def get_ref_time(self):
+    def get_ref_time(self) -> np.ndarray:
         """Returns reference start time of measurements.
         """
         return self.fid['reference_time'][0].astype(int)
 
-    def get_delta_time(self):
+    def get_delta_time(self) -> np.ndarray:
         """Returns offset from the reference start time of measurement.
         """
         return self.fid['/MSMTSET/msmtset']['delta_time'][:].astype(int)
 
-    def get_msmtset(self):
+    def get_msmtset(self) -> np.ndarray:
         """Returns L1B_ENG_DB/SATELLITE_INFO/satellite_pos.
         """
         return self.fid['/SATELLITE_INFO/satellite_pos'][:]
 
-    def get_msmtset_db(self):
+    def get_msmtset_db(self) -> np.ndarray:
         """Returns compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset.
 
         Notes
@@ -804,17 +811,21 @@ class L1BioENG:
 
         return msmt
 
-    def get_swir_hk_db(self, stats=None, fill_as_nan=False):
-        """Returns the most important SWIR house keeping parameters.
+    def get_swir_hk_db(self, stats: bool | None = None,
+                       fill_as_nan: bool | None = False) \
+            -> np.ndarray | tuple[np.ndarray, np.ndarray] | None:
+        """Returns the most important SWIR housekeeping parameters.
 
         Parameters
         ----------
-        fill_as_nan :  boolean
+        stats : bool
+            Add statistics on housekeeping parameters
+        fill_as_nan :  bool
             Replace (float) FillValues with Nan's, when True
 
         Notes
         -----
-        This function is used to fill the SQLite product datbase and
+        This function is used to fill the SQLite product database and
         HDF5 monitoring database
         """
         dtype_hk_db = np.dtype([('detector_temp', np.float32),
@@ -893,6 +904,6 @@ class L1BioENG:
                 else:
                     hk_min[key][0] = np.nanmin(swir_hk[key])
                     hk_max[key][0] = np.nanmax(swir_hk[key])
-            return (hk_min, hk_max)
+            return hk_min, hk_max
 
         return None

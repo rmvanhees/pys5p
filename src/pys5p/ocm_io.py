@@ -10,10 +10,12 @@
 """
 This module contain class `OCMio` to access on-ground calibration data.
 """
+from __future__ import annotations
 __all__ = ['OCMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import h5py
 import numpy as np
@@ -24,7 +26,8 @@ from moniplot.biweight import Biweight
 
 
 # - local functions --------------------------------
-def band2channel(dict_a, dict_b, mode=None):
+def band2channel(dict_a: dict, dict_b: dict,
+                 mode: bool = None) -> np.ndarray | tuple[Any, Any]:
     """
     Store data from a dictionary as returned by get_msm_data to a ndarray
 
@@ -46,7 +49,7 @@ def band2channel(dict_a, dict_b, mode=None):
              is calculated using np.nanmedian(data, axis=0)
 
         'biweight'
-             is calculated using pys5p.biweight(data, axis=0)
+             is calculated using biweight(data, axis=0)
 
     Returns
     -------
@@ -55,7 +58,7 @@ def band2channel(dict_a, dict_b, mode=None):
 
     Examples
     --------
-    >>> data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
+    > data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
     """
     if mode is None:
         mode = []
@@ -100,11 +103,11 @@ def band2channel(dict_a, dict_b, mode=None):
     if 'combined' in mode:
         return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
 
-    return (data_a, data_b)
+    return data_a, data_b
 
 
 # - class definition -------------------------------
-class OCMio():
+class OCMio:
     """
     This class should offer all the necessary functionality to read Tropomi
     on-ground calibration products (Lx)
@@ -164,7 +167,7 @@ class OCMio():
 
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
-    def get_processor_version(self):
+    def get_processor_version(self) -> str:
         """Returns version of the L01b processor.
         """
         res = self.fid.attrs['processor_version']
@@ -173,7 +176,7 @@ class OCMio():
             res = res.decode('ascii')
         return res
 
-    def get_coverage_time(self):
+    def get_coverage_time(self) -> tuple[str, str]:
         """Returns start and end of the measurement coverage time.
         """
         t_bgn = self.fid.attrs['time_coverage_start']
@@ -185,9 +188,9 @@ class OCMio():
         if isinstance(t_end, bytes):
             # pylint: disable=no-member
             t_end = t_end.decode('ascii')
-        return (t_bgn, t_end)
+        return t_bgn, t_end
 
-    def get_attr(self, attr_name):
+    def get_attr(self, attr_name) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -201,7 +204,7 @@ class OCMio():
         return None
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time(self):
+    def get_ref_time(self) -> np.ndarray | None:
         """Returns reference start time of measurements.
         """
         if not self.__msm_path:
@@ -216,7 +219,7 @@ class OCMio():
 
         return res
 
-    def get_delta_time(self):
+    def get_delta_time(self) -> np.ndarray | None:
         """Returns offset from the reference start time of measurement.
         """
         if not self.__msm_path:
@@ -230,7 +233,7 @@ class OCMio():
 
         return res
 
-    def get_instrument_settings(self):
+    def get_instrument_settings(self) -> np.ndarray | None:
         """Returns instrument settings of measurement.
         """
         if not self.__msm_path:
@@ -244,7 +247,7 @@ class OCMio():
 
         return res
 
-    def get_gse_stimuli(self):
+    def get_gse_stimuli(self) -> np.ndarray | None:
         """Returns GSE stimuli parameters.
         """
         if not self.__msm_path:
@@ -258,7 +261,7 @@ class OCMio():
 
         return res
 
-    def get_exposure_time(self):
+    def get_exposure_time(self) -> np.ndarray | None:
         """Returns the exact pixel exposure time of the measurements.
         """
         if not self.__msm_path:
@@ -274,7 +277,7 @@ class OCMio():
 
         return instr['exposure_time']
 
-    def get_housekeeping_data(self):
+    def get_housekeeping_data(self) -> np.ndarray | None:
         """Returns housekeeping data of measurements.
         """
         if not self.__msm_path:
@@ -289,14 +292,15 @@ class OCMio():
         return res
 
     # -------------------------
-    def select(self, ic_id=None, *, msm_grp=None):
+    def select(self, ic_id: int = None, *,
+               msm_grp: str | None = None) -> int:
         """Select a measurement as BAND%/ICID_<ic_id>_GROUP_%.
 
         Parameters
         ----------
-        ic_id  :  integer
+        ic_id  :  int
           used as "BAND%/ICID_{}_GROUP_%".format(ic_id)
-        msm_grp : string
+        msm_grp : str
           select measurement group with name msm_grp
 
         All measurements groups are shown when ic_id and msm_grp are None
@@ -334,14 +338,14 @@ class OCMio():
         return len(self.__msm_path)
 
     # -------------------------
-    def get_msm_attr(self, msm_dset, attr_name):
+    def get_msm_attr(self, msm_dset: str, attr_name: str) -> str | None:
         """Returns attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
-        msm_dset    :  string
+        msm_dset :  str
             name of measurement dataset
-        attr_name : string
+        attr_name : str
             name of the attribute
 
         Returns
@@ -366,13 +370,14 @@ class OCMio():
         return None
 
     # -------------------------
-    def get_msm_data(self, msm_dset, fill_as_nan=True,
-                     frames=None, columns=None):
+    def get_msm_data(self, msm_dset: str, fill_as_nan: bool = True,
+                     frames: list[int, int] | None = None,
+                     columns: list[int, int] | None = None) -> dict:
         """Returns data of measurement dataset "msm_dset".
 
         Parameters
         ----------
-        msm_dset    :  string
+        msm_dset    :  str
             name of measurement dataset
             if msm_dset is None then show names of available datasets
 
@@ -448,8 +453,10 @@ class OCMio():
         return res
 
     # -------------------------
-    def read_direct_msm(self, msm_dset, dest_sel=None,
-                        dest_dtype=None, fill_as_nan=False):
+    def read_direct_msm(self, msm_dset: str,
+                        dest_sel: tuple[slice | int] | None = None,
+                        dest_dtype: np.dtype | None = None,
+                        fill_as_nan: bool = False) -> dict | None:
         """The faster implementation of get_msm_data().
 
         Parameters
