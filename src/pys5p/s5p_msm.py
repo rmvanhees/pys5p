@@ -19,7 +19,6 @@ from collections import namedtuple
 from copy import deepcopy
 from pathlib import PurePath
 
-import h5py
 from h5py import Dataset
 import numpy as np
 
@@ -96,7 +95,7 @@ class S5Pmsm:
     def __init__(self, dset: Dataset | np.ndarray,
                  data_sel: tuple[slice | int] | None = None,
                  datapoint: bool = False):
-        """Read measurement data from a Tropomi OCAL, ICM, of L1B product
+        """Read measurement data from a Tropomi OCAL, ICM, of L1B product.
         """
         # initialize object
         self.name = 'value'
@@ -125,11 +124,18 @@ class S5Pmsm:
 
         return '\n'.join(res)
 
+    def coord_name(self, axis: int):
+        """Return name of coordinate."""
+        return self.coords._fields[axis]
+
+    def coord_replace(self, key: str, dims: np.ndarray):
+        """Change values of a coordinate."""
+        return self.coords._replace(**{key: dims})
+
     def __from_h5_dset(self, h5_dset: Dataset,
                        data_sel: tuple[slice | int] | None,
                        datapoint: bool):
-        """
-        initialize S5Pmsm object from h5py dataset
+        """Initialize S5Pmsm object from h5py dataset.
         """
         self.name = PurePath(h5_dset.name).name
 
@@ -253,8 +259,7 @@ class S5Pmsm:
 
     def __from_ndarray(self, data: np.ndarray,
                        data_sel: tuple[slice | int] | None):
-        """
-        initialize S5Pmsm object from a ndarray
+        """Initialize S5Pmsm object from a ndarray.
         """
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -270,15 +275,13 @@ class S5Pmsm:
             raise RuntimeError('failed to set the coordinates') from exc
 
     def copy(self):
-        """
-        return a deep copy of the current object
+        """Returns a deep copy of the current object.
         """
         return deepcopy(self)
 
     def set_coords(self, coords_data: list[np.ndarray],
                    coords_name: list[str] | None = None):
-        """
-        Set coordinates of data
+        """Set coordinates of data.
 
         Parameters
         ----------
@@ -308,39 +311,42 @@ class S5Pmsm:
 
     def set_coverage(self, coverage: tuple[str, str],
                      force: bool = False):
-        """
-        Set the coverage attribute, as (coverageStart, coverageEnd)
+        """Set the coverage attribute, as (coverageStart, coverageEnd).
+
+        Parameters
+        ----------
+        coverage : tuple[str, str]
+        force :  bool, default=False
+            overwrite when force is true
+
+        Notes
+        -----
         Both elements are expected to be datatime objects.
-        Overwrite when force is true
         """
         if self.coverage is None or force:
             self.coverage = coverage
 
     def set_units(self, units: str | None, force: bool = False):
-        """
-        Set the units attribute, overwrite when force is true
+        """Set the units attribute, overwrite when force is true.
         """
         if self.units is None or force:
             self.units = units
 
     def set_fillvalue(self):
-        """
-        Set fillvalue to KNMI undefined
+        """Set fillvalue to KNMI undefined.
         """
         if np.issubdtype(self.value.dtype, np.floating):
             if self.fillvalue is None or self.fillvalue == 0.:
                 self.fillvalue = float.fromhex('0x1.ep+122')
 
     def set_long_name(self, name: str, force: bool = False):
-        """
-        Set the long_name attribute, overwrite when force is true
+        """Set the long_name attribute, overwrite when force is true.
         """
         if force or not self.long_name:
             self.long_name = name
 
     def fill_as_nan(self):
-        """
-        Replace fillvalues in data with NaN's
+        """Replace fillvalues in data with NaN's
 
         Works only on datasets with HDF5 datatype 'float' or 'datapoints'
         """
@@ -350,13 +356,12 @@ class S5Pmsm:
                 self.error[(self.error == self.fillvalue)] = np.nan
 
     def sort(self, axis: int = 0):
-        """
-        Sort data and its coordinate along a given axis
+        """Sort data and its coordinate along a given axis.
 
         Parameters
         ----------
-        axis  : int, optional
-           axis for which the array will be sorted. Default is 0.
+        axis  : int, default=0
+           axis for which the array will be sorted.
         """
         if not isinstance(axis, int):
             raise TypeError('axis not an integer')
@@ -373,7 +378,7 @@ class S5Pmsm:
                     self.error = (self.error[0][indx, ...],
                                   self.error[1][indx, ...])
                 else:
-                    self.error = self.error[indx, ...]
+                    self.error = self.error[indx, :]
         elif axis == 1:
             self.value = self.value[:, indx, ...]
             if self.error is not None:
@@ -394,15 +399,14 @@ class S5Pmsm:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
     def concatenate(self, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
-        """
-        Concatenate two measurement datasets, the current with another.
+        """Concatenate two measurement datasets, the current with another.
 
         Parameters
         ----------
         msm   :  pys5p.S5Pmsm
            an S5Pmsm object
-        axis  : int, optional
-           The axis for which the array will be joined. Default is 0.
+        axis  : int, default=0
+           The axis for which the array will be joined.
 
         Returns
         -------
@@ -416,76 +420,77 @@ class S5Pmsm:
         if self.name != PurePath(msm.name).name:
             raise TypeError('combining dataset with different name')
 
-        if self.error is None and msm.error is None:
-            datapoint = False
-        elif self.error is not None and msm.error is not None:
-            datapoint = True
-        else:
-            raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
-
         # all but the last 2 dimensions have to be equal
         if self.value.shape[:-2] != msm.value.shape[:-2]:
             raise TypeError('all but the last 2 dimensions should be equal')
 
+        if (self.error is None and msm.error is not None) \
+           or (self.error is not None and msm.error is None):
+            raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
+
+        # concatenate the values
         if axis == 0:
             self.value = np.concatenate((self.value, msm.value), axis=axis)
-            if datapoint:
-                self.error = np.concatenate((self.error, msm.error),
-                                            axis=axis)
         elif axis == 1:
             if self.value.shape[0] == msm.value.shape[0]:
                 self.value = np.concatenate((self.value, msm.value), axis=axis)
-                if datapoint:
-                    self.error = np.concatenate((self.error, msm.error),
-                                                axis=axis)
             else:
                 self.value = np.concatenate(pad_rows(self.value, msm.value),
                                             axis=axis)
-                if datapoint:
-                    self.error = np.concatenate(
-                        pad_rows(self.error, msm.error), axis=axis)
         elif axis == 2:
             if self.value.shape[1] == msm.value.shape[1]:
                 self.value = np.concatenate((self.value, msm.value), axis=axis)
-                if datapoint:
-                    self.error = np.concatenate((self.error, msm.error),
-                                                axis=axis)
             else:
                 self.value = np.concatenate(pad_rows(self.value, msm.value),
                                             axis=axis)
-                if datapoint:
-                    self.error = np.concatenate(
-                        pad_rows(self.error, msm.error), axis=axis)
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
+        # concatenate the errors
+        if self.error is not None and msm.error is not None:
+            if axis == 0:
+                self.error = np.concatenate((self.error, msm.error), axis=axis)
+            elif axis == 1:
+                if self.value.shape[0] == msm.value.shape[0]:
+                    self.error = np.concatenate(
+                        (self.error, msm.error), axis=axis)
+                else:
+                    self.error = np.concatenate(
+                        pad_rows(self.error, msm.error), axis=axis)
+            elif axis == 2:
+                if self.value.shape[1] == msm.value.shape[1]:
+                    self.error = np.concatenate(
+                        (self.error, msm.error), axis=axis)
+                else:
+                    self.error = np.concatenate(
+                        pad_rows(self.error, msm.error), axis=axis)
+
         # now extent coordinate of the fastest axis
-        key = self.coords._fields[axis]
+        key = self.coord_name(axis)
         if msm.coords[axis][0] == 0:
             dims = np.concatenate((self.coords[axis],
                                    len(self.coords[axis]) + msm.coords[axis]))
         else:
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
-        self.coords = self.coords._replace(**{key: dims})
+        self.coords = self.coord_replace(key, dims)
         return self
 
     def nanpercentile(self, vperc: int | list[float],
                       data_sel: tuple[slice | int] | None = None,
                       axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""
-        Returns percentile(s) of the data in the S5Pmsm
+        r"""Returns percentile(s) of the data in the S5Pmsm.
 
         Parameters
         ----------
-        vperc       :  list
+        vperc :  list
            range to normalize luminance data between percentiles min and max of
            array data.
-        data_sel  :  numpy slice
+        data_sel :  numpy slice
            A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
-        axis      : int, optional
-           Axis or axes along which the medians are computed. Default is 0.
-        keepdims  : bool, optional
+        axis : int, default=0
+           Axis or axes along which the medians are computed.
+        keepdims : bool, default=False
            If this is set to True, the axes which are reduced are left in the
            result as dimensions with size one. With this option, the result
            will broadcast correctly against the original arr.
@@ -508,9 +513,6 @@ class S5Pmsm:
              'value' is replaced by percentile('value', vperc[1])
              'error' is replaced by percentile('value', (vperc[0], vperc[2]))
         """
-        if isinstance(axis, int):
-            axis = (axis,)
-
         if isinstance(vperc, int):
             vperc = (vperc,)
         else:
@@ -523,13 +525,13 @@ class S5Pmsm:
             raise TypeError('dimension vperc must be 1 or 3')
 
         if data_sel is None:
-            if self.value.size <= 1 or self.value.ndim <= max(axis):
+            if self.value.size <= 1 or self.value.ndim <= axis:
                 return self
             perc = np.nanpercentile(self.value, vperc,
                                     axis=axis, keepdims=keepdims)
         else:
             if self.value[data_sel].size <= 1 \
-               or self.value[data_sel].ndim <= max(axis):
+               or self.value[data_sel].ndim <= axis:
                 return self
             perc = np.nanpercentile(self.value[data_sel], vperc,
                                     axis=axis, keepdims=keepdims)
@@ -541,18 +543,18 @@ class S5Pmsm:
 
         # adjust the coordinates
         if keepdims:
-            key = self.coords._fields[axis]
+            key = self.coord_name(axis)
             if self.coords[axis][0] == 0:
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key: dims})
+            self.coords = self.coord_replace(key, dims)
         else:
             keys = []
             dims = []
-            for ii in range(self.value.ndim+len(axis)):
-                if ii not in axis:
-                    keys.append(self.coords._fields[ii])
+            for ii in range(self.value.ndim+1):
+                if ii != axis:
+                    keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
@@ -561,17 +563,16 @@ class S5Pmsm:
 
     def biweight(self, data_sel: tuple[slice | int] | None = None,
                  axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""
-        Returns biweight median of the data in the S5Pmsm
+        r"""Returns biweight median of the data in the S5Pmsm.
 
         Parameters
         ----------
         data_sel  :  numpy slice
            A numpy slice generated for example `numpy.s\_`. Can be used to skip
            the first and/or last frame
-        axis  : int, optional
-           Axis or axes along which the medians are computed. Default is 0.
-        keepdims  : bool, optional
+        axis  : int, default=0
+           Axis or axes along which the medians are computed.
+        keepdims  : bool, default=False
            If this is set to True, the axes which are reduced are left in the
            result as dimensions with size one. With this option, the result
            will broadcast correctly against the original arr.
@@ -603,18 +604,18 @@ class S5Pmsm:
 
         # adjust the coordinates
         if keepdims:
-            key = self.coords._fields[axis]
+            key = self.coord_name(axis)
             if self.coords[axis][0] == 0:
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key: dims})
+            self.coords = self.coord_replace(key, dims)
         else:
             keys = []
             dims = []
             for ii in range(self.value.ndim+1):
                 if ii != axis:
-                    keys.append(self.coords._fields[ii])
+                    keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
@@ -623,18 +624,17 @@ class S5Pmsm:
 
     def nanmedian(self, data_sel: tuple[slice | int] | None = None,
                   axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""
-        Returns S5Pmsm object containing median & standard deviation of the
-        original data
+        r"""Returns S5Pmsm object containing median & standard deviation
+        of the original data.
 
         Parameters
         ----------
-        data_sel  :  numpy slice, optional
-           A numpy slice generated for example `numpy.s\_`. Can be used to skip
-           the first and/or last frame
-        axis      : int, optional
-           Axis or axes along which the medians are computed. Default is 0.
-        keepdims  : bool, optional
+        data_sel :  numpy slice, optional
+           A numpy slice generated for example `numpy.s\_`.
+           Can be used to skip the first and/or last frame
+        axis :  int, default=0
+           Axis or axes along which the medians are computed.
+        keepdims  : bool, default=False
            If this is set to True, the axes which are reduced are left in the
            result as dimensions with size one. With this option, the result
            will broadcast correctly against the original arr.
@@ -665,18 +665,18 @@ class S5Pmsm:
 
         # adjust the coordinates
         if keepdims:
-            key = self.coords._fields[axis]
+            key = self.coord_name(axis)
             if self.coords[axis][0] == 0:
                 dims = [0]
             else:
                 dims = np.median(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key: dims})
+            self.coords = self.coord_replace(key, dims)
         else:
             keys = []
             dims = []
             for ii in range(self.value.ndim+1):
                 if ii != axis:
-                    keys.append(self.coords._fields[ii])
+                    keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
@@ -685,26 +685,25 @@ class S5Pmsm:
 
     def nanmean(self, data_sel: tuple[slice | int] | None = None,
                 axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""
-        Returns S5Pmsm object containing mean & standard deviation of the
-        original data
+        r"""Returns S5Pmsm object containing mean & standard deviation
+        of the original data.
 
         Parameters
         ----------
-        data_sel  :  numpy slice, optional
-           A numpy slice generated for example `numpy.s\_`. Can be used to skip
-           the first and/or last frame
-        axis      : int, optional
-           Axis or axes along which the mean are computed. Default is 0.
-        keepdims  : bool, optional
+        data_sel :  numpy slice, optional
+           A numpy slice generated for example `numpy.s\_`.
+           Can be used to skip the first and/or last frame
+        axis : int, default=0
+           Axis or axes along which the mean are computed.
+        keepdims :  bool, default=False
            If this is set to True, the axes which are reduced are left in the
            result as dimensions with size one. With this option, the result
            will broadcast correctly against the original arr.
 
         Returns
         -------
-        S5Pmsm object with its data (value & error) replaced by its nanmean and
-        standard deviation along one axis.
+        S5Pmsm object with its data (value & error) replaced by its nanmean
+        and standard deviation along one axis.
         The coordinates are adjusted, accordingly.
         """
         if data_sel is None:
@@ -727,18 +726,18 @@ class S5Pmsm:
 
         # adjust the coordinates
         if keepdims:
-            key = self.coords._fields[axis]
+            key = self.coord_name(axis)
             if self.coords[axis][0] == 0:
                 dims = [0]
             else:
                 dims = np.mean(self.coords[axis], keepdims=keepdims)
-            self.coords = self.coords._replace(**{key: dims})
+            self.coords = self.coord_replace(key, dims)
         else:
             keys = []
             dims = []
             for ii in range(self.value.ndim+1):
                 if ii != axis:
-                    keys.append(self.coords._fields[ii])
+                    keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
             coords_namedtuple = namedtuple('Coords', keys)
             self.coords = coords_namedtuple._make(dims)
@@ -746,8 +745,7 @@ class S5Pmsm:
         return self
 
     def transpose(self) -> S5Pmsm:
-        """
-        Transpose data and coordinates of an S5Pmsm object
+        """Transpose data and coordinates of an S5Pmsm object.
         """
         if self.value.ndim <= 1:
             return self
@@ -759,7 +757,7 @@ class S5Pmsm:
         keys = []
         dims = []
         for ii in range(self.value.ndim):
-            keys.append(self.coords._fields[ii])
+            keys.append(self.coord_name(ii))
             dims.append(self.coords[ii][:])
         tmp = keys[1]
         keys[1] = keys[0]
