@@ -1,13 +1,13 @@
 # pyproject.toml
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=45", "setuptools_scm[toml]>6.2", "wheel"]
+requires = ["setuptools>=65", "setuptools_scm[toml]>=7.1", "wheel"]
 
 [project]
 name = "pys5p"
 description = "Software package to access Sentinel-5p Tropomi data products"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 authors = [
   {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"},
@@ -20,20 +20,17 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 dependencies = [
-  "h5py~=2.10.0; python_version=='3.9'",
-  "h5py>=3.5; python_version!='3.9'",
-  "moniplot>=0.5",
-  "numpy>=1.19",
+  "h5py>=3.8",
+  "moniplot>=0.5.8",
+  "numpy>=1.24",
   "netCDF4>=1.5",
-  "xarray~=0.19.0; python_version=='3.9'",
-  "xarray>=2022.3; python_version!='3.9'",
+  "xarray>=2023.3",
 ]
 dynamic = ["version"]
 
