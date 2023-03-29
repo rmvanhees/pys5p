@@ -11,7 +11,7 @@ There are two definitions of the usable area on the SWIR detector:
 
  'illuminated':
     Detector area illuminated by external sources, defined as
-    an rectangular area where the signal is at least 50% of the
+    a rectangular area where the signal is at least 50% of the
     maximum signal. Coordinates: rows [11:228], columns [16:991].
 
  'level2':
@@ -27,7 +27,7 @@ __all__ = ['coords', 'mask']
 import numpy as np
 
 
-def coords(mode='illuminated', band='78') -> slice:
+def coords(mode: str = 'illuminated', band: str = '78') -> slice:
     """
     Return slice defining the illuminated region on the SWIR detector
 
@@ -54,7 +54,7 @@ def coords(mode='illuminated', band='78') -> slice:
     return np.s_[11:228, 16:991]
 
 
-def mask(mode='illuminated', band='78'):
+def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
     """
     Return mask of the illuminated region, where the value of the illuminated
     pixels are set to True.

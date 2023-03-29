@@ -18,6 +18,7 @@ the fit result. Weight factors are determined such to effectively spread the
 data points evenly over the whole range of x, making the result less
 sensitive to the actual spacing between the data points.
 """
+from __future__ import annotations
 __all__ = ['rls_fit', 'rls_fit0']
 
 import numpy as np
@@ -48,7 +49,8 @@ def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     return buff
 
 
-def rls_fit(xdata: np.ndarray, ydata) -> tuple:
+def rls_fit(xdata: np.ndarray,
+            ydata: np.ndarray | ma.MaskedArray) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
 
@@ -135,7 +137,8 @@ def rls_fit(xdata: np.ndarray, ydata) -> tuple:
             sc0.reshape(img_shape), sc1.reshape(img_shape))
 
 
-def rls_fit0(xdata: np.ndarray, ydata) -> tuple:
+def rls_fit0(xdata: np.ndarray,
+             ydata: np.ndarray | ma.MaskedArray) -> tuple:
     """
     Perform RLS regression finding linear dependence y(x) = c1 * x
 
@@ -200,4 +203,4 @@ def rls_fit0(xdata: np.ndarray, ydata) -> tuple:
     chi2 = np.abs(q22 - q00 * cc1 ** 2) / np.clip(num - 1, 1, None)
     chi2[num <= 1] = np.nan
     sc1 = np.sqrt(chi2 / q00)
-    return (cc1.reshape(img_shape), sc1.reshape(img_shape))
+    return cc1.reshape(img_shape), sc1.reshape(img_shape)

@@ -12,12 +12,14 @@ This module contains the class `S5Pmsm`
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
+from __future__ import annotations
 __all__ = ['S5Pmsm']
 
 from collections import namedtuple
 from copy import deepcopy
 from pathlib import PurePath
 
+import h5py
 from h5py import Dataset
 import numpy as np
 
@@ -43,7 +45,8 @@ from moniplot.biweight import Biweight
 
 
 # - local functions --------------------------------
-def pad_rows(arr1, arr2):
+def pad_rows(arr1: np.ndarray,
+             arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Pad the array with the least numer of rows with NaN's
     """
@@ -66,34 +69,34 @@ def pad_rows(arr1, arr2):
             arr2 = np.full_like(arr1, np.nan)
             arr2[:, 0:buff.shape[1], :] = buff
 
-    return (arr1, arr2)
+    return arr1, arr2
 
 
 # - class definition -------------------------------
-class S5Pmsm():
-    """
+class S5Pmsm:
+    r"""
     Definition of class S5Pmsm which contains the data of a HDF5 dataset,
-    including its attributes (CF convension)
+    including its attributes (CF conversion)
+
+    Parameters
+    ----------
+    dset      :  h5py.Dataset or ndarray
+        h5py dataset from which the data is read, data is used to
+        initialize S5Pmsm object
+    data_sel  :  numpy slice
+        a numpy slice generated for example `numpy.s\_`
+    datapoint :  bool
+        to indicate that the dataset is a compound of type datapoint
+
+    Returns
+    -------
+    numpy structure with dataset data and attributes, including data,
+    fillvalue, coordinates, units, ...
     """
-    def __init__(self, dset, data_sel=None, datapoint=False):
-        r"""
-        Read measurement data from a Tropomi OCAL, ICM, of L1B product
-
-        Parameters
-        ----------
-        dset      :  h5py.Dataset or ndarray
-           h5py dataset from which the data is read, data is used to
-           initalize S5Pmsm object
-        data_sel  :  numpy slice
-           a numpy slice generated for example `numpy.s\_`
-        datapoint :  boolean
-           to indicate that the dataset is a compound of type datapoint
-
-        Returns
-        -------
-        numpy structure with dataset data and attributes, including data,
-        fillvalue, coordinates, units, ...
-
+    def __init__(self, dset: Dataset | np.ndarray,
+                 data_sel: tuple[slice | int] | None = None,
+                 datapoint: bool = False):
+        """Read measurement data from a Tropomi OCAL, ICM, of L1B product
         """
         # initialize object
         self.name = 'value'
@@ -122,7 +125,9 @@ class S5Pmsm():
 
         return '\n'.join(res)
 
-    def __from_h5_dset(self, h5_dset, data_sel, datapoint):
+    def __from_h5_dset(self, h5_dset: Dataset,
+                       data_sel: tuple[slice | int] | None,
+                       datapoint: bool):
         """
         initialize S5Pmsm object from h5py dataset
         """
@@ -246,7 +251,8 @@ class S5Pmsm():
             else:
                 self.long_name = h5_dset.attrs['long_name']
 
-    def __from_ndarray(self, data, data_sel):
+    def __from_ndarray(self, data: np.ndarray,
+                       data_sel: tuple[slice | int] | None):
         """
         initialize S5Pmsm object from a ndarray
         """
@@ -269,7 +275,8 @@ class S5Pmsm():
         """
         return deepcopy(self)
 
-    def set_coords(self, coords_data, coords_name=None):
+    def set_coords(self, coords_data: list[np.ndarray],
+                   coords_name: list[str] | None = None):
         """
         Set coordinates of data
 
@@ -299,7 +306,8 @@ class S5Pmsm():
         coords_namedtuple = namedtuple('Coords', keys)
         self.coords = coords_namedtuple._make(coords_data)
 
-    def set_coverage(self, coverage, force=False):
+    def set_coverage(self, coverage: tuple[str, str],
+                     force: bool = False):
         """
         Set the coverage attribute, as (coverageStart, coverageEnd)
         Both elements are expected to be datatime objects.
@@ -308,7 +316,7 @@ class S5Pmsm():
         if self.coverage is None or force:
             self.coverage = coverage
 
-    def set_units(self, units, force=False):
+    def set_units(self, units: str | None, force: bool = False):
         """
         Set the units attribute, overwrite when force is true
         """
@@ -323,7 +331,7 @@ class S5Pmsm():
             if self.fillvalue is None or self.fillvalue == 0.:
                 self.fillvalue = float.fromhex('0x1.ep+122')
 
-    def set_long_name(self, name, force=False):
+    def set_long_name(self, name: str, force: bool = False):
         """
         Set the long_name attribute, overwrite when force is true
         """
@@ -341,7 +349,7 @@ class S5Pmsm():
             if self.error is not None:
                 self.error[(self.error == self.fillvalue)] = np.nan
 
-    def sort(self, axis=0):
+    def sort(self, axis: int = 0):
         """
         Sort data and its coordinate along a given axis
 
@@ -385,7 +393,7 @@ class S5Pmsm():
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
-    def concatenate(self, msm, axis=0):
+    def concatenate(self, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
         """
         Concatenate two measurement datasets, the current with another.
 
@@ -461,7 +469,9 @@ class S5Pmsm():
         self.coords = self.coords._replace(**{key: dims})
         return self
 
-    def nanpercentile(self, vperc, data_sel=None, axis=0, keepdims=False):
+    def nanpercentile(self, vperc: int | list[float],
+                      data_sel: tuple[slice | int] | None = None,
+                      axis: int = 0, keepdims: bool = False) -> S5Pmsm:
         r"""
         Returns percentile(s) of the data in the S5Pmsm
 
@@ -485,7 +495,7 @@ class S5Pmsm():
         S5Pmsm object with the original data replaced by the percentiles along
         one of the axis, see below. The coordinates are adjusted, accordingly.
 
-        You should atleast supply one percentile and atmost three.
+        You should at least supply one percentile and at most three.
          vperc is instance 'int' or len(vperc) == 1:
              'value' is replaced by its (nan-)percentile vperc
              'error' is unchanged
@@ -549,7 +559,8 @@ class S5Pmsm():
 
         return self
 
-    def biweight(self, data_sel=None, axis=0, keepdims=False):
+    def biweight(self, data_sel: tuple[slice | int] | None = None,
+                 axis: int = 0, keepdims: bool = False) -> S5Pmsm:
         r"""
         Returns biweight median of the data in the S5Pmsm
 
@@ -610,7 +621,8 @@ class S5Pmsm():
 
         return self
 
-    def nanmedian(self, data_sel=None, axis=0, keepdims=False):
+    def nanmedian(self, data_sel: tuple[slice | int] | None = None,
+                  axis: int = 0, keepdims: bool = False) -> S5Pmsm:
         r"""
         Returns S5Pmsm object containing median & standard deviation of the
         original data
@@ -671,7 +683,8 @@ class S5Pmsm():
 
         return self
 
-    def nanmean(self, data_sel=None, axis=0, keepdims=False):
+    def nanmean(self, data_sel: tuple[slice | int] | None = None,
+                axis: int = 0, keepdims: bool = False) -> S5Pmsm:
         r"""
         Returns S5Pmsm object containing mean & standard deviation of the
         original data
@@ -732,7 +745,7 @@ class S5Pmsm():
 
         return self
 
-    def transpose(self):
+    def transpose(self) -> S5Pmsm:
         """
         Transpose data and coordinates of an S5Pmsm object
         """
