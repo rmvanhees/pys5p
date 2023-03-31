@@ -27,7 +27,7 @@ __all__ = ['coords', 'mask']
 import numpy as np
 
 
-def coords(mode: str = 'illuminated', band: str = '78') -> slice:
+def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
     """
     Return slice defining the illuminated region on the SWIR detector
 

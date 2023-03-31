@@ -16,7 +16,7 @@ __all__ = ['ICMio']
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
-from typing import Iterable
+from typing import Any, Iterable, Type
 
 import h5py
 import numpy as np
@@ -34,16 +34,16 @@ class ICMio:
 
     Parameters
     ----------
-    icm_product :  str
+    icm_product :  Path
         full path to in-flight calibration measurement product
     readwrite   :  bool
         open product in read-write mode (default is False)
     """
-    def __init__(self, icm_product: str, readwrite: bool = False):
+    def __init__(self, icm_product: Path, readwrite: bool = False):
         """Initialize access to an ICM product.
         """
-        if not Path(icm_product).is_file():
-            raise FileNotFoundError(f'{icm_product} does not exist')
+        if not icm_product.is_file():
+            raise FileNotFoundError(f'{icm_product.name} does not exist')
 
         # initialize class-attributes
         self.__rw = readwrite
@@ -60,7 +60,7 @@ class ICMio:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f'{class_name}({self.filename!r}, readwrite={self.__rw!r})'
+        return f'{class_name}({self.filename.name!r}, readwrite={self.__rw!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -677,20 +677,32 @@ class ICMio:
 
         Parameters
         ----------
-        msm_dset   :  str
+        msm_dset :  str
             name of measurement dataset
             if msm_dset is None then show names of available datasets
-        band       :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
+        band :  {'1', '2', '3', ..., '8', '12', '34', '56', '78'}
             Select data from one spectral band or channel
             Default is '78' which combines band 7/8 to SWIR detector layout
-        read_raw   : bool, optional
+        read_raw : bool, default=False
             Perform raw read: without slicing or data conversion,
-            and ignore keywords: colums, fill_as_nan.
+            and ignore keywords: columns, fill_as_nan.
             Default: False
-        columns    : [i, j], optional
+        columns : [i, j], optional
             Slice data on fastest axis (columns) as from index 'i' to 'j'
-        fill_as_nan :  bool, optional
+        fill_as_nan :  bool, default=True
             Replace (float) FillValues with Nan's, when True
+
+        Examples
+        --------
+        Access an ICM product and obtain it's orbit-counter
+        and read from the ANALYSIS group the dark-offset (band 7/8)::
+
+        >>> flname = Path('/full/name/to/icm_product.nc')
+        >>> with ICMio(flname) as icm:
+        >>>    orbit = icm.orbit
+        >>>    icm.select('LONG_TERM_SWIR')
+        >>>    offs = icm.get_msm_data('analog_offset_swir_value',
+        >>>                            columns=[1, -1], fill_as_nan=True)
 
         Returns
         -------
@@ -790,7 +802,7 @@ class ICMio:
 
     def read_direct_msm(self, msm_dset: str,
                         dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: np.dtype | None = None,
+                        dest_dtype: Type[Any] | None = None,
                         fill_as_nan: bool = False) -> list[np.ndarray] | None:
         """The faster implementation of get_msm_data().
 
@@ -804,6 +816,20 @@ class ICMio:
             Perform type conversion
         fill_as_nan :  bool
             Replace (float) FillValues with Nan's, when True
+
+        Examples
+        --------
+        Access an ICM product and obtain it's orbit-counter
+        and read from the ANALYSIS group the dark-offset (band 7/8)::
+
+        >>> flname = Path('/full/name/to/icm_product.nc')
+        >>> with ICMio(flname) as icm:
+        >>>    orbit = icm.orbit
+        >>>    icm.select('LONG_TERM_SWIR')
+        >>>    offs = np.hstack(
+        >>>        icm.read_direct_msm('analog_offset_swir_value',
+        >>>                            dest_sel=np.s_[:-1, :],
+        >>>                            dest_dtype=float, fill_as_nan=True))
 
         Returns
         -------

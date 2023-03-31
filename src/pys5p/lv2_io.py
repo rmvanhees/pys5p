@@ -37,7 +37,7 @@ class LV2io:
 
     Parameters
     ----------
-    lv2_product :  str
+    lv2_product :  Path
         full path to S5P Tropomi level 2 product
 
     Notes
@@ -48,18 +48,18 @@ class LV2io:
     used to generate the products. Currently, the Python netCDF4 module is
     used to read the science products.
     """
-    def __init__(self, lv2_product: str):
+    def __init__(self, lv2_product: Path):
         """Initialize access to an S5P_L2 product.
         """
-        if not Path(lv2_product).is_file():
-            raise FileNotFoundError(f'{lv2_product} does not exist')
+        if not lv2_product.is_file():
+            raise FileNotFoundError(f'{lv2_product.name} does not exist')
 
         # initialize class-attributes
         self.filename = lv2_product
 
         # open LV2 product as HDF5 file
         if self.science_product:
-            self.fid = Dataset(lv2_product, "r", format="NETCDF4")
+            self.fid = Dataset(lv2_product, "r")
             self.ground_pixel = self.fid['/instrument/ground_pixel'][:].max()
             self.ground_pixel += 1
             self.scanline = self.fid['/instrument/scanline'][:].max()
@@ -74,7 +74,7 @@ class LV2io:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f'{class_name}({self.filename!r})'
+        return f'{class_name}({self.filename.name!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):

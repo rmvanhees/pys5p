@@ -11,7 +11,7 @@
 This module contains the class `L1Bio` to access Tropomi level-1B products.
 """
 from __future__ import annotations
-__all__ = ['L1Bio']
+__all__ = ['L1Bio', 'L1BioIRR', 'L1BioRAD', 'L1BioENG']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -67,7 +67,7 @@ class L1Bio:
 
     Parameters
     ----------
-    l1b_product : str
+    l1b_product : Path
        name of the Tropomi L1B product
     readwrite : bool, default=False
        open file in read/write mode
@@ -79,13 +79,13 @@ class L1Bio:
     geo_dset = 'satellite_latitude,satellite_longitude'
     msm_type = None
 
-    def __init__(self, l1b_product: str,
+    def __init__(self, l1b_product: Path,
                  readwrite: bool = False, verbose: bool = False) -> None:
         """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
-        if not Path(l1b_product).is_file():
-            raise FileNotFoundError(f'{l1b_product} does not exist')
+        if not l1b_product.is_file():
+            raise FileNotFoundError(f'{l1b_product.name} does not exist')
 
         # initialize private class-attributes
         self.__rw = readwrite
@@ -102,7 +102,7 @@ class L1Bio:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f'{class_name}({self.filename!r}, readwrite={self.__rw!r})'
+        return f'{class_name}({self.filename.name!r}, readwrite={self.__rw!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -632,7 +632,7 @@ class L1BioENG:
 
     Parameters
     ----------
-    l1b_product : str
+    l1b_product : Path
        name of the L1b engineering product
 
     Notes
@@ -640,11 +640,11 @@ class L1BioENG:
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
     """
-    def __init__(self, l1b_product: str):
+    def __init__(self, l1b_product: Path):
         """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
-        if not Path(l1b_product).is_file():
+        if not l1b_product.is_file():
             raise FileNotFoundError(f'{l1b_product} does not exist')
 
         # initialize private class-attributes
@@ -746,7 +746,7 @@ class L1BioENG:
 
         return None
 
-    def get_ref_time(self) -> np.ndarray:
+    def get_ref_time(self) -> int:
         """Returns reference start time of measurements.
         """
         return self.fid['reference_time'][0].astype(int)
@@ -811,16 +811,16 @@ class L1BioENG:
 
         return msmt
 
-    def get_swir_hk_db(self, stats: bool | None = None,
+    def get_swir_hk_db(self, stats: str | None = None,
                        fill_as_nan: bool | None = False) \
             -> np.ndarray | tuple[np.ndarray, np.ndarray] | None:
         """Returns the most important SWIR housekeeping parameters.
 
         Parameters
         ----------
-        stats : bool
+        stats : {'median', 'range', None}
             Add statistics on housekeeping parameters
-        fill_as_nan :  bool
+        fill_as_nan :  bool, default=False
             Replace (float) FillValues with Nan's, when True
 
         Notes

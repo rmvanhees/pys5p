@@ -15,7 +15,7 @@ __all__ = ['OCMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Type
 
 import h5py
 import numpy as np
@@ -114,14 +114,14 @@ class OCMio:
 
     Parameters
     ----------
-    ocm_product :  str
+    ocm_product :  Path
         Full path to on-ground calibration measurement
     """
-    def __init__(self, ocm_product: str):
+    def __init__(self, ocm_product: Path):
         """Initialize access to an OCAL Lx product.
         """
-        if not Path(ocm_product).is_file():
-            raise FileNotFoundError(f'{ocm_product} does not exist')
+        if not ocm_product.is_file():
+            raise FileNotFoundError(f'{ocm_product.name} does not exist')
 
         # initialize class-attributes
         self.__msm_path = None
@@ -133,7 +133,7 @@ class OCMio:
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f'{class_name}({self.filename!r})'
+        return f'{class_name}({self.filename.name!r})'
 
     def __iter__(self):
         for attr in sorted(self.__dict__):
@@ -455,7 +455,7 @@ class OCMio:
     # -------------------------
     def read_direct_msm(self, msm_dset: str,
                         dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: np.dtype | None = None,
+                        dest_dtype: Type[Any] | None = None,
                         fill_as_nan: bool = False) -> dict | None:
         """The faster implementation of get_msm_data().
 

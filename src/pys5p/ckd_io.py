@@ -23,7 +23,7 @@ from moniplot.image_to_xarray import h5_to_xr
 
 
 # - local functions ------------------------------
-def reject_row257(xarr: xr.DataArray | xr.Dataset):
+def reject_row257(xarr: xr.DataArray | xr.Dataset) -> xr.DataArray | xr.Dataset:
     """
     Remove row 257 from DataArray or Dataset
     """
@@ -37,11 +37,10 @@ class CKDio:
 
     Parameters
     ----------
-    ckd_dir :  str, optional
-        Directory where the CKD files are stored,
-        default='/nfs/Tropomi/share/ckd'
-    ckd_version :  int, optional
-        Version of the CKD, default=1
+    ckd_dir :  Path, default=Path('/nfs/Tropomi/share/ckd')
+        Directory where the CKD files are stored
+    ckd_version :  int, default=1
+        Version of the CKD
     ckd_file : str, optional
         Name of the CKD file, default=None then the CKD file is searched
         in the directory ckd_dir with ckd_version in the glob-string
@@ -80,20 +79,20 @@ class CKDio:
     * Dynamic CKD are empty
 
     """
-    def __init__(self, ckd_dir: str = None, ckd_version: int = 1,
-                 ckd_file: str | None = None) -> None:
+    def __init__(self, ckd_dir: Path | None = None, ckd_version: int = 1,
+                 ckd_file: Path | None = None) -> None:
         """Create CKDio object.
         """
         if ckd_dir is None:
-            ckd_dir = '/nfs/Tropomi/share/ckd'
+            ckd_dir = Path('/nfs/Tropomi/share/ckd')
         self.ckd_version = max(1, ckd_version)
         self.ckd_dyn_file = None
 
         # define path to CKD product
         if ckd_file is None:
-            if not Path(ckd_dir).is_dir():
-                raise FileNotFoundError(f'Not found CKD directory: {ckd_dir}')
-            self.ckd_dir = Path(ckd_dir)
+            if not ckd_dir.is_dir():
+                raise FileNotFoundError(f'Not found CKD directory: {ckd_dir.name}')
+            self.ckd_dir = ckd_dir
             glob_str = f'*_AUX_L1_CKD_*_*_00000_{self.ckd_version:02d}_*_*.h5'
             if (self.ckd_dir / 'static').is_dir():
                 res = sorted((self.ckd_dir / 'static').glob(glob_str))
@@ -103,10 +102,10 @@ class CKDio:
                 raise FileNotFoundError('Static CKD product not found')
             self.ckd_file = res[-1]
         else:
-            if not Path(ckd_file).is_file():
-                raise FileNotFoundError(f'Not found CKD file: {ckd_file}')
-            self.ckd_dir = Path(ckd_file).parent
-            self.ckd_file = Path(ckd_file)
+            if not ckd_file.is_file():
+                raise FileNotFoundError(f'Not found CKD file: {ckd_file.name}')
+            self.ckd_dir = ckd_file.parent
+            self.ckd_file = ckd_file
 
         # obtain path to dynamic CKD product (version 1, only)
         if self.ckd_version == 1:
@@ -466,7 +465,7 @@ class CKDio:
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
-    def relirr(self, qvd: int = 1, bands: str = '78') -> tuple:
+    def relirr(self, qvd: int = 1, bands: str = '78') -> tuple[dict] | None:
         """Returns relative irradiance correction.
 
         Parameters
@@ -510,7 +509,7 @@ class CKDio:
             ckd['cheb_coefs'] = self.fid[dsname]['coefs'][:]
             res += (ckd,)
 
-        return res
+        return res if res else None
 
     def saa(self) -> dict:
         """Returns definition of the SAA region.
