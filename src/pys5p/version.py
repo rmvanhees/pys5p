@@ -10,11 +10,19 @@
 """
 __all__ = ['pys5p_version']
 
-from pys5p import __version__
+from . import __version__
 
 
-def pys5p_version(full=False, githash=False):
+def pys5p_version(full=False, githash=False) -> str:
     """Returns software version as obtained from git.
+
+    Examples
+    --------
+    Show the software version of the module pys5p::
+
+       > from pys5p.version import pys5p_version
+       > pys5p_version()
+    '2.1.5'
     """
     if full:
         return __version__
