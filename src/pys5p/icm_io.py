@@ -34,14 +34,15 @@ class ICMio:
 
     Parameters
     ----------
-    icm_product :  Path
+    icm_product :  Path or str
         full path to in-flight calibration measurement product
     readwrite   :  bool
         open product in read-write mode (default is False)
     """
-    def __init__(self, icm_product: Path, readwrite: bool = False):
+    def __init__(self, icm_product: Path | str, readwrite: bool = False):
         """Initialize access to an ICM product.
         """
+        icm_product = Path(icm_product)
         if not icm_product.is_file():
             raise FileNotFoundError(f'{icm_product.name} does not exist')
 
@@ -367,7 +368,8 @@ class ICMio:
 
         return res
 
-    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
+    def get_instrument_settings(self,
+                                band: str | None = None) -> np.ndarray | None:
         """Returns instrument settings of measurement.
 
         Parameters
@@ -464,7 +466,8 @@ class ICMio:
 
         return res
 
-    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
+    def get_housekeeping_data(self,
+                              band: str | None = None) -> np.ndarray | None:
         """Returns housekeeping data of measurements.
 
         Parameters

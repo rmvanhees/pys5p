@@ -29,7 +29,8 @@ from .swir_texp import swir_exp_time
 
 
 # - local functions --------------------------------
-def pad_rows(arr1: np.ndarray, arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def pad_rows(arr1: np.ndarray,
+             arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Pad the array with the least numer of rows with NaN's
     """
@@ -67,7 +68,7 @@ class L1Bio:
 
     Parameters
     ----------
-    l1b_product : Path
+    l1b_product : Path | str
        name of the Tropomi L1B product
     readwrite : bool, default=False
        open file in read/write mode
@@ -79,11 +80,12 @@ class L1Bio:
     geo_dset = 'satellite_latitude,satellite_longitude'
     msm_type = None
 
-    def __init__(self, l1b_product: Path,
+    def __init__(self, l1b_product: Path | str,
                  readwrite: bool = False, verbose: bool = False) -> None:
         """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
+        l1b_product = Path(l1b_product)
         if not l1b_product.is_file():
             raise FileNotFoundError(f'{l1b_product.name} does not exist')
 
@@ -363,7 +365,8 @@ class L1Bio:
 
         return grp['delta_time'][0, :].astype(int)
 
-    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
+    def get_instrument_settings(self,
+                                band: str | None = None) -> np.ndarray | None:
         """Returns instrument settings of measurement.
 
         Parameters
@@ -394,7 +397,8 @@ class L1Bio:
 
         return instr
 
-    def get_exposure_time(self, band: str | None = None) -> np.ndarray | None:
+    def get_exposure_time(self,
+                          band: str | None = None) -> np.ndarray | None:
         """Returns pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters `int_delay` and
@@ -418,7 +422,8 @@ class L1Bio:
         return [swir_exp_time(instr['int_delay'], instr['int_hold'])
                 for instr in instr_arr]
 
-    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
+    def get_housekeeping_data(self,
+                              band: str | None = None) -> np.ndarray | None:
         """Returns housekeeping data of measurements.
 
         Parameters
@@ -474,7 +479,8 @@ class L1Bio:
 
         return res
 
-    def get_msm_attr(self, msm_dset: str, attr_name: str,
+    def get_msm_attr(self, msm_dset: str,
+                     attr_name: str,
                      band: str | None = None) -> np.ndarray | float | None:
         """Returns value attribute of measurement dataset "msm_dset".
 
@@ -632,7 +638,7 @@ class L1BioENG:
 
     Parameters
     ----------
-    l1b_product : Path
+    l1b_product : Path | str
        name of the L1b engineering product
 
     Notes
@@ -640,10 +646,11 @@ class L1BioENG:
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
     """
-    def __init__(self, l1b_product: Path):
+    def __init__(self, l1b_product: Path | str):
         """Initialize access to a Tropomi offline L1b product.
         """
         # open L1b product as HDF5 file
+        l1b_product = Path(l1b_product)
         if not l1b_product.is_file():
             raise FileNotFoundError(f'{l1b_product} does not exist')
 
@@ -749,7 +756,7 @@ class L1BioENG:
     def get_ref_time(self) -> int:
         """Returns reference start time of measurements.
         """
-        return self.fid['reference_time'][0].astype(int)
+        return int(self.fid['reference_time'][0])
 
     def get_delta_time(self) -> np.ndarray:
         """Returns offset from the reference start time of measurement.
