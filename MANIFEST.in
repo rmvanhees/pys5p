@@ -1,0 +1,4 @@
+prune docs/_build
+prune pilots
+prune .DS_Store
+prune .idea
