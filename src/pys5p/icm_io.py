@@ -7,16 +7,17 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contain class `ICMio` to access in-flight calibration data.
-"""
+"""This module contain class `ICMio` to access in-flight calibration data."""
+
 from __future__ import annotations
+
 __all__ = ['ICMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from setuptools_scm import get_version
-from typing import Any, Iterable, Type
+from typing import Any
+from collections.abc import Iterable
 
 import h5py
 import numpy as np
@@ -28,9 +29,8 @@ import numpy as np
 
 # - class definition -------------------------------
 class ICMio:
-    """
-    This class should offer all the necessary functionality to read Tropomi
-    ICM_CA_SIR products
+    """This class should offer all the necessary functionality to read Tropomi
+    ICM_CA_SIR products.
 
     Parameters
     ----------
@@ -39,9 +39,9 @@ class ICMio:
     readwrite   :  bool
         open product in read-write mode (default is False)
     """
+
     def __init__(self, icm_product: Path | str, readwrite: bool = False):
-        """Initialize access to an ICM product.
-        """
+        """Initialize access to an ICM product."""
         icm_product = Path(icm_product)
         if not icm_product.is_file():
             raise FileNotFoundError(f'{icm_product.name} does not exist')
@@ -55,17 +55,14 @@ class ICMio:
 
         # open ICM product as HDF5 file
         if readwrite:
-            self.fid = h5py.File(icm_product, "r+")
+            self.fid = h5py.File(icm_product, 'r+')
         else:
-            self.fid = h5py.File(icm_product, "r")
-
-    def __repr__(self):
-        class_name = type(self).__name__
-        return f'{class_name}({self.filename.name!r}, readwrite={self.__rw!r})'
+            self.fid = h5py.File(icm_product, 'r')
 
     def __iter__(self):
+        """Allow iteration."""
         for attr in sorted(self.__dict__):
-            if not attr.startswith("__"):
+            if not attr.startswith('__'):
                 yield attr
 
     # def __del__(self):
@@ -75,13 +72,11 @@ class ICMio:
     #    self.close()
 
     def __enter__(self):
-        """Method called to initiate the context manager.
-        """
+        """Initiate the context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Method called when exiting the context manager.
-        """
+        """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
@@ -105,7 +100,7 @@ class ICMio:
         self.bands = None
         if self.__patched_msm:
             # pylint: disable=no-member
-            sgrp = self.fid.require_group("METADATA/SRON_METADATA")
+            sgrp = self.fid.require_group('METADATA/SRON_METADATA')
             sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
             sgrp.attrs['git_tag'] = get_version(root='..',
                                                 relative_to=__file__)
@@ -197,8 +192,7 @@ class ICMio:
     # ---------- Functions that work before MSM selection ----------
     @property
     def orbit(self) -> int | None:
-        """Returns reference orbit number.
-        """
+        """Return reference orbit number."""
         if 'reference_orbit' in self.fid.attrs:
             return int(self.fid.attrs['reference_orbit'])
 
@@ -206,8 +200,7 @@ class ICMio:
 
     @property
     def processor_version(self) -> str | None:
-        """Returns version of the L01b processor.
-        """
+        """Return version of the L01b processor."""
         if 'processor_version' not in self.fid.attrs:
             return None
 
@@ -220,8 +213,7 @@ class ICMio:
 
     @property
     def coverage_time(self) -> tuple[str, str] | None:
-        """Returns start and end of the measurement coverage time.
-        """
+        """Return start and end of the measurement coverage time."""
         if 'time_coverage_start' not in self.fid.attrs \
            or 'time_coverage_end' not in self.fid.attrs:
             return None
@@ -240,8 +232,7 @@ class ICMio:
 
     @property
     def creation_time(self) -> str:
-        """Returns version of the L01b processor.
-        """
+        """Return version of the L01b processor."""
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
         return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
@@ -265,7 +256,7 @@ class ICMio:
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self, band: str | None = None) -> datetime:
-        """Returns reference start time of measurements
+        """Return reference start time of measurements.
 
         Parameters
         ----------
@@ -314,7 +305,7 @@ class ICMio:
         return ref_time
 
     def get_delta_time(self, band: str | None = None) -> np.ndarray | None:
-        """Returns offset from the reference start time of measurement.
+        """Return offset from the reference start time of measurement.
 
         Parameters
         ----------
@@ -370,7 +361,7 @@ class ICMio:
 
     def get_instrument_settings(self,
                                 band: str | None = None) -> np.ndarray | None:
-        """Returns instrument settings of measurement.
+        """Return instrument settings of measurement.
 
         Parameters
         ----------
@@ -434,7 +425,7 @@ class ICMio:
         return res
 
     def get_exposure_time(self, band: str | None = None) -> list | None:
-        """Returns pixel exposure time of the measurements.
+        """Return pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters 'int_delay' and
         'int_hold' for SWIR.
@@ -468,7 +459,7 @@ class ICMio:
 
     def get_housekeeping_data(self,
                               band: str | None = None) -> np.ndarray | None:
-        """Returns housekeeping data of measurements.
+        """Return housekeeping data of measurements.
 
         Parameters
         ----------
@@ -567,7 +558,7 @@ class ICMio:
     # -------------------------
     def get_msm_attr(self, msm_dset: str, attr_name: str,
                      band: str | None = None) -> np.ndarray | None:
-        """Returns attribute of measurement dataset "msm_dset".
+        """Return attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -609,7 +600,7 @@ class ICMio:
 
     def get_geo_data(self, band: str | None = None,
                      geo_dset: str | None = None) -> np.ndarray | None:
-        """Returns data of selected datasets from the GEODATA group.
+        """Return data of selected datasets from the GEODATA group.
 
         Parameters
         ----------
@@ -676,7 +667,7 @@ class ICMio:
                      read_raw: bool = False,
                      columns: list[int, int] | None = None,
                      fill_as_nan: bool = True) -> np.ndarray | None:
-        """Read datasets from a measurement selected by class-method "select"
+        """Read datasets from a measurement selected by class-method "select".
 
         Parameters
         ----------
@@ -805,9 +796,10 @@ class ICMio:
 
     def read_direct_msm(self, msm_dset: str,
                         dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: Type[Any] | None = None,
+                        dest_dtype: type[Any] | None = None,
                         fill_as_nan: bool = False) -> list[np.ndarray] | None:
-        """The faster implementation of get_msm_data().
+        """Read datasets from a measurement selected by class-method `select`
+        (fast implementation).
 
         Parameters
         ----------
@@ -875,7 +867,7 @@ class ICMio:
     # -------------------------
     def set_housekeeping_data(self, data: np.ndarray,
                               band: str | None = None) -> None:
-        """Returns housekeeping data of measurements.
+        """Return housekeeping data of measurements.
 
         Parameters
         ----------
@@ -911,7 +903,7 @@ class ICMio:
 
     def set_msm_data(self, msm_dset: str, data: np.ndarray | Iterable,
                      band: str = '78') -> None:
-        """Alter dataset from a measurement selected using function "select"
+        """Alter dataset from a measurement selected using function "select".
 
         Parameters
         ----------

@@ -6,15 +6,15 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""Provide access to the software version as obtained from git.
-"""
+"""Provide access to the software version as obtained from git."""
+
 __all__ = ['pys5p_version']
 
 from . import __version__
 
 
 def pys5p_version(full=False, githash=False) -> str:
-    """Returns software version as obtained from git.
+    """Return the software version as obtained from git.
 
     Examples
     --------

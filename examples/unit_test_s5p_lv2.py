@@ -6,6 +6,7 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""Perform a unit test on class LV2io."""
 
 import argparse
 from pathlib import Path
@@ -16,9 +17,7 @@ from pys5p.lv2_io import LV2io
 
 
 def read_lv2(l2_product):
-    """
-    Read Tropomi level 2 product
-    """
+    """Read Tropomi level 2 product."""
     with LV2io(l2_product) as lv2:
         # Class properties
         print('science_product: ', lv2.science_product)
@@ -65,8 +64,7 @@ def read_lv2(l2_product):
 
 
 def main():
-    """Perform unit testing on SWIR Level-2 products.
-    """
+    """Perform unit testing on SWIR Level-2 products."""
     # parse command-line parameters
     parser = argparse.ArgumentParser(
         description=f'{Path(__file__).name}: run units-test on class LV2io')

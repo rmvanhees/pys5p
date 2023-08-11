@@ -8,7 +8,7 @@
 #
 # License:  BSD-3-Clause
 
-""" The pys5p package contains software to read S5p Tropomi L1B products.
+"""The pys5p package contains software to read S5p Tropomi L1B products.
 And contains plotting routines to display your data beautifully.
 """
 from importlib.metadata import version, PackageNotFoundError

@@ -27,7 +27,7 @@ from numpy import ma
 
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     """
-    Generate weight factor per pixel
+    Generate weight factor per pixel.
 
     Notes
     -----
@@ -52,7 +52,7 @@ def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
 def rls_fit(xdata: np.ndarray,
             ydata: np.ndarray | ma.MaskedArray) -> tuple:
     """
-    Perform RLS regression finding linear dependence y(x) = c0 + c1 * x
+    Perform RLS regression finding linear dependence y(x) = c0 + c1 * x.
 
     Parameters
     ----------
@@ -140,7 +140,7 @@ def rls_fit(xdata: np.ndarray,
 def rls_fit0(xdata: np.ndarray,
              ydata: np.ndarray | ma.MaskedArray) -> tuple:
     """
-    Perform RLS regression finding linear dependence y(x) = c1 * x
+    Perform RLS regression finding linear dependence y(x) = c1 * x.
 
     Parameters
     ----------

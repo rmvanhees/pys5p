@@ -7,8 +7,7 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contains the class `L1Bpatch`.
+"""This module contains the class `L1Bpatch`.
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
@@ -35,7 +34,7 @@ _MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'
 
 
 # - class definition -------------------------------
-class L1Bpatch():
+class L1Bpatch:
     """Definition off class L1Bpatch.
 
     Parameters
@@ -47,11 +46,10 @@ class L1Bpatch():
     ckd_dir : str, default='/nfs/Tropomi/share/ckd'
        location of the Tropomi CKD
     """
+
     def __init__(self, l1b_product: str, data_dir='/tmp',
                  ckd_dir='/nfs/Tropomi/share/ckd') -> None:
-        """
-        Initialize access to a Tropomi offline L1b product
-        """
+        """Initialize access to a Tropomi offline L1b product."""
         prod_type = Path(l1b_product).name[0:15]
         if prod_type not in ('S5P_OFFL_L1B_RA', 'S5P_RPRO_L1B_RA'):
             raise TypeError(
@@ -70,21 +68,16 @@ class L1Bpatch():
         self.__patched_msm = []
 
     def __enter__(self):
-        """
-        method called to initiate the context manager
-        """
+        """Initiate the context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> bool:
-        """
-        method called when exiting the context manager
-        """
+        """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self) -> None:
-        """
-        Before closing the product, we make sure that the output product
+        """Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
 
@@ -121,8 +114,7 @@ class L1Bpatch():
 
     # --------------------------------------------------
     def pixel_quality(self, dpqm, threshold=0.8) -> None:
-        """
-        Patch SWIR pixel_quality.
+        """Patch SWIR pixel_quality.
 
         Patched dataset: 'quality_level' and 'spectral_channel_quality'
 
@@ -178,8 +170,7 @@ class L1Bpatch():
             l1b.set_msm_data('spectral_channel_quality', chan_quality)
 
     def offset(self) -> None:
-        """
-        Patch SWIR offset correction.
+        """Patch SWIR offset correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
@@ -224,8 +215,7 @@ class L1Bpatch():
             l1b.set_msm_data('radiance', data)
 
     def darkflux(self) -> None:
-        """
-        Patch SWIR dark-flux correction.
+        """Patch SWIR dark-flux correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
@@ -268,8 +258,7 @@ class L1Bpatch():
             l1b.set_msm_data('radiance', data)
 
     def prnu(self) -> None:
-        """
-        Patch pixel response non-uniformity correction.
+        """Patch pixel response non-uniformity correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
@@ -318,8 +307,7 @@ class L1Bpatch():
             l1b.set_msm_data('radiance', data)
 
     def relrad(self) -> None:
-        """
-        Patch relative radiance calibration.
+        """Patch relative radiance calibration.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
@@ -356,8 +344,7 @@ class L1Bpatch():
             l1b.set_msm_data('radiance', data)
 
     def absrad(self) -> None:
-        """
-        Patch absolute radiance calibration.
+        """Patch absolute radiance calibration.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
 
@@ -394,9 +381,7 @@ class L1Bpatch():
             l1b.set_msm_data('radiance', data)
 
     def check(self) -> None:
-        """
-        Check patched dataset in L1B product
-        """
+        """Check patched dataset in L1B product."""
         if not self.l1b_patched.is_file():
             raise ValueError('patched product not found')
 

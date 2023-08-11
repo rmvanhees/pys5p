@@ -7,15 +7,15 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contain class `OCMio` to access on-ground calibration data.
-"""
+"""This module contain class `OCMio` to access on-ground calibration data."""
+
 from __future__ import annotations
+
 __all__ = ['OCMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import Any, Type
+from typing import Any
 
 import h5py
 import numpy as np
@@ -28,8 +28,7 @@ from moniplot.biweight import Biweight
 # - local functions --------------------------------
 def band2channel(dict_a: dict, dict_b: dict,
                  mode: bool = None) -> np.ndarray | tuple[Any, Any]:
-    """
-    Store data from a dictionary as returned by get_msm_data to a ndarray
+    """Store data from a dictionary as returned by get_msm_data to a ndarray.
 
     Parameters
     ----------
@@ -108,18 +107,17 @@ def band2channel(dict_a: dict, dict_b: dict,
 
 # - class definition -------------------------------
 class OCMio:
-    """
-    This class should offer all the necessary functionality to read Tropomi
-    on-ground calibration products (Lx)
+    """This class should offer all the necessary functionality to read Tropomi
+    on-ground calibration products (Lx).
 
     Parameters
     ----------
     ocm_product :  Path
         Full path to on-ground calibration measurement
     """
+
     def __init__(self, ocm_product: Path):
-        """Initialize access to an OCAL Lx product.
-        """
+        """Initialize access to an OCAL Lx product."""
         if not ocm_product.is_file():
             raise FileNotFoundError(f'{ocm_product.name} does not exist')
 
@@ -129,15 +127,12 @@ class OCMio:
         self.filename = ocm_product
 
         # open OCM product as HDF5 file
-        self.fid = h5py.File(ocm_product, "r")
-
-    def __repr__(self):
-        class_name = type(self).__name__
-        return f'{class_name}({self.filename.name!r})'
+        self.fid = h5py.File(ocm_product, 'r')
 
     def __iter__(self):
+        """Allow iteration."""
         for attr in sorted(self.__dict__):
-            if not attr.startswith("__"):
+            if not attr.startswith('__'):
                 yield attr
 
     # def __del__(self):
@@ -147,19 +142,16 @@ class OCMio:
     #    self.close()
 
     def __enter__(self):
-        """Method called to initiate the context manager.
-        """
+        """Initiate the context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Method called when exiting the context manager.
-        """
+        """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """Close resources.
-        """
+        """Close resources."""
         self.band = None
         if self.fid is not None:
             self.fid.close()
@@ -168,8 +160,7 @@ class OCMio:
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self) -> str:
-        """Returns version of the L01b processor.
-        """
+        """Return version of the L01b processor."""
         res = self.fid.attrs['processor_version']
         if isinstance(res, bytes):
             # pylint: disable=no-member
@@ -177,8 +168,7 @@ class OCMio:
         return res
 
     def get_coverage_time(self) -> tuple[str, str]:
-        """Returns start and end of the measurement coverage time.
-        """
+        """Return start and end of the measurement coverage time."""
         t_bgn = self.fid.attrs['time_coverage_start']
         if isinstance(t_bgn, bytes):
             # pylint: disable=no-member
@@ -205,8 +195,7 @@ class OCMio:
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self) -> np.ndarray | None:
-        """Returns reference start time of measurements.
-        """
+        """Return reference start time of measurements."""
         if not self.__msm_path:
             return {}
 
@@ -220,8 +209,7 @@ class OCMio:
         return res
 
     def get_delta_time(self) -> np.ndarray | None:
-        """Returns offset from the reference start time of measurement.
-        """
+        """Return offset from the reference start time of measurement."""
         if not self.__msm_path:
             return {}
 
@@ -234,8 +222,7 @@ class OCMio:
         return res
 
     def get_instrument_settings(self) -> np.ndarray | None:
-        """Returns instrument settings of measurement.
-        """
+        """Return instrument settings of measurement."""
         if not self.__msm_path:
             return {}
 
@@ -248,8 +235,7 @@ class OCMio:
         return res
 
     def get_gse_stimuli(self) -> np.ndarray | None:
-        """Returns GSE stimuli parameters.
-        """
+        """Return GSE stimuli parameters."""
         if not self.__msm_path:
             return {}
 
@@ -262,8 +248,7 @@ class OCMio:
         return res
 
     def get_exposure_time(self) -> np.ndarray | None:
-        """Returns the exact pixel exposure time of the measurements.
-        """
+        """Return the exact pixel exposure time of the measurements."""
         if not self.__msm_path:
             return None
 
@@ -278,8 +263,7 @@ class OCMio:
         return instr['exposure_time']
 
     def get_housekeeping_data(self) -> np.ndarray | None:
-        """Returns housekeeping data of measurements.
-        """
+        """Return housekeeping data of measurements."""
         if not self.__msm_path:
             return {}
 
@@ -339,7 +323,7 @@ class OCMio:
 
     # -------------------------
     def get_msm_attr(self, msm_dset: str, attr_name: str) -> str | None:
-        """Returns attribute of measurement dataset "msm_dset".
+        """Return attribute of measurement dataset "msm_dset".
 
         Parameters
         ----------
@@ -373,7 +357,7 @@ class OCMio:
     def get_msm_data(self, msm_dset: str, fill_as_nan: bool = True,
                      frames: list[int, int] | None = None,
                      columns: list[int, int] | None = None) -> dict:
-        """Returns data of measurement dataset "msm_dset".
+        """Return data of measurement dataset `msm_dset`.
 
         Parameters
         ----------
@@ -455,9 +439,9 @@ class OCMio:
     # -------------------------
     def read_direct_msm(self, msm_dset: str,
                         dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: Type[Any] | None = None,
+                        dest_dtype: type[Any] | None = None,
                         fill_as_nan: bool = False) -> dict | None:
-        """The faster implementation of get_msm_data().
+        """Return data of measurement dataset `msm_dset` (fast implementation).
 
         Parameters
         ----------

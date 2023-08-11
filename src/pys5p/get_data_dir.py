@@ -7,16 +7,14 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contains routine `get_data_dir`.
-"""
+"""This module contains routine `get_data_dir`."""
 from os import environ
 from pathlib import Path
 
 
 def get_data_dir():
     """
-    Obtain directory with test datasets
+    Obtain directory with test datasets.
 
     Limited to UNIX/Linux/macOS operating systems
 

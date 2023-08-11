@@ -6,13 +6,11 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-Calculate the Tropomi SWIR exposure time from detector settings.
-"""
+"""Calculate the Tropomi SWIR exposure time from detector settings."""
 
 
 def swir_exp_time(int_delay: int, int_hold: int) -> float:
-    """Calculates the correct SWIR exposure time from detector settings.
+    """Calculate the correct SWIR exposure time from detector settings.
 
     Parameters
     ----------

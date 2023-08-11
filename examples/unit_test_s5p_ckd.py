@@ -6,6 +6,7 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
+"""Perform a unit test on class CKDio."""
 
 import argparse
 from pathlib import Path
@@ -14,8 +15,7 @@ from pys5p.ckd_io import CKDio
 
 
 def main():
-    """Performs unit-tests on class CKDio (xarray version).
-    """
+    """Perform unit-tests on class CKDio (xarray version)."""
     parser = argparse.ArgumentParser(
         description=f'{Path(__file__).name}: run units-test on class CKDio')
     parser.add_argument('ckd_dir', nargs=1, type=str, default=None,

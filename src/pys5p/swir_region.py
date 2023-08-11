@@ -6,8 +6,9 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-There are two definitions of the usable area on the SWIR detector:
+"""Return the usable area on the SWIR detector.
+
+There are two definitions::
 
  'illuminated':
     Detector area illuminated by external sources, defined as
@@ -28,8 +29,7 @@ import numpy as np
 
 
 def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
-    """
-    Return slice defining the illuminated region on the SWIR detector
+    """Return slice defining the illuminated region on the SWIR detector.
 
     Parameters
     ----------
@@ -55,9 +55,8 @@ def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
 
 
 def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
-    """
-    Return mask of the illuminated region, where the value of the illuminated
-    pixels are set to True.
+    """Return mask of the illuminated region, where the value of
+    the illuminated pixels are set to True.
 
     Parameters
     ----------

@@ -42,3 +42,20 @@ documentation = "https://pys5p.readthedocs.io/en/latest/"
 "Issue tracker" = "https://github.com/rmvanhees/pys5p/issues"
 
 [tool.setuptools_scm]
+
+[tool.ruff]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "UP",  # pyupgrade
+  "B",   # flake8-bugbear
+  "Q",   # flake8-quotes
+  "D",   # pydocstyle
+]
+ignore = ["D205"]
+
+[tool.ruff.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.flake8-quotes]
+inline-quotes = "single"

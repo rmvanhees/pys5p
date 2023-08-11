@@ -8,11 +8,12 @@
 #
 # License:  BSD-3-Clause
 """
-This module contains the class `S5Pmsm`
+This module contains the class `S5Pmsm`.
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
 from __future__ import annotations
+
 __all__ = ['S5Pmsm']
 
 from collections import namedtuple
@@ -46,9 +47,7 @@ from moniplot.biweight import Biweight
 # - local functions --------------------------------
 def pad_rows(arr1: np.ndarray,
              arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Pad the array with the least numer of rows with NaN's
-    """
+    """Pad the array with the least numer of rows with NaN's."""
     if arr2.ndim == 2:
         if arr1.shape[0] < arr2.shape[0]:
             buff = arr1.copy()
@@ -75,7 +74,7 @@ def pad_rows(arr1: np.ndarray,
 class S5Pmsm:
     r"""
     Definition of class S5Pmsm which contains the data of a HDF5 dataset,
-    including its attributes (CF conversion)
+    including its attributes (CF conversion).
 
     Parameters
     ----------
@@ -92,11 +91,11 @@ class S5Pmsm:
     numpy structure with dataset data and attributes, including data,
     fillvalue, coordinates, units, ...
     """
+
     def __init__(self, dset: Dataset | np.ndarray,
                  data_sel: tuple[slice | int] | None = None,
                  datapoint: bool = False):
-        """Read measurement data from a Tropomi OCAL, ICM, of L1B product.
-        """
+        """Read measurement data from a Tropomi OCAL, ICM, of L1B product."""
         # initialize object
         self.name = 'value'
         self.value = None
@@ -113,6 +112,7 @@ class S5Pmsm:
             self.__from_ndarray(dset, data_sel)
 
     def __repr__(self) -> str:
+        """Display info on the S5Pmsm object."""
         res = []
         for key, value in self.__dict__.items():
             if key.startswith('__'):
@@ -135,8 +135,7 @@ class S5Pmsm:
     def __from_h5_dset(self, h5_dset: Dataset,
                        data_sel: tuple[slice | int] | None,
                        datapoint: bool):
-        """Initialize S5Pmsm object from h5py dataset.
-        """
+        """Initialize S5Pmsm object from h5py dataset."""
         self.name = PurePath(h5_dset.name).name
 
         # copy dataset values (and error) to object
@@ -259,8 +258,7 @@ class S5Pmsm:
 
     def __from_ndarray(self, data: np.ndarray,
                        data_sel: tuple[slice | int] | None):
-        """Initialize S5Pmsm object from a ndarray.
-        """
+        """Initialize S5Pmsm object from a ndarray."""
         # copy dataset values (and error) to object
         if data_sel is None:
             self.value = np.squeeze(data)
@@ -275,8 +273,7 @@ class S5Pmsm:
             raise RuntimeError('failed to set the coordinates') from exc
 
     def copy(self):
-        """Returns a deep copy of the current object.
-        """
+        """Return a deep copy of the current object."""
         return deepcopy(self)
 
     def set_coords(self, coords_data: list[np.ndarray],
@@ -327,26 +324,23 @@ class S5Pmsm:
             self.coverage = coverage
 
     def set_units(self, units: str | None, force: bool = False):
-        """Set the units attribute, overwrite when force is true.
-        """
+        """Set the units attribute, overwrite when force is true."""
         if self.units is None or force:
             self.units = units
 
     def set_fillvalue(self):
-        """Set fillvalue to KNMI undefined.
-        """
+        """Set fillvalue to KNMI undefined."""
         if np.issubdtype(self.value.dtype, np.floating):
             if self.fillvalue is None or self.fillvalue == 0.:
                 self.fillvalue = float.fromhex('0x1.ep+122')
 
     def set_long_name(self, name: str, force: bool = False):
-        """Set the long_name attribute, overwrite when force is true.
-        """
+        """Set the long_name attribute, overwrite when force is true."""
         if force or not self.long_name:
             self.long_name = name
 
     def fill_as_nan(self):
-        """Replace fillvalues in data with NaN's
+        """Replace fillvalues in data with NaN's.
 
         Works only on datasets with HDF5 datatype 'float' or 'datapoints'
         """
@@ -396,7 +390,7 @@ class S5Pmsm:
                 else:
                     self.error = self.error[:, :, indx]
         else:
-            raise ValueError("S5Pmsm: implemented for ndim <= 3")
+            raise ValueError('S5Pmsm: implemented for ndim <= 3')
 
     def concatenate(self, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
         """Concatenate two measurement datasets, the current with another.
@@ -426,7 +420,7 @@ class S5Pmsm:
 
         if (self.error is None and msm.error is not None) \
            or (self.error is not None and msm.error is None):
-            raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
+            raise RuntimeError('S5Pmsm: combining non-datapoint and datapoint')
 
         # concatenate the values
         if axis == 0:
@@ -444,7 +438,7 @@ class S5Pmsm:
                 self.value = np.concatenate(pad_rows(self.value, msm.value),
                                             axis=axis)
         else:
-            raise ValueError("S5Pmsm: implemented for ndim <= 3")
+            raise ValueError('S5Pmsm: implemented for ndim <= 3')
 
         # concatenate the errors
         if self.error is not None and msm.error is not None:
@@ -478,7 +472,7 @@ class S5Pmsm:
     def nanpercentile(self, vperc: int | list[float],
                       data_sel: tuple[slice | int] | None = None,
                       axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Returns percentile(s) of the data in the S5Pmsm.
+        r"""Return percentile(s) of the data in the S5Pmsm.
 
         Parameters
         ----------
@@ -563,7 +557,7 @@ class S5Pmsm:
 
     def biweight(self, data_sel: tuple[slice | int] | None = None,
                  axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Returns biweight median of the data in the S5Pmsm.
+        r"""Return biweight median of the data in the S5Pmsm.
 
         Parameters
         ----------
@@ -624,7 +618,7 @@ class S5Pmsm:
 
     def nanmedian(self, data_sel: tuple[slice | int] | None = None,
                   axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Returns S5Pmsm object containing median & standard deviation
+        r"""Return S5Pmsm object containing median & standard deviation
         of the original data.
 
         Parameters
@@ -685,7 +679,7 @@ class S5Pmsm:
 
     def nanmean(self, data_sel: tuple[slice | int] | None = None,
                 axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Returns S5Pmsm object containing mean & standard deviation
+        r"""Return S5Pmsm object containing mean & standard deviation
         of the original data.
 
         Parameters
@@ -745,8 +739,7 @@ class S5Pmsm:
         return self
 
     def transpose(self) -> S5Pmsm:
-        """Transpose data and coordinates of an S5Pmsm object.
-        """
+        """Transpose data and coordinates of an S5Pmsm object."""
         if self.value.ndim <= 1:
             return self
 

@@ -7,10 +7,10 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contains the class `CKDio`.
-"""
+"""This module contains the class `CKDio`."""
+
 from __future__ import annotations
+
 __all__ = ['CKDio']
 
 from pathlib import Path, PosixPath
@@ -24,16 +24,14 @@ from moniplot.image_to_xarray import h5_to_xr
 
 # - local functions ------------------------------
 def reject_row257(xarr: xr.DataArray | xr.Dataset) -> xr.DataArray | xr.Dataset:
-    """
-    Remove row 257 from DataArray or Dataset
-    """
+    """Remove row 257 from DataArray or Dataset."""
     return xarr.isel(row=np.s_[0:256])
 
 
 # - class definition -------------------------------
 class CKDio:
     """
-    Read Tropomi CKD from the Static CKD product or from dynamic CKD products
+    Read Tropomi CKD from the Static CKD product or from dynamic CKD products.
 
     Parameters
     ----------
@@ -79,10 +77,10 @@ class CKDio:
     * Dynamic CKD are empty
 
     """
+
     def __init__(self, ckd_dir: Path | None = None, ckd_version: int = 1,
                  ckd_file: Path | None = None) -> None:
-        """Create CKDio object.
-        """
+        """Create CKDio object."""
         if ckd_dir is None:
             ckd_dir = Path('/nfs/Tropomi/share/ckd')
         self.ckd_version = max(1, ckd_version)
@@ -117,28 +115,24 @@ class CKDio:
                 self.ckd_dyn_file = res[-1]
 
         # open access to CKD product
-        self.fid = h5py.File(self.ckd_file, "r")
+        self.fid = h5py.File(self.ckd_file, 'r')
 
     def __enter__(self):
-        """Method called to initiate the context manager.
-        """
+        """Initiate the context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Method called when exiting the context manager.
-        """
+        """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
     def close(self) -> None:
-        """Make sure that we close all resources.
-        """
+        """Make sure that we close all resources."""
         if self.fid is not None:
             self.fid.close()
 
     def creation_time(self) -> str:
-        """Returns datetime when the L1b product was created.
-        """
+        """Return datetime when the L1b product was created."""
         if self.ckd_version == 2:
             attr = self.fid['METADATA'].attrs['production_datetime']
         else:
@@ -151,8 +145,7 @@ class CKDio:
         return attr
 
     def creator_version(self) -> str:
-        """Returns version of Tropomi L01B processor.
-        """
+        """Return version of Tropomi L01B processor."""
         group = PosixPath('METADATA', 'earth_explorer_header', 'fixed_header')
         attr = self.fid[str(group)].attrs['File_Version']
         if self.ckd_version == 1:
@@ -163,7 +156,7 @@ class CKDio:
 
     @staticmethod
     def __get_spectral_channel(bands: str) -> str:
-        """Check bands is valid: single band or belong to one channel
+        """Check bands is valid: single band or belong to one channel.
 
         Parameters
         ----------
@@ -184,7 +177,7 @@ class CKDio:
 
     def get_param(self, ds_name: str,
                   band: str = '7') -> np.ndarray | float:
-        """Returns value(s) of a CKD parameter from the Static CKD product.
+        """Return value(s) of a CKD parameter from the Static CKD product.
 
         Parameters
         ----------
@@ -220,7 +213,7 @@ class CKDio:
 
     # ---------- band or channel CKD's ----------
     def dn2v_factors(self) -> np.ndarray:
-        """Returns digital number to Volt CKD, SWIR only.
+        """Return digital number to Volt CKD, SWIR only.
 
         Notes
         -----
@@ -231,7 +224,7 @@ class CKDio:
              self.fid['/BAND8/dn2v_factor_swir'][2:]))
 
     def v2c_factors(self) -> np.ndarray:
-        """Returns Voltage to Charge CKD, SWIR only.
+        """Return Voltage to Charge CKD, SWIR only.
 
         Notes
         -----
@@ -293,7 +286,7 @@ class CKDio:
         return xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
 
     def __rd_datapoints(self, dset_name: str, bands: str) -> xr.Dataset | None:
-        """General function to read datapoint dataset into xarray::Dataset
+        """General function to read datapoint dataset into xarray::Dataset.
 
         Parameters
         ----------
@@ -358,7 +351,7 @@ class CKDio:
 
     # ---------- static CKD's ----------
     def absirr(self, qvd: int = 1, bands: str = '78') -> xr.Dataset:
-        """Returns absolute irradiance responsivity.
+        """Return absolute irradiance responsivity.
 
         Parameters
         ----------
@@ -376,13 +369,13 @@ class CKDio:
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = \
+        ckd.attrs['long_name'] = \
             f'{channel} absolute irradiance CKD (QVD={qvd})'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def absrad(self, bands: str = '78') -> xr.Dataset:
-        """Returns absolute radiance responsivity.
+        """Return absolute radiance responsivity.
 
         Parameters
         ----------
@@ -398,19 +391,18 @@ class CKDio:
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = f'{channel} absolute radiance CKD'
+        ckd.attrs['long_name'] = f'{channel} absolute radiance CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def memory(self) -> xr.Dataset:
-        """Returns memory CKD, SWIR only.
-        """
+        """Return memory CKD, SWIR only."""
         column = None
         ckd_parms = ['mem_lin_neg_swir', 'mem_lin_pos_swir',
                      'mem_qua_neg_swir', 'mem_qua_pos_swir']
 
         ckd = xr.Dataset()
-        ckd.attrs["long_name"] = 'SWIR memory CKD'
+        ckd.attrs['long_name'] = 'SWIR memory CKD'
         for key in ckd_parms:
             dset_name = f'/BAND7/{key}'
             ckd_val = h5_to_xr(self.fid[dset_name], field='value')
@@ -432,7 +424,7 @@ class CKDio:
         return ckd
 
     def noise(self, bands: str = '78') -> xr.Dataset:
-        """Returns readout-noise CKD, SWIR only.
+        """Return readout-noise CKD, SWIR only.
 
         Parameters
         ----------
@@ -441,12 +433,12 @@ class CKDio:
         """
         dset_name = '/BAND{}/readout_noise_swir'
         ckd = reject_row257(self.__rd_dataset(dset_name, bands))
-        ckd.attrs["long_name"] = 'SWIR readout-noise CKD'
+        ckd.attrs['long_name'] = 'SWIR readout-noise CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def prnu(self, bands: str = '78') -> xr.Dataset:
-        """Returns Pixel Response Non-Uniformity (PRNU).
+        """Return Pixel Response Non-Uniformity (PRNU).
 
         Parameters
         ----------
@@ -461,12 +453,12 @@ class CKDio:
         ckd = self.__rd_datapoints('/BAND{}/PRNU', bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = f'{channel} PRNU CKD'
+        ckd.attrs['long_name'] = f'{channel} PRNU CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def relirr(self, qvd: int = 1, bands: str = '78') -> tuple[dict] | None:
-        """Returns relative irradiance correction.
+        """Return relative irradiance correction.
 
         Parameters
         ----------
@@ -512,14 +504,13 @@ class CKDio:
         return res if res else None
 
     def saa(self) -> dict:
-        """Returns definition of the SAA region.
-        """
+        """Return definition of the SAA region."""
         return {
             'lat': self.fid['saa_latitude'][:],
             'lon': self.fid['saa_longitude'][:]}
 
     def wavelength(self, bands: str = '78') -> xr.Dataset:
-        """Returns wavelength CKD.
+        """Return wavelength CKD.
 
         Parameters
         ----------
@@ -539,13 +530,13 @@ class CKDio:
         ckd = self.__rd_datapoints(dset_name, bands)
         if '7' in bands or '8' in bands:
             ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = f'{channel} wavelength CKD'
+        ckd.attrs['long_name'] = f'{channel} wavelength CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     # ---------- static or dynamic CKD's ----------
     def darkflux(self, bands: str = '78') -> xr.Dataset:
-        """Returns dark-flux CKD, SWIR only.
+        """Return dark-flux CKD, SWIR only.
 
         Parameters
         ----------
@@ -554,12 +545,12 @@ class CKDio:
         """
         dset_name = '/BAND{}/long_term_swir'
         ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
-        ckd.attrs["long_name"] = 'SWIR dark-flux CKD'
+        ckd.attrs['long_name'] = 'SWIR dark-flux CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def offset(self, bands: str = '78') -> xr.Dataset:
-        """Returns offset CKD, SWIR only.
+        """Return offset CKD, SWIR only.
 
         Parameters
         ----------
@@ -568,12 +559,12 @@ class CKDio:
         """
         dset_name = '/BAND{}/analog_offset_swir'
         ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
-        ckd.attrs["long_name"] = 'SWIR offset CKD'
+        ckd.attrs['long_name'] = 'SWIR offset CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def pixel_quality(self, bands: str = '78') -> xr.Dataset:
-        """Returns detector pixel-quality mask (float [0, 1]), SWIR only.
+        """Return detector pixel-quality mask (float [0, 1]), SWIR only.
 
         Parameters
         ----------
@@ -582,12 +573,12 @@ class CKDio:
         """
         dset_name = '/BAND{}/dpqf_map'
         ckd = reject_row257(self.__rd_dataset(dset_name, bands))
-        ckd.attrs["long_name"] = 'SWIR pixel-quality CKD'
+        ckd.attrs['long_name'] = 'SWIR pixel-quality CKD'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
 
     def dpqf(self, threshold: float = None, bands: str = '78') -> xr.Dataset:
-        """Returns detector pixel-quality flags (boolean), SWIR only.
+        """Return detector pixel-quality flags (boolean), SWIR only.
 
         Parameters
         ----------
@@ -629,8 +620,7 @@ class CKDio:
         return dpqf
 
     def saturation(self) -> xr.Dataset:
-        """Returns pixel-saturation values (pre-offset), SWIR only.
-        """
+        """Return pixel-saturation values (pre-offset), SWIR only."""
         dset_name = '/BAND{}/saturation_preoffset'
         ckd_file = (self.ckd_dir / 'OCAL'
                     / 'ckd.saturation_preoffset.detector4.nc')
@@ -641,6 +631,6 @@ class CKDio:
 
         ckd = xr.Dataset({'value': ckd_val}, attrs=ckd_val.attrs)
         ckd = reject_row257(ckd)
-        ckd.attrs["long_name"] = 'SWIR pixel-saturation CKD (pre-offset)'
+        ckd.attrs['long_name'] = 'SWIR pixel-saturation CKD (pre-offset)'
 
         return ckd.assign_coords(column=np.arange(ckd.column.size, dtype='u4'))
