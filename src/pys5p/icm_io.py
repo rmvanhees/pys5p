@@ -15,13 +15,14 @@ __all__ = ['ICMio']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from setuptools_scm import get_version
-from typing import Any
-from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 import h5py
 import numpy as np
+from setuptools_scm import get_version
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 # - global parameters ------------------------------
 
@@ -850,15 +851,17 @@ class ICMio:
                 dset = self.fid[ds_path]
                 if dest_dtype is None:
                     buff = dset[dest_sel]
-                    if fill_as_nan and '_FillValue' in dset.attrs:
-                        if np.issubdtype(buff.dtype, np.floating):
-                            fillvalue = dset.attrs['_FillValue'][0]
-                            buff[(buff == fillvalue)] = np.nan
+                    if (fill_as_nan
+                        and '_FillValue' in dset.attrs
+                        and np.issubdtype(buff.dtype, np.floating)):
+                        fillvalue = dset.attrs['_FillValue'][0]
+                        buff[(buff == fillvalue)] = np.nan
                 else:
                     buff = dset.astype(dest_dtype)[dest_sel]
-                    if fill_as_nan and '_FillValue' in dset.attrs:
-                        if np.issubdtype(buff.dtype, np.floating):
-                            buff[(buff == fillvalue)] = np.nan
+                    if (fill_as_nan
+                        and '_FillValue' in dset.attrs
+                        and np.issubdtype(buff.dtype, np.floating)):
+                        buff[(buff == fillvalue)] = np.nan
 
                 data.append(buff)
 
@@ -879,7 +882,11 @@ class ICMio:
         if not self.__rw:
             raise PermissionError('read/write access required')
 
-        if not self.__msm_path:
+        if (not self.__msm_path
+            or self.__msm_path.name in ['ANALOG_OFFSET_SWIR',
+                                        'LONG_TERM_SWIR',
+                                        'DPQF_MAP',
+                                        'NOISE']):
             return
 
         if band is None:
@@ -888,18 +895,9 @@ class ICMio:
             raise ValueError('band not found in product')
 
         msm_path = str(self.__msm_path).replace('%', band)
-        msm_type = self.__msm_path.name
-
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
-            pass
-        elif msm_type in ['DPQF_MAP', 'NOISE']:
-            pass
-        else:
-            ds_path = PurePosixPath(msm_path,
-                                    'INSTRUMENT', 'housekeeping_data')
-            self.fid[str(ds_path)][0, :] = data
-
-            self.__patched_msm.append(str(ds_path))
+        ds_path = PurePosixPath(msm_path, 'INSTRUMENT', 'housekeeping_data')
+        self.fid[str(ds_path)][0, :] = data
+        self.__patched_msm.append(str(ds_path))
 
     def set_msm_data(self, msm_dset: str, data: np.ndarray | Iterable,
                      band: str = '78') -> None:

@@ -9,17 +9,21 @@
 # License:  BSD-3-Clause
 """This module contains the class `LV2io` to access Tropomi level-2 products."""
 from __future__ import annotations
+
 __all__ = ['LV2io']
 
 from datetime import datetime, timedelta
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import h5py
-from netCDF4 import Dataset
 import numpy as np
-import xarray as xr
-
 from moniplot.image_to_xarray import data_to_xr, h5_to_xr
+from netCDF4 import Dataset
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import xarray as xr
 
 # - global parameters ------------------------------
 
@@ -149,7 +153,7 @@ class LV2io:
         """Read attributes from operational products using hdf5."""
         if ds_name is not None:
             dset = self.fid[f'/PRODUCT/{ds_name}']
-            if attr_name not in dset.attrs.keys():
+            if attr_name not in dset.attrs:
                 return None
 
             attr = dset.attrs[attr_name]
@@ -244,7 +248,7 @@ class LV2io:
             geo_dsets = 'latitude_center,longitude_center'
 
         for key in geo_dsets.split(','):
-            if key in self.fid['/instrument'].variables.keys():
+            if key in self.fid['/instrument'].variables:
                 ds_name = f'/instrument/{key}'
                 res[key] = self.fid[ds_name][:].reshape(
                     self.scanline, self.ground_pixel)
@@ -407,9 +411,9 @@ class LV2io:
     def __nc_dataset(self, name: str, data_sel: tuple[slice | int],
                      fill_as_nan: bool) -> np.ndarray:
         """Read dataset from science products using netCDF4."""
-        if name in self.fid['/target_product'].variables.keys():
+        if name in self.fid['/target_product'].variables:
             group = '/target_product'
-        elif name in self.fid['/instrument'].variables.keys():
+        elif name in self.fid['/instrument'].variables:
             group = '/instrument'
         else:
             raise ValueError(f'dataset {name} for found')
@@ -474,9 +478,9 @@ class LV2io:
 
         Return: xarray.DataArray
         """
-        if name in self.fid['/target_product'].variables.keys():
+        if name in self.fid['/target_product'].variables:
             group = '/target_product/'
-        elif name in self.fid['/instrument'].variables.keys():
+        elif name in self.fid['/instrument'].variables:
             group = '/instrument/'
         else:
             raise ValueError('dataset {name} for found')

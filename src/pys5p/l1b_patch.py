@@ -13,18 +13,16 @@
 """
 __all__ = ['L1Bpatch']
 
+import shutil
 from datetime import datetime
 from pathlib import Path
-import shutil
-
-from setuptools_scm import get_version
 
 import h5py
 import numpy as np
+from setuptools_scm import get_version
 
-from .l1b_io import L1BioRAD
 from . import swir_region
-
+from .l1b_io import L1BioRAD
 
 # - global variables --------------------------------
 _MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'

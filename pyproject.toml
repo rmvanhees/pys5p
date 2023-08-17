@@ -45,12 +45,19 @@ documentation = "https://pys5p.readthedocs.io/en/latest/"
 
 [tool.ruff]
 select = [
+  "D",   # pydocstyle
   "E",   # pycodestyle
+  "W",   # pycodestyle
   "F",   # pyflakes
+  "I",   # isort
   "UP",  # pyupgrade
+  # "ANN", # flake8-annotations
   "B",   # flake8-bugbear
   "Q",   # flake8-quotes
-  "D",   # pydocstyle
+  "SIM", # flake8-simplify
+  "TID", # flake8-tidy-imports
+  "TCH", # flake8-type-checking
+  "NPY", # NumPy-specific rules
 ]
 ignore = ["D205"]
 

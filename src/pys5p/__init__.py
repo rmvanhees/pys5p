@@ -11,9 +11,9 @@
 """The pys5p package contains software to read S5p Tropomi L1B products.
 And contains plotting routines to display your data beautifully.
 """
-from importlib.metadata import version, PackageNotFoundError
+import contextlib
+from importlib.metadata import PackageNotFoundError, version
 
-try:
+with contextlib.suppress(PackageNotFoundError):
     __version__ = version(__name__)
-except PackageNotFoundError:
-    pass
+

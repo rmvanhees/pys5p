@@ -12,7 +12,6 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-
 from pys5p.lv2_io import LV2io
 
 
@@ -30,10 +29,7 @@ def read_lv2(l2_product):
         print('creation_time: ', lv2.creation_time)
         # Attributes
         print('get_attr: ', lv2.get_attr('title'))
-        if lv2.science_product:
-            ds_name = 'h2o_column'
-        else:
-            ds_name = 'methane_mixing_ratio'
+        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
         print('get_attr: ', lv2.get_attr('long_name', ds_name))
 
         # Time information
@@ -48,18 +44,12 @@ def read_lv2(l2_product):
         print('get_geo_bounds: ', lv2.get_geo_bounds(
             data_sel=np.s_[250:300, 100:110])[geo_var].shape)
         # Datasets (numpy)
-        if lv2.science_product:
-            ds_name = 'h2o_column'
-        else:
-            ds_name = 'methane_mixing_ratio'
+        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
         print('get_dataset: ', lv2.get_dataset(ds_name).shape)
         print('get_dataset: ', lv2.get_dataset(
             ds_name, data_sel=np.s_[250:300, 100:110]).shape)
         # Datasets (xarray)
-        if lv2.science_product:
-            ds_name = 'h2o_column'
-        else:
-            ds_name = 'methane_mixing_ratio'
+        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
         print('get_data_as_xds: ', lv2.get_data_as_xds(ds_name))
 
 

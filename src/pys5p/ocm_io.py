@@ -19,7 +19,6 @@ from typing import Any
 
 import h5py
 import numpy as np
-
 from moniplot.biweight import Biweight
 
 # - global parameters ------------------------------
@@ -66,10 +65,7 @@ def band2channel(dict_a: dict, dict_b: dict,
     for key in sorted(dict_a):
         buff = dict_a[key][...]
 
-        if data_a is None:
-            data_a = buff
-        else:
-            data_a = np.vstack((data_a, buff))
+        data_a = buff if data_a is None else np.vstack((data_a, buff))
 
     if data_a is not None:
         if 'mean' in mode:
@@ -86,10 +82,7 @@ def band2channel(dict_a: dict, dict_b: dict,
     for key in sorted(dict_b):
         buff = dict_b[key][...]
 
-        if data_b is None:
-            data_b = buff
-        else:
-            data_b = np.vstack((data_b, buff))
+        data_b = buff if data_b is None else np.vstack((data_b, buff))
 
     if data_b is not None:
         if 'mean' in mode:
@@ -188,7 +181,7 @@ class OCMio:
         attr_name : string
            name of the attribute
         """
-        if attr_name in self.fid.attrs.keys():
+        if attr_name in self.fid.attrs:
             return self.fid.attrs[attr_name]
 
         return None
@@ -344,7 +337,7 @@ class OCMio:
         for msm_path in self.__msm_path:
             ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
 
-            if attr_name in grp[ds_path].attrs.keys():
+            if attr_name in grp[ds_path].attrs:
                 attr = grp[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
                     return attr.decode('ascii')
@@ -479,9 +472,8 @@ class OCMio:
             else:
                 buff = dset.astype(dest_dtype)[dest_sel]
 
-            if fill_as_nan:
-                if dset.attrs['_FillValue'] == fillvalue:
-                    buff[(buff == fillvalue)] = np.nan
+            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                buff[(buff == fillvalue)] = np.nan
 
             # add data to dictionary
             res[msm_grp] = buff

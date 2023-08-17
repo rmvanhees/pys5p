@@ -19,6 +19,7 @@ data points evenly over the whole range of x, making the result less
 sensitive to the actual spacing between the data points.
 """
 from __future__ import annotations
+
 __all__ = ['rls_fit', 'rls_fit0']
 
 import numpy as np

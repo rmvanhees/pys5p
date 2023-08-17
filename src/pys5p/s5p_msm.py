@@ -20,9 +20,8 @@ from collections import namedtuple
 from copy import deepcopy
 from pathlib import PurePath
 
-from h5py import Dataset
 import numpy as np
-
+from h5py import Dataset
 from moniplot.biweight import Biweight
 
 # The class S5Pmsm read HDF5 measurement data including its attributes and
@@ -297,10 +296,7 @@ class S5Pmsm:
             else:
                 raise ValueError('not implemented for ndim > 3')
         else:
-            if isinstance(coords_name, str):
-                keys = [coords_name]
-            else:
-                keys = coords_name
+            keys = [coords_name] if isinstance(coords_name, str) else coords_name
 
         # add dimensions as a namedtuple
         coords_namedtuple = namedtuple('Coords', keys)
@@ -330,9 +326,9 @@ class S5Pmsm:
 
     def set_fillvalue(self):
         """Set fillvalue to KNMI undefined."""
-        if np.issubdtype(self.value.dtype, np.floating):
-            if self.fillvalue is None or self.fillvalue == 0.:
-                self.fillvalue = float.fromhex('0x1.ep+122')
+        if (np.issubdtype(self.value.dtype, np.floating)
+            and self.fillvalue is None or self.fillvalue == 0.):
+            self.fillvalue = float.fromhex('0x1.ep+122')
 
     def set_long_name(self, name: str, force: bool = False):
         """Set the long_name attribute, overwrite when force is true."""

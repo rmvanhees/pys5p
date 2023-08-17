@@ -15,15 +15,17 @@ __all__ = ['L1Bio', 'L1BioIRR', 'L1BioRAD', 'L1BioENG']
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from setuptools_scm import get_version
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import h5py
 import numpy as np
-
 from moniplot.biweight import Biweight
+from setuptools_scm import get_version
 
 from .swir_texp import swir_exp_time
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 # - global parameters ------------------------------
 
@@ -165,7 +167,7 @@ class L1Bio:
         attr_name :  string
            Name of the attribute
         """
-        if attr_name not in self.fid.attrs.keys():
+        if attr_name not in self.fid.attrs:
             return None
 
         attr = self.fid.attrs[attr_name]
@@ -209,7 +211,7 @@ class L1Bio:
         """Return datetime when the L1b product was created."""
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
-        if 'Creation_Date' in self.fid.attrs.keys():
+        if 'Creation_Date' in self.fid.attrs:
             attr = dset.attrs['Creation_Date']
             if isinstance(attr, bytes):
                 return attr.decode('ascii')
@@ -496,7 +498,7 @@ class L1Bio:
 
         msm_path = self.__msm_path.replace('%', band)
         ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
-        if attr_name in self.fid[ds_path].attrs.keys():
+        if attr_name in self.fid[ds_path].attrs:
             attr = self.fid[ds_path].attrs[attr_name]
             if isinstance(attr, bytes):
                 return attr.decode('ascii')
@@ -679,7 +681,7 @@ class L1BioENG:
         attr_name :  str
            Name of the attribute
         """
-        if attr_name not in self.fid.attrs.keys():
+        if attr_name not in self.fid.attrs:
             return None
 
         attr = self.fid.attrs[attr_name]
@@ -723,7 +725,7 @@ class L1BioENG:
         """Return datetime when the L1b product was created."""
         grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
         dset = grp['fixed_header/source']
-        if 'Creation_Date' in self.fid.attrs.keys():
+        if 'Creation_Date' in self.fid.attrs:
             attr = dset.attrs['Creation_Date']
             if isinstance(attr, bytes):
                 return attr.decode('ascii')

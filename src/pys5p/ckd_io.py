@@ -18,7 +18,6 @@ from pathlib import Path, PosixPath
 import h5py
 import numpy as np
 import xarray as xr
-
 from moniplot.image_to_xarray import h5_to_xr
 
 
@@ -169,9 +168,9 @@ class CKDio:
         if 0 < len(bands) > 2:
             raise ValueError('read per band or channel, only')
 
-        if len(bands) == 2:
-            if band2channel[int(bands[0])] != band2channel[int(bands[1])]:
-                raise ValueError('bands should be of the same channel')
+        if (len(bands) == 2
+            and band2channel[int(bands[0])] != band2channel[int(bands[1])]):
+            raise ValueError('bands should be of the same channel')
 
         return band2channel[int(bands[0])]
 
