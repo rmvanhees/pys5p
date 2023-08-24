@@ -58,7 +58,7 @@ class L1Bpatch:
         if not self.data_dir.is_dir():
             self.data_dir.mkdir(mode=0o755)
         self.ckd_dir = Path(ckd_dir)
-        self.l1b_product = Path(l1b_product)
+        self.l1b_product: Path = Path(l1b_product)
         self.l1b_patched = \
             self.data_dir / self.l1b_product.name.replace('_01_', '_99_')
         if self.l1b_patched.is_file():
@@ -128,7 +128,7 @@ class L1Bpatch:
         ----------
         dpqm  :   array-like
            SWIR pixel quality as a float value between 0 and 1
-        thershold :  float, optional
+        threshold :  float, optional
            threshold for good pixels, default 0.8
 
         Returns
@@ -185,10 +185,6 @@ class L1Bpatch:
            * apply (alternative) stray-light correction
            * apply (alternative) radiance calibration
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         Nothing
@@ -227,10 +223,6 @@ class L1Bpatch:
            * apply (alternative) PRNU correction
            * apply (alternative) stray-light correction
            * apply (alternative) radiance calibration
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -272,10 +264,6 @@ class L1Bpatch:
         Alternative: neglect impact stray-light, but apply patch to correct for
         spectral features.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         None
@@ -314,10 +302,6 @@ class L1Bpatch:
            * reverse applied radiance calibration
            * apply alternative radiance calibration
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         Nothing
@@ -350,10 +334,6 @@ class L1Bpatch:
 
            * reverse applied irradiance calibration
            * apply alternative irradiance calibration
-
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -405,7 +385,7 @@ class L1Bpatch:
                     print(ds_name.split('/')[-1], ' equal True')
                 else:
                     print(f'{ds_name.split("/")[-1]}'
-                          f' equal {(orig == patch).sum()}'
-                          f' differ {(orig != patch).sum()}')
+                          f' equal {np.sum(orig == patch)}'
+                          f' differ {np.sum(orig != patch)}')
             else:
                 print('test not yet defined')

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 # - local functions --------------------------------
 
+
 # - class definition -------------------------------
 class ICMio:
     """This class should offer all the necessary functionality to read Tropomi
