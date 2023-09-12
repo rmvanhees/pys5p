@@ -8,9 +8,9 @@
 #
 # License:  BSD-3-Clause
 
-"""This is the Python package `pys5p`.
+"""This is the SRON Python package `pys5p`.
 
-It contains software to read S5p Tropomi ICM, L1B and L2 products.
+It contains software to read Sentinel-5p Tropomi ICM, L1B and L2 products.
 """
 import contextlib
 from importlib.metadata import PackageNotFoundError, version
