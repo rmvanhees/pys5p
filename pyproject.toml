@@ -7,7 +7,6 @@ requires = ["setuptools>=65", "setuptools_scm[toml]>=7.1", "wheel"]
 name = "pys5p"
 description = "Software package to access Sentinel-5p Tropomi data products"
 readme = "README.md"
-requires-python = ">=3.9"
 license = {text = "BSD-3-Clause"}
 authors = [
   {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"},
@@ -25,6 +24,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
+requires-python = ">=3.9"
 dependencies = [
   "h5py>=3.8",
   "moniplot>=0.5.8",
@@ -34,12 +34,17 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.scripts]
+
 [project.urls]
 homepage = "https://github.com/rmvanhees/pys5p"
 documentation = "https://pys5p.readthedocs.io/en/latest/"
 # Source = "https://github.com/rmvanhees/pys5p"
 # Changelog = "https://github.com/rmvanhees/pys5p/HISTORY.rst"
 "Issue tracker" = "https://github.com/rmvanhees/pys5p/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools_scm]
 
@@ -59,7 +64,7 @@ select = [
   "TCH", # flake8-type-checking
   "NPY", # NumPy-specific rules
 ]
-ignore = ["D205"]
+# ignore = ["D205"]
 
 [tool.ruff.pydocstyle]
 convention = "pep257"

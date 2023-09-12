@@ -75,7 +75,9 @@ class L1Bpatch:
         return False  # any exception is raised by the with statement.
 
     def close(self) -> None:
-        """Before closing the product, we make sure that the output product
+        """Close L1B product.
+
+        Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
 

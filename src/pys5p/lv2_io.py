@@ -33,8 +33,7 @@ if TYPE_CHECKING:
 
 # - class definition -------------------------------
 class LV2io:
-    """This class should offer all the necessary functionality to read Tropomi
-    S5P_OFFL_L2 products.
+    """A class to read Tropomi Level-2 (offline) products.
 
     Parameters
     ----------
@@ -279,9 +278,7 @@ class LV2io:
     # ----- Footprints --------------------
     def __h5_geo_bounds(self, extent: list[float, float, float, float],
                         data_sel: tuple[slice | int]) -> tuple:
-        """Read bounds of latitude/longitude from operational products
-        using HDF5.
-        """
+        """Read latitude/longitude bounding box [HDF5]."""
         if extent is not None:
             if len(extent) != 4:
                 raise ValueError('parameter extent must have 4 elements')
@@ -307,9 +304,7 @@ class LV2io:
 
     def __nc_geo_bounds(self, extent: list[float, float, float, float],
                         data_sel: tuple[slice | int]) -> tuple:
-        """Read bounds of latitude/longitude from science products
-        using netCDF4.
-        """
+        """Read latitude/longitude bounding box [netCDF4]."""
         if extent is not None:
             if len(extent) != 4:
                 raise ValueError('parameter extent must have 4 elements')

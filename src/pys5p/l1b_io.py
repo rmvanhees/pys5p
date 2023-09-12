@@ -258,8 +258,7 @@ class L1Bio:
         return self.bands
 
     def sequence(self, band: str | None = None) -> np.ndarray | None:
-        """Return sequence number for each unique measurement based on ICID
-        and delta_time.
+        """Return sequence number, ICID and delta_time for each measurement.
 
         Parameters
         ----------

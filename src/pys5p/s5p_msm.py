@@ -71,9 +71,7 @@ def pad_rows(arr1: np.ndarray,
 
 # - class definition -------------------------------
 class S5Pmsm:
-    r"""
-    Definition of class S5Pmsm which contains the data of a HDF5 dataset,
-    including its attributes (CF conversion).
+    r"""A class to hold a HDF5 dataset and its attributes.
 
     Parameters
     ----------
@@ -553,7 +551,7 @@ class S5Pmsm:
 
     def biweight(self, data_sel: tuple[slice | int] | None = None,
                  axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Return biweight median of the data in the S5Pmsm.
+        r"""Reduce this S5Pmsm data by applying biweight along some dimension.
 
         Parameters
         ----------
@@ -614,8 +612,7 @@ class S5Pmsm:
 
     def nanmedian(self, data_sel: tuple[slice | int] | None = None,
                   axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Return S5Pmsm object containing median & standard deviation
-        of the original data.
+        r"""Reduce this S5Pmsm data by applying median along some dimension.
 
         Parameters
         ----------
@@ -675,8 +672,7 @@ class S5Pmsm:
 
     def nanmean(self, data_sel: tuple[slice | int] | None = None,
                 axis: int = 0, keepdims: bool = False) -> S5Pmsm:
-        r"""Return S5Pmsm object containing mean & standard deviation
-        of the original data.
+        r"""Reduce this S5Pmsm data by applying mean along some dimension.
 
         Parameters
         ----------

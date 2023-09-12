@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 # - class definition -------------------------------
 class ICMio:
-    """This class should offer all the necessary functionality to read Tropomi
-    ICM_CA_SIR products.
+    """A class to read or modify Tropomi ICM_CA_SIR products.
 
     Parameters
     ----------
@@ -83,7 +82,8 @@ class ICMio:
         return False  # any exception is raised by the with statement.
 
     def close(self):
-        """
+        """Close a ICM product.
+
         Before closing the product, we make sure that the output product
         describes what has been altered by the S/W. To keep any change
         traceable.
@@ -800,8 +800,7 @@ class ICMio:
                         dest_sel: tuple[slice | int] | None = None,
                         dest_dtype: type[Any] | None = None,
                         fill_as_nan: bool = False) -> list[np.ndarray] | None:
-        """Read datasets from a measurement selected by class-method `select`
-        (fast implementation).
+        """Read datasets from a measurement selected by class-method `select`.
 
         Parameters
         ----------

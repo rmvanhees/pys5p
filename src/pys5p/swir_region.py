@@ -55,8 +55,7 @@ def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
 
 
 def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
-    """Return mask of the illuminated region, where the value of
-    the illuminated pixels are set to True.
+    """Return mask of the illuminated region.
 
     Parameters
     ----------
@@ -64,6 +63,10 @@ def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
        default is 'illuminated'
     band  :   str, optional
        select band 7 or 8, default is both bands
+
+    Notes
+    -----
+    Pixels within the illuminated region are set to True.
     """
     if band in ('7', '8'):
         res = np.full((256, 500), False)

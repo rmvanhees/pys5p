@@ -100,8 +100,7 @@ def band2channel(dict_a: dict, dict_b: dict,
 
 # - class definition -------------------------------
 class OCMio:
-    """This class should offer all the necessary functionality to read Tropomi
-    on-ground calibration products (Lx).
+    """A class to read Tropomi on-ground calibration products (Lx).
 
     Parameters
     ----------
