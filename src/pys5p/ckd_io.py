@@ -3,11 +3,11 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains the class `CKDio`."""
+"""`CKDio`, class to read S5p Tropomi CKD data."""
 
 from __future__ import annotations
 
@@ -29,8 +29,7 @@ def reject_row257(xarr: xr.DataArray | xr.Dataset) -> xr.DataArray | xr.Dataset:
 
 # - class definition -------------------------------
 class CKDio:
-    """
-    Read Tropomi CKD from the Static CKD product or from dynamic CKD products.
+    """Read Tropomi CKD from the Static CKD product or from dynamic CKD products.
 
     Parameters
     ----------
@@ -161,6 +160,7 @@ class CKDio:
         ----------
         bands : str
            Tropomi bands [1..8] or channels ['12', '34', '56', '78'],
+
         """
         band2channel = ['UNKNOWN', 'UV', 'UV', 'VIS', 'VIS',
                         'NIR', 'NIR', 'SWIR', 'SWIR']
@@ -217,6 +217,7 @@ class CKDio:
         Notes
         -----
         The DN2V factor has no error attached to it.
+
         """
         return np.concatenate(
             (self.fid['/BAND7/dn2v_factor_swir'][2:],
@@ -228,6 +229,7 @@ class CKDio:
         Notes
         -----
         The V2C factor has no error attached to it.
+
         """
         # pylint: disable=no-member
         return np.concatenate(
@@ -249,6 +251,7 @@ class CKDio:
         -------
         xarray.Dataset
            parameters of CKD with name 'dset_name'
+
         """
         ckd_val = None
         for band in bands:
@@ -299,6 +302,7 @@ class CKDio:
         -------
         xarray.Dataset
            parameters (value and uncertainty) of CKD with name 'dset_name'
+
         """
         ckd_val = None
         ckd_err = None
@@ -358,6 +362,7 @@ class CKDio:
           Tropomi QVD identifier. Valid values are 1 or 2
         bands : str, default: '78'
           Tropomi bands [1..8] or channels ['12', '34', '56', '78']
+
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -380,6 +385,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi bands [1..8] or channels ['12', '34', '56', '78']
+
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -429,6 +435,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi bands [1..8] or channels ['12', '34', '56', '78']
+
         """
         dset_name = '/BAND{}/readout_noise_swir'
         ckd = reject_row257(self.__rd_dataset(dset_name, bands))
@@ -443,6 +450,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi bands [1..8] or channels ['12', '34', '56', '78']
+
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -519,6 +527,7 @@ class CKDio:
         Notes
         -----
         The wavelength CKD has no error attached to it.
+
         """
         try:
             channel = self.__get_spectral_channel(bands)
@@ -541,6 +550,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi SWIR bands '7', '8' or both '78'
+
         """
         dset_name = '/BAND{}/long_term_swir'
         ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
@@ -555,6 +565,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi SWIR bands '7', '8' or both '78'
+
         """
         dset_name = '/BAND{}/analog_offset_swir'
         ckd = reject_row257(self.__rd_datapoints(dset_name, bands))
@@ -569,6 +580,7 @@ class CKDio:
         ----------
         bands : str, default: '78'
           Tropomi SWIR bands '7', '8' or both '78'
+
         """
         dset_name = '/BAND{}/dpqf_map'
         ckd = reject_row257(self.__rd_dataset(dset_name, bands))
@@ -589,6 +601,7 @@ class CKDio:
         Returns
         -------
         numpy ndarray
+
         """
         dpqf = None
         if threshold is None:

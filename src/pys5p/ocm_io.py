@@ -3,11 +3,11 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contain class `OCMio` to access on-ground calibration data."""
+"""`OCMio`, class to access on-ground calibration data."""
 
 from __future__ import annotations
 
@@ -57,6 +57,7 @@ def band2channel(dict_a: dict, dict_b: dict,
     Examples
     --------
     > data = ocm.band2channel(dict_a, dict_b, mode=['combined', 'median'])
+
     """
     if mode is None:
         mode = []
@@ -106,6 +107,7 @@ class OCMio:
     ----------
     ocm_product :  Path
         Full path to on-ground calibration measurement
+
     """
 
     def __init__(self, ocm_product: Path):
@@ -179,6 +181,7 @@ class OCMio:
         ----------
         attr_name : string
            name of the attribute
+
         """
         if attr_name in self.fid.attrs:
             return self.fid.attrs[attr_name]
@@ -290,6 +293,7 @@ class OCMio:
         -----
         Updated object attributes:
           - bands               : available spectral bands
+
         """
         self.band = ''
         self.__msm_path = []
@@ -328,6 +332,7 @@ class OCMio:
         -------
         scalar or numpy.ndarray
            value of attribute "attr_name"
+
         """
         if not self.__msm_path:
             return ''
@@ -370,6 +375,7 @@ class OCMio:
         -------
         dict
            Python dictionary with names of msm_groups as keys
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -450,6 +456,7 @@ class OCMio:
         -------
         dict
            Python dictionary with names of msm_groups as keys
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 

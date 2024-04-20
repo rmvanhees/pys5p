@@ -3,11 +3,13 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains routines to divide or add uncertainties."""
+"""Routines to divide or add (partial) uncertainties."""
+
+from __future__ import annotations
 
 __all__ = ['unc_div', 'unc_sum']
 

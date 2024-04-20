@@ -3,12 +3,12 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2023 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
 
-"""This is the SRON Python package `pys5p`.
+"""SRON Python package `pys5p`.
 
 It contains software to read Sentinel-5p Tropomi ICM, L1B and L2 products.
 """

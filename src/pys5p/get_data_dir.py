@@ -3,18 +3,20 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains routine `get_data_dir`."""
+"""Routine `get_data_dir` to discover test-datasets on your system."""
+
+from __future__ import annotations
+
 from os import environ
 from pathlib import Path
 
 
 def get_data_dir():
-    """
-    Obtain directory with test datasets.
+    """Obtain directory with test datasets.
 
     Limited to UNIX/Linux/macOS operating systems
 

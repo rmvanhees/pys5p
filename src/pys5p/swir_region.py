@@ -22,6 +22,7 @@ There are two definitions::
 Notes
 -----
 Row 257 of the SWIR detector is neglected.
+
 """
 __all__ = ['coords', 'mask']
 
@@ -37,6 +38,7 @@ def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
        default is 'illuminated'
     band  :   str, optional
        select band 7 or 8, default is both bands
+
     """
     if mode == 'level2':
         if band == '7':
@@ -67,6 +69,7 @@ def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
     Notes
     -----
     Pixels within the illuminated region are set to True.
+
     """
     if band in ('7', '8'):
         res = np.full((256, 500), False)

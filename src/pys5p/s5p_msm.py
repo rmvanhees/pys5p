@@ -3,12 +3,11 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-This module contains the class `S5Pmsm`.
+"""`S5Pmsm`, class to read HDF5 datasets with its coordinates and attributes.
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
@@ -87,6 +86,7 @@ class S5Pmsm:
     -------
     numpy structure with dataset data and attributes, including data,
     fillvalue, coordinates, units, ...
+
     """
 
     def __init__(self, dset: Dataset | np.ndarray,
@@ -150,14 +150,14 @@ class S5Pmsm:
                 self.error = h5_dset['error'][data_sel]
                 if isinstance(data_sel, tuple):
                     for ii, elmnt in enumerate(data_sel):
-                        if isinstance(elmnt, (int, np.int64)):
+                        if isinstance(elmnt, int | np.int64):
                             self.value = np.expand_dims(self.value, axis=ii)
                             self.error = np.expand_dims(self.error, axis=ii)
             else:
                 self.value = h5_dset[data_sel]
                 if isinstance(data_sel, tuple):
                     for ii, elmnt in enumerate(data_sel):
-                        if isinstance(elmnt, (int, np.int64)):
+                        if isinstance(elmnt, int | np.int64):
                             self.value = np.expand_dims(self.value, axis=ii)
 
         # set default dimension names
@@ -283,6 +283,7 @@ class S5Pmsm:
           list with coordinates data for each dimension
         coords_name  :  list of strings
           list with the names of each dimension
+
         """
         if coords_name is None:
             if len(coords_data) == 1:
@@ -307,12 +308,14 @@ class S5Pmsm:
         Parameters
         ----------
         coverage : tuple[str, str]
+            new value for the coverage attribute
         force :  bool, default=False
             overwrite when force is true
 
         Notes
         -----
         Both elements are expected to be datatime objects.
+
         """
         if self.coverage is None or force:
             self.coverage = coverage
@@ -350,6 +353,7 @@ class S5Pmsm:
         ----------
         axis  : int, default=0
            axis for which the array will be sorted.
+
         """
         if not isinstance(axis, int):
             raise TypeError('axis not an integer')
@@ -404,6 +408,7 @@ class S5Pmsm:
         Note:
          - The arrays must have the same shape, except in the dimension
         corresponding to axis (the first, by default).
+
         """
         if self.name != PurePath(msm.name).name:
             raise TypeError('combining dataset with different name')
@@ -500,6 +505,7 @@ class S5Pmsm:
              'vperc' is sorted
              'value' is replaced by percentile('value', vperc[1])
              'error' is replaced by percentile('value', (vperc[0], vperc[2]))
+
         """
         if isinstance(vperc, int):
             vperc = (vperc,)
@@ -569,6 +575,7 @@ class S5Pmsm:
         -------
         S5Pmsm object with its data (value & error) replaced by its biweight
         medians along one axis. The coordinates are adjusted, accordingly.
+
         """
         if data_sel is None:
             if self.error is not None:
@@ -631,6 +638,7 @@ class S5Pmsm:
         S5Pmsm object with its data (value & error) replaced by its nanmedian
         and standard deviation along one axis.
         The coordinates are adjusted, accordingly.
+
         """
         if data_sel is None:
             if self.error is not None:
@@ -691,6 +699,7 @@ class S5Pmsm:
         S5Pmsm object with its data (value & error) replaced by its nanmean
         and standard deviation along one axis.
         The coordinates are adjusted, accordingly.
+
         """
         if data_sel is None:
             if self.error is not None:

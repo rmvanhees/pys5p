@@ -7,8 +7,7 @@
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""
-Implementation of the Relative Least-Squares regression (RLS).
+"""Implementation of the Relative Least-Squares regression (RLS).
 
 The RLS regression is used to find the linear dependence y(x) = c0 + c1 * x
 that best describes the data before and after correction, using absolute
@@ -27,8 +26,7 @@ from numpy import ma
 
 
 def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
-    """
-    Generate weight factor per pixel.
+    """Generate weight factor per pixel.
 
     Notes
     -----
@@ -36,6 +34,7 @@ def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
     for-loop 'row in buff' is also very efficient when using the specially
     designed MaskedArray 'buff' which we eventually use to store the weight
     values per pixel.
+
     """
     buff = ma.array(np.repeat([xdata], masked.shape[0], axis=0), mask=masked)
     for row in buff:
@@ -52,8 +51,7 @@ def calc_ma_weights(xdata: np.ndarray, masked: np.ndarray) -> ma.MaskedArray:
 
 def rls_fit(xdata: np.ndarray,
             ydata: np.ndarray | ma.MaskedArray) -> tuple:
-    """
-    Perform RLS regression finding linear dependence y(x) = c0 + c1 * x.
+    """Perform RLS regression finding linear dependence y(x) = c0 + c1 * x.
 
     Parameters
     ----------
@@ -77,6 +75,7 @@ def rls_fit(xdata: np.ndarray,
 
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
+
     """
     # pylint: disable=too-many-locals
     if xdata.size < 2:
@@ -140,8 +139,7 @@ def rls_fit(xdata: np.ndarray,
 
 def rls_fit0(xdata: np.ndarray,
              ydata: np.ndarray | ma.MaskedArray) -> tuple:
-    """
-    Perform RLS regression finding linear dependence y(x) = c1 * x.
+    """Perform RLS regression finding linear dependence y(x) = c1 * x.
 
     Parameters
     ----------
@@ -162,6 +160,7 @@ def rls_fit0(xdata: np.ndarray,
 
     The standard deviations can only be calculated when the number of samples
     are larger than two, else the standard deviations are equal to zero.
+
     """
     if xdata.size < 2:
         raise RuntimeError('too few points for a fit')

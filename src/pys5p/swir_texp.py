@@ -18,9 +18,11 @@ def swir_exp_time(int_delay: int, int_hold: int) -> float:
       parameters int_delay from the instrument_settings
     int_hold  :  int
       parameters int_holt from the instrument_settings
+
     Returns
     -------
     float
         exact (SWIR) pixel exposure time
+
     """
     return 1.25e-6 * (65540 - int_delay + int_hold)

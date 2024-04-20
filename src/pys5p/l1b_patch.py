@@ -3,14 +3,16 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains the class `L1Bpatch`.
+"""`L1Bpatch`, class to modify an existing L1B product.
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
+from __future__ import annotations
+
 __all__ = ['L1Bpatch']
 
 import shutil
@@ -43,6 +45,7 @@ class L1Bpatch:
        output directory for the patched L1B product
     ckd_dir : str, default='/nfs/Tropomi/share/ckd'
        location of the Tropomi CKD
+
     """
 
     def __init__(self, l1b_product: str, data_dir='/tmp',
@@ -136,6 +139,7 @@ class L1Bpatch:
         Returns
         -------
         Nothing
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
@@ -190,6 +194,7 @@ class L1Bpatch:
         Returns
         -------
         Nothing
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
@@ -229,6 +234,7 @@ class L1Bpatch:
         Returns
         -------
         Nothing
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
@@ -274,6 +280,7 @@ class L1Bpatch:
         -----
         It is assumed that for the PRNU correction the CKD has to be multiplied
         with the pixel signals.
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
@@ -307,6 +314,7 @@ class L1Bpatch:
         Returns
         -------
         Nothing
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)
@@ -340,6 +348,7 @@ class L1Bpatch:
         Returns
         -------
         Nothing
+
         """
         if not self.l1b_patched.is_file():
             shutil.copy(self.l1b_product, self.l1b_patched)

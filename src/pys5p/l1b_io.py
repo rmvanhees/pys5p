@@ -3,11 +3,11 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains the class `L1Bio` to access Tropomi L1B products."""
+"""`L1Bio`, class to access Tropomi L1B products."""
 
 from __future__ import annotations
 
@@ -60,8 +60,7 @@ def pad_rows(arr1: np.ndarray,
 
 # - class definition -------------------------------
 class L1Bio:
-    """
-    class with methods to access Tropomi L1B calibration products.
+    """class with methods to access Tropomi L1B calibration products.
 
     The L1b calibration products are available for UVN (band 1-6)
     and SWIR (band 7-8).
@@ -74,6 +73,7 @@ class L1Bio:
        open file in read/write mode
     verbose : bool, default=False
        be verbose
+
     """
 
     band_groups = ('/BAND%_CALIBRATION', '/BAND%_IRRADIANCE',
@@ -166,6 +166,7 @@ class L1Bio:
         ----------
         attr_name :  string
            Name of the attribute
+
         """
         if attr_name not in self.fid.attrs:
             return None
@@ -235,6 +236,7 @@ class L1Bio:
 
         Updated object attributes:
          - bands               : available spectral bands
+
         """
         if msm_type is None:
             if self.msm_type is None:
@@ -270,6 +272,7 @@ class L1Bio:
         -------
         numpy.ndarray
           Numpy rec-array with sequence number, ICID and delta-time
+
         """
         if self.__msm_path is None:
             return None
@@ -322,6 +325,7 @@ class L1Bio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if self.__msm_path is None:
             return None
@@ -343,6 +347,7 @@ class L1Bio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if self.__msm_path is None:
             return None
@@ -364,6 +369,7 @@ class L1Bio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if self.__msm_path is None:
             return None
@@ -399,6 +405,7 @@ class L1Bio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
             Default is 'None' which returns the first available band
+
         """
         if band is None:
             band = self.bands[0]
@@ -421,6 +428,7 @@ class L1Bio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
             Default is 'None' which returns the first available band
+
         """
         if self.__msm_path is None:
             return None
@@ -450,6 +458,7 @@ class L1Bio:
         -------
         dict
            data of selected datasets from the GEODATA group
+
         """
         if self.__msm_path is None:
             return None
@@ -488,6 +497,7 @@ class L1Bio:
         -------
         scalar or numpy.ndarray
             Value of attribute "attr_name"
+
         """
         if self.__msm_path is None:
             return None
@@ -535,6 +545,7 @@ class L1Bio:
         -------
         numpy.ndarray
             values read from or written to dataset "msm_dset"
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -581,6 +592,7 @@ class L1Bio:
             Name of measurement dataset.
         new_data :  array-like
             Data to be written with same dimensions as dataset "msm_dset"
+
         """
         if self.__msm_path is None:
             return
@@ -635,6 +647,7 @@ class L1BioENG:
     -----
     The L1b engineering products are available for UVN (band 1-6)
     and SWIR (band 7-8).
+
     """
 
     def __init__(self, l1b_product: Path | str):
@@ -679,6 +692,7 @@ class L1BioENG:
         ----------
         attr_name :  str
            Name of the attribute
+
         """
         if attr_name not in self.fid.attrs:
             return None
@@ -751,6 +765,7 @@ class L1BioENG:
         Notes
         -----
         This function is used to fill the SQLite product databases
+
         """
         dtype_msmt_db = np.dtype([('meta_id', np.int32),
                                   ('ic_id', np.uint16),
@@ -811,6 +826,7 @@ class L1BioENG:
         -----
         This function is used to fill the SQLite product database and
         HDF5 monitoring database
+
         """
         dtype_hk_db = np.dtype([('detector_temp', np.float32),
                                 ('grating_temp', np.float32),

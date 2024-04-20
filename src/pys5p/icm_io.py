@@ -3,11 +3,11 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contain class `ICMio` to access in-flight calibration data."""
+"""`ICMio`, class to access in-flight calibration data."""
 
 from __future__ import annotations
 
@@ -39,6 +39,7 @@ class ICMio:
         full path to in-flight calibration measurement product
     readwrite   :  bool
         open product in read-write mode (default is False)
+
     """
 
     def __init__(self, icm_product: Path | str, readwrite: bool = False):
@@ -133,6 +134,7 @@ class ICMio:
         -------
         list of str
            String with msm_type as used by ICMio.select()
+
         """
         res = []
 
@@ -162,6 +164,7 @@ class ICMio:
         -------
         string
            String with spectral bands found in product or empty
+
         """
         self.bands = ''
         self.__msm_path = None
@@ -246,6 +249,7 @@ class ICMio:
         ----------
         attr_name : str
            name of the attribute
+
         """
         if attr_name not in self.fid.attrs:
             return None
@@ -265,6 +269,7 @@ class ICMio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         ref_time = datetime(2010, 1, 1, 0, 0, 0)
         if not self.__msm_path:
@@ -314,6 +319,7 @@ class ICMio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if not self.__msm_path:
             return None
@@ -370,6 +376,7 @@ class ICMio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if not self.__msm_path:
             return None
@@ -437,6 +444,7 @@ class ICMio:
         band      :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product
             Default is 'None' which returns the first available band
+
         """
         if band is None:
             band = self.bands[0]
@@ -468,6 +476,7 @@ class ICMio:
         band :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if not self.__msm_path:
             return None
@@ -535,6 +544,7 @@ class ICMio:
         -------
         numpy.ndarray
             msmt_keys from an analysis groups
+
         """
         if not self.__msm_path:
             return None
@@ -576,6 +586,7 @@ class ICMio:
         -------
         numpy.ndarray
            value of attribute "attr_name"
+
         """
         if not self.__msm_path:
             return None
@@ -618,6 +629,7 @@ class ICMio:
         dict
            dictionary with data of a selected datasets from the GEODATA group;
            the keys of dictionary have the same names as the datasets.
+
         """
         if not self.__msm_path:
             return None
@@ -704,6 +716,7 @@ class ICMio:
         -------
         numpy.ndarray
            data of measurement dataset "msm_dset"
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -831,6 +844,7 @@ class ICMio:
         -------
         list
            data of all available bands
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 
@@ -875,9 +889,11 @@ class ICMio:
         Parameters
         ----------
         data : np.ndarray
+            Data to be written to the housekeeping dataset
         band :  None or {'1', '2', '3', ..., '8'}
             Select one of the band present in the product.
             Default is 'None' which returns the first available band
+
         """
         if not self.__rw:
             raise PermissionError('read/write access required')
@@ -912,6 +928,7 @@ class ICMio:
             Default is '78' which combines band 7/8 to SWIR detector layout
         data       :  array-like
             data to be written with same dimensions as dataset 'msm_dset'
+
         """
         fillvalue = float.fromhex('0x1.ep+122')
 

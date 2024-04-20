@@ -23,6 +23,7 @@ def pys5p_version(full=False, githash=False) -> str:
        > from pys5p.version import pys5p_version
        > pys5p_version()
     '2.1.5'
+
     """
     if full:
         return __version__

@@ -3,11 +3,12 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2022 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
-"""This module contains the class `LV2io` to access Tropomi level-2 products."""
+"""`LV2io`, class to access Tropomi level-2 products."""
+
 from __future__ import annotations
 
 __all__ = ['LV2io']
@@ -47,6 +48,7 @@ class LV2io:
     attributes. Thus, should be fixed when more up-to-date netCDF software is
     used to generate the products. Currently, the Python netCDF4 module is
     used to read the science products.
+
     """
 
     def __init__(self, lv2_product: Path):
@@ -198,6 +200,7 @@ class LV2io:
            name of the attribute
         ds_name   : str, optional
            name of dataset, default is to read the product attributes
+
         """
         if self.science_product:
             return self.__nc_attr(attr_name, ds_name)
@@ -269,6 +272,7 @@ class LV2io:
         -------
         dict
            dictionary with arrays of selected datasets
+
         """
         if self.science_product:
             return self.__nc_geo_data(geo_dsets)
@@ -351,6 +355,7 @@ class LV2io:
            Only provided if extent is not None.
         out       :   dictionary
            With numpy arrays for latitude and longitude
+
         """
         if self.science_product:
             res = self.__nc_geo_bounds(extent, data_sel)
@@ -443,6 +448,7 @@ class LV2io:
         Returns
         -------
         numpy.ndarray
+
         """
         if self.science_product:
             return self.__nc_dataset(name, data_sel, fill_as_nan)
@@ -500,6 +506,7 @@ class LV2io:
         Returns
         -------
         xarray.DataArray
+
         """
         if self.science_product:
             return self.__nc_data_as_xds(name, data_sel)
