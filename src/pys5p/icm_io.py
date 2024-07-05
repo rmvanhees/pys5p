@@ -460,8 +460,10 @@ class ICMio:
         res = []
         for instr in instr_arr:
             if int(band) > 6:
-                res.append(1.25e-6 *
-                           (65540 - instr['int_delay'] + instr['int_hold']))
+                res.append(
+                    1.25e-6 *
+                    (65540 - int(instr['int_delay']) + int(instr['int_hold']))
+                )
             else:
                 res.append(instr['exposure_time'])
 
