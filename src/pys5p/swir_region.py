@@ -24,12 +24,13 @@ Notes
 Row 257 of the SWIR detector is neglected.
 
 """
-__all__ = ['coords', 'mask']
+
+__all__ = ["coords", "mask"]
 
 import numpy as np
 
 
-def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
+def coords(mode: str = "illuminated", band: str = "78") -> tuple[slice, slice]:
     """Return slice defining the illuminated region on the SWIR detector.
 
     Parameters
@@ -40,23 +41,23 @@ def coords(mode: str = 'illuminated', band: str = '78') -> tuple[slice, slice]:
        select band 7 or 8, default is both bands
 
     """
-    if mode == 'level2':
-        if band == '7':
+    if mode == "level2":
+        if band == "7":
             return np.s_[12:227, 20:500]
-        if band == '8':
+        if band == "8":
             return np.s_[12:227, :480]
         # else
         return np.s_[12:227, 20:980]
 
-    if band == '7':
+    if band == "7":
         return np.s_[11:228, 16:500]
-    if band == '8':
+    if band == "8":
         return np.s_[11:228, :491]
     # else
     return np.s_[11:228, 16:991]
 
 
-def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
+def mask(mode: str = "illuminated", band: str = "78") -> np.ndarray:
     """Return mask of the illuminated region.
 
     Parameters
@@ -71,7 +72,7 @@ def mask(mode: str = 'illuminated', band: str = '78') -> np.ndarray:
     Pixels within the illuminated region are set to True.
 
     """
-    if band in ('7', '8'):
+    if band in ("7", "8"):
         res = np.full((256, 500), False)
     else:
         res = np.full((256, 1000), False)

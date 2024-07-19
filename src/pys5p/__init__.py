@@ -12,9 +12,9 @@
 
 It contains software to read Sentinel-5p Tropomi ICM, L1B and L2 products.
 """
+
 import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
 with contextlib.suppress(PackageNotFoundError):
     __version__ = version(__name__)
-

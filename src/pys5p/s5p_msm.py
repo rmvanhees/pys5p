@@ -11,9 +11,10 @@
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
+
 from __future__ import annotations
 
-__all__ = ['S5Pmsm']
+__all__ = ["S5Pmsm"]
 
 from collections import namedtuple
 from copy import deepcopy
@@ -43,27 +44,26 @@ from moniplot.biweight import Biweight
 
 
 # - local functions --------------------------------
-def pad_rows(arr1: np.ndarray,
-             arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def pad_rows(arr1: np.ndarray, arr2: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Pad the array with the least numer of rows with NaN's."""
     if arr2.ndim == 2:
         if arr1.shape[0] < arr2.shape[0]:
             buff = arr1.copy()
             arr1 = np.full_like(arr2, np.nan)
-            arr1[0:buff.shape[0], :] = buff
+            arr1[0 : buff.shape[0], :] = buff
         elif arr1.shape[0] > arr2.shape[0]:
             buff = arr2.copy()
             arr2 = np.full_like(arr1, np.nan)
-            arr2[0:buff.shape[0], :] = buff
+            arr2[0 : buff.shape[0], :] = buff
     else:
         if arr1.shape[1] < arr2.shape[1]:
             buff = arr1.copy()
             arr1 = np.full_like(arr2, np.nan)
-            arr1[:, 0:buff.shape[1], :] = buff
+            arr1[:, 0 : buff.shape[1], :] = buff
         elif arr1.shape[1] > arr2.shape[1]:
             buff = arr2.copy()
             arr2 = np.full_like(arr1, np.nan)
-            arr2[:, 0:buff.shape[1], :] = buff
+            arr2[:, 0 : buff.shape[1], :] = buff
 
     return arr1, arr2
 
@@ -89,18 +89,21 @@ class S5Pmsm:
 
     """
 
-    def __init__(self, dset: Dataset | np.ndarray,
-                 data_sel: tuple[slice | int] | None = None,
-                 datapoint: bool = False):
+    def __init__(
+        self,
+        dset: Dataset | np.ndarray,
+        data_sel: tuple[slice | int] | None = None,
+        datapoint: bool = False,
+    ):
         """Read measurement data from a Tropomi OCAL, ICM, of L1B product."""
         # initialize object
-        self.name = 'value'
+        self.name = "value"
         self.value = None
         self.error = None
         self.coords = None
         self.coverage = None
         self.units = None
-        self.long_name = ''
+        self.long_name = ""
         self.fillvalue = None
 
         if isinstance(dset, Dataset):
@@ -112,14 +115,14 @@ class S5Pmsm:
         """Display info on the S5Pmsm object."""
         res = []
         for key, value in self.__dict__.items():
-            if key.startswith('__'):
+            if key.startswith("__"):
                 continue
             if isinstance(value, np.ndarray):
-                res.append(f'{key}: {value.shape}')
+                res.append(f"{key}: {value.shape}")
             else:
-                res.append(f'{key}: {value}')
+                res.append(f"{key}: {value}")
 
-        return '\n'.join(res)
+        return "\n".join(res)
 
     def coord_name(self, axis: int):
         """Return name of coordinate."""
@@ -129,25 +132,25 @@ class S5Pmsm:
         """Change values of a coordinate."""
         return self.coords._replace(**{key: dims})
 
-    def __from_h5_dset(self, h5_dset: Dataset,
-                       data_sel: tuple[slice | int] | None,
-                       datapoint: bool):
+    def __from_h5_dset(
+        self, h5_dset: Dataset, data_sel: tuple[slice | int] | None, datapoint: bool
+    ):
         """Initialize S5Pmsm object from h5py dataset."""
         self.name = PurePath(h5_dset.name).name
 
         # copy dataset values (and error) to object
         if data_sel is None:
             if datapoint:
-                self.value = h5_dset['value']
-                self.error = h5_dset['error']
+                self.value = h5_dset["value"]
+                self.error = h5_dset["error"]
             else:
                 self.value = h5_dset[...]
         else:
             # we need to keep all dimensions to get the dimensions
             # of the output data right
             if datapoint:
-                self.value = h5_dset['value'][data_sel]
-                self.error = h5_dset['error'][data_sel]
+                self.value = h5_dset["value"][data_sel]
+                self.error = h5_dset["error"][data_sel]
                 if isinstance(data_sel, tuple):
                     for ii, elmnt in enumerate(data_sel):
                         if isinstance(elmnt, int | np.int64):
@@ -162,13 +165,13 @@ class S5Pmsm:
 
         # set default dimension names
         if h5_dset.ndim == 1:
-            keys_default = ['column']
+            keys_default = ["column"]
         elif h5_dset.ndim == 2:
-            keys_default = ['row', 'column']
+            keys_default = ["row", "column"]
         elif h5_dset.ndim == 3:
-            keys_default = ['time', 'row', 'column']
+            keys_default = ["time", "row", "column"]
         else:
-            raise ValueError('not implemented for ndim > 3')
+            raise ValueError("not implemented for ndim > 3")
 
         # copy all dimensions with size longer then 1
         keys = []
@@ -177,7 +180,7 @@ class S5Pmsm:
             if self.value.shape[ii] == 1:
                 continue
 
-            if len(h5_dset.dims[ii]) != 1:   # bug in some KMNI HDF5 files
+            if len(h5_dset.dims[ii]) != 1:  # bug in some KMNI HDF5 files
                 keys.append(keys_default[ii])
                 dims.append(np.arange(self.value.shape[ii]))
             elif self.value.shape[ii] == h5_dset.shape[ii]:
@@ -189,7 +192,7 @@ class S5Pmsm:
                     buff = h5_dset.dims[ii][0][:]
                     if np.all(buff == 0):
                         buff = np.arange(buff.size)
-                else:                          # bug in some KMNI HDF5 files
+                else:  # bug in some KMNI HDF5 files
                     buff = np.arange(h5_dset.shape[ii])
                 dims.append(buff)
             else:
@@ -201,7 +204,7 @@ class S5Pmsm:
                     buff = h5_dset.dims[ii][0][:]
                     if np.all(buff == 0):
                         buff = np.arange(buff.size)
-                else:                          # bug in some KMNI HDF5 files
+                else:  # bug in some KMNI HDF5 files
                     buff = np.arange(h5_dset.shape[ii])
 
                 if isinstance(data_sel, slice):
@@ -216,7 +219,7 @@ class S5Pmsm:
                     dims.append(buff[data_sel[ii]])
 
         # add dimensions as a namedtuple
-        coords_namedtuple = namedtuple('Coords', keys)
+        coords_namedtuple = namedtuple("Coords", keys)
         self.coords = coords_namedtuple._make(dims)
 
         # remove all dimensions with size equal 1 from value (and error)
@@ -231,30 +234,29 @@ class S5Pmsm:
             self.fillvalue = h5_dset.fillvalue
 
         # copy its units
-        if 'units' in h5_dset.attrs:
-            if isinstance(h5_dset.attrs['units'], np.ndarray):
-                if h5_dset.attrs['units'].size == 1:
-                    self.units = h5_dset.attrs['units'][0]
+        if "units" in h5_dset.attrs:
+            if isinstance(h5_dset.attrs["units"], np.ndarray):
+                if h5_dset.attrs["units"].size == 1:
+                    self.units = h5_dset.attrs["units"][0]
                     if isinstance(self.units, bytes):
-                        self.units = self.units.decode('ascii')
+                        self.units = self.units.decode("ascii")
                 else:
-                    self.units = h5_dset.attrs['units']
+                    self.units = h5_dset.attrs["units"]
                     if isinstance(self.units[0], bytes):
                         self.units = self.units.astype(str)
             else:
-                self.units = h5_dset.attrs['units']
+                self.units = h5_dset.attrs["units"]
                 if isinstance(self.units, bytes):
-                    self.units = self.units.decode('ascii')
+                    self.units = self.units.decode("ascii")
 
         # copy its long_name
-        if 'long_name' in h5_dset.attrs:
-            if isinstance(h5_dset.attrs['long_name'], bytes):
-                self.long_name = h5_dset.attrs['long_name'].decode('ascii')
+        if "long_name" in h5_dset.attrs:
+            if isinstance(h5_dset.attrs["long_name"], bytes):
+                self.long_name = h5_dset.attrs["long_name"].decode("ascii")
             else:
-                self.long_name = h5_dset.attrs['long_name']
+                self.long_name = h5_dset.attrs["long_name"]
 
-    def __from_ndarray(self, data: np.ndarray,
-                       data_sel: tuple[slice | int] | None):
+    def __from_ndarray(self, data: np.ndarray, data_sel: tuple[slice | int] | None):
         """Initialize S5Pmsm object from a ndarray."""
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -267,14 +269,15 @@ class S5Pmsm:
         try:
             self.set_coords(dims, coords_name=None)
         except Exception as exc:
-            raise RuntimeError('failed to set the coordinates') from exc
+            raise RuntimeError("failed to set the coordinates") from exc
 
     def copy(self):
         """Return a deep copy of the current object."""
         return deepcopy(self)
 
-    def set_coords(self, coords_data: list[np.ndarray],
-                   coords_name: list[str] | None = None):
+    def set_coords(
+        self, coords_data: list[np.ndarray], coords_name: list[str] | None = None
+    ):
         """Set coordinates of data.
 
         Parameters
@@ -287,22 +290,21 @@ class S5Pmsm:
         """
         if coords_name is None:
             if len(coords_data) == 1:
-                keys = ['column']
+                keys = ["column"]
             elif len(coords_data) == 2:
-                keys = ['row', 'column']
+                keys = ["row", "column"]
             elif len(coords_data) == 3:
-                keys = ['time', 'row', 'column']
+                keys = ["time", "row", "column"]
             else:
-                raise ValueError('not implemented for ndim > 3')
+                raise ValueError("not implemented for ndim > 3")
         else:
             keys = [coords_name] if isinstance(coords_name, str) else coords_name
 
         # add dimensions as a namedtuple
-        coords_namedtuple = namedtuple('Coords', keys)
+        coords_namedtuple = namedtuple("Coords", keys)
         self.coords = coords_namedtuple._make(coords_data)
 
-    def set_coverage(self, coverage: tuple[str, str],
-                     force: bool = False):
+    def set_coverage(self, coverage: tuple[str, str], force: bool = False):
         """Set the coverage attribute, as (coverageStart, coverageEnd).
 
         Parameters
@@ -327,9 +329,12 @@ class S5Pmsm:
 
     def set_fillvalue(self):
         """Set fillvalue to KNMI undefined."""
-        if (np.issubdtype(self.value.dtype, np.floating)
-            and self.fillvalue is None or self.fillvalue == 0.):
-            self.fillvalue = float.fromhex('0x1.ep+122')
+        if (
+            np.issubdtype(self.value.dtype, np.floating)
+            and self.fillvalue is None
+            or self.fillvalue == 0.0
+        ):
+            self.fillvalue = float.fromhex("0x1.ep+122")
 
     def set_long_name(self, name: str, force: bool = False):
         """Set the long_name attribute, overwrite when force is true."""
@@ -341,7 +346,7 @@ class S5Pmsm:
 
         Works only on datasets with HDF5 datatype 'float' or 'datapoints'
         """
-        if self.fillvalue == float.fromhex('0x1.ep+122'):
+        if self.fillvalue == float.fromhex("0x1.ep+122"):
             self.value[(self.value == self.fillvalue)] = np.nan
             if self.error is not None:
                 self.error[(self.error == self.fillvalue)] = np.nan
@@ -356,9 +361,9 @@ class S5Pmsm:
 
         """
         if not isinstance(axis, int):
-            raise TypeError('axis not an integer')
+            raise TypeError("axis not an integer")
         if not 0 <= axis < self.value.ndim:
-            raise ValueError('axis out-of-range')
+            raise ValueError("axis out-of-range")
 
         indx = np.argsort(self.coords[axis][:])
         self.coords[axis][:] = self.coords[axis][indx]
@@ -367,28 +372,25 @@ class S5Pmsm:
             self.value = self.value[indx, ...]
             if self.error is not None:
                 if isinstance(self.error, list):
-                    self.error = (self.error[0][indx, ...],
-                                  self.error[1][indx, ...])
+                    self.error = (self.error[0][indx, ...], self.error[1][indx, ...])
                 else:
                     self.error = self.error[indx, :]
         elif axis == 1:
             self.value = self.value[:, indx, ...]
             if self.error is not None:
                 if isinstance(self.error, list):
-                    self.error = (self.error[0][:, indx, :],
-                                  self.error[1][:, indx, :])
+                    self.error = (self.error[0][:, indx, :], self.error[1][:, indx, :])
                 else:
                     self.error = self.error[:, indx, :]
         elif axis == 2:
             self.value = self.value[:, :, indx]
             if self.error is not None:
                 if isinstance(self.error, list):
-                    self.error = (self.error[0][:, :, indx],
-                                  self.error[1][:, :, indx])
+                    self.error = (self.error[0][:, :, indx], self.error[1][:, :, indx])
                 else:
                     self.error = self.error[:, :, indx]
         else:
-            raise ValueError('S5Pmsm: implemented for ndim <= 3')
+            raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
     def concatenate(self, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
         """Concatenate two measurement datasets, the current with another.
@@ -411,15 +413,16 @@ class S5Pmsm:
 
         """
         if self.name != PurePath(msm.name).name:
-            raise TypeError('combining dataset with different name')
+            raise TypeError("combining dataset with different name")
 
         # all but the last 2 dimensions have to be equal
         if self.value.shape[:-2] != msm.value.shape[:-2]:
-            raise TypeError('all but the last 2 dimensions should be equal')
+            raise TypeError("all but the last 2 dimensions should be equal")
 
-        if (self.error is None and msm.error is not None) \
-           or (self.error is not None and msm.error is None):
-            raise RuntimeError('S5Pmsm: combining non-datapoint and datapoint')
+        if (self.error is None and msm.error is not None) or (
+            self.error is not None and msm.error is None
+        ):
+            raise RuntimeError("S5Pmsm: combining non-datapoint and datapoint")
 
         # concatenate the values
         if axis == 0:
@@ -428,16 +431,14 @@ class S5Pmsm:
             if self.value.shape[0] == msm.value.shape[0]:
                 self.value = np.concatenate((self.value, msm.value), axis=axis)
             else:
-                self.value = np.concatenate(pad_rows(self.value, msm.value),
-                                            axis=axis)
+                self.value = np.concatenate(pad_rows(self.value, msm.value), axis=axis)
         elif axis == 2:
             if self.value.shape[1] == msm.value.shape[1]:
                 self.value = np.concatenate((self.value, msm.value), axis=axis)
             else:
-                self.value = np.concatenate(pad_rows(self.value, msm.value),
-                                            axis=axis)
+                self.value = np.concatenate(pad_rows(self.value, msm.value), axis=axis)
         else:
-            raise ValueError('S5Pmsm: implemented for ndim <= 3')
+            raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
         # concatenate the errors
         if self.error is not None and msm.error is not None:
@@ -445,32 +446,37 @@ class S5Pmsm:
                 self.error = np.concatenate((self.error, msm.error), axis=axis)
             elif axis == 1:
                 if self.value.shape[0] == msm.value.shape[0]:
-                    self.error = np.concatenate(
-                        (self.error, msm.error), axis=axis)
+                    self.error = np.concatenate((self.error, msm.error), axis=axis)
                 else:
                     self.error = np.concatenate(
-                        pad_rows(self.error, msm.error), axis=axis)
+                        pad_rows(self.error, msm.error), axis=axis
+                    )
             elif axis == 2:
                 if self.value.shape[1] == msm.value.shape[1]:
-                    self.error = np.concatenate(
-                        (self.error, msm.error), axis=axis)
+                    self.error = np.concatenate((self.error, msm.error), axis=axis)
                 else:
                     self.error = np.concatenate(
-                        pad_rows(self.error, msm.error), axis=axis)
+                        pad_rows(self.error, msm.error), axis=axis
+                    )
 
         # now extent coordinate of the fastest axis
         key = self.coord_name(axis)
         if msm.coords[axis][0] == 0:
-            dims = np.concatenate((self.coords[axis],
-                                   len(self.coords[axis]) + msm.coords[axis]))
+            dims = np.concatenate(
+                (self.coords[axis], len(self.coords[axis]) + msm.coords[axis])
+            )
         else:
             dims = np.concatenate((self.coords[axis], msm.coords[axis]))
         self.coords = self.coord_replace(key, dims)
         return self
 
-    def nanpercentile(self, vperc: int | list[float],
-                      data_sel: tuple[slice | int] | None = None,
-                      axis: int = 0, keepdims: bool = False) -> S5Pmsm:
+    def nanpercentile(
+        self,
+        vperc: int | list[float],
+        data_sel: tuple[slice | int] | None = None,
+        axis: int = 0,
+        keepdims: bool = False,
+    ) -> S5Pmsm:
         r"""Return percentile(s) of the data in the S5Pmsm.
 
         Parameters
@@ -516,19 +522,18 @@ class S5Pmsm:
             vperc = tuple(sorted(vperc))
 
         if len(vperc) != 1 and len(vperc) != 3:
-            raise TypeError('dimension vperc must be 1 or 3')
+            raise TypeError("dimension vperc must be 1 or 3")
 
         if data_sel is None:
             if self.value.size <= 1 or self.value.ndim <= axis:
                 return self
-            perc = np.nanpercentile(self.value, vperc,
-                                    axis=axis, keepdims=keepdims)
+            perc = np.nanpercentile(self.value, vperc, axis=axis, keepdims=keepdims)
         else:
-            if self.value[data_sel].size <= 1 \
-               or self.value[data_sel].ndim <= axis:
+            if self.value[data_sel].size <= 1 or self.value[data_sel].ndim <= axis:
                 return self
-            perc = np.nanpercentile(self.value[data_sel], vperc,
-                                    axis=axis, keepdims=keepdims)
+            perc = np.nanpercentile(
+                self.value[data_sel], vperc, axis=axis, keepdims=keepdims
+            )
         if len(vperc) == 3:
             self.value = perc[1, ...]
             self.error = [perc[0, ...], perc[2, ...]]
@@ -546,17 +551,21 @@ class S5Pmsm:
         else:
             keys = []
             dims = []
-            for ii in range(self.value.ndim+1):
+            for ii in range(self.value.ndim + 1):
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple('Coords', keys)
+            coords_namedtuple = namedtuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
 
-    def biweight(self, data_sel: tuple[slice | int] | None = None,
-                 axis: int = 0, keepdims: bool = False) -> S5Pmsm:
+    def biweight(
+        self,
+        data_sel: tuple[slice | int] | None = None,
+        axis: int = 0,
+        keepdims: bool = False,
+    ) -> S5Pmsm:
         r"""Reduce this S5Pmsm data by applying biweight along some dimension.
 
         Parameters
@@ -608,17 +617,21 @@ class S5Pmsm:
         else:
             keys = []
             dims = []
-            for ii in range(self.value.ndim+1):
+            for ii in range(self.value.ndim + 1):
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple('Coords', keys)
+            coords_namedtuple = namedtuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
 
-    def nanmedian(self, data_sel: tuple[slice | int] | None = None,
-                  axis: int = 0, keepdims: bool = False) -> S5Pmsm:
+    def nanmedian(
+        self,
+        data_sel: tuple[slice | int] | None = None,
+        axis: int = 0,
+        keepdims: bool = False,
+    ) -> S5Pmsm:
         r"""Reduce this S5Pmsm data by applying median along some dimension.
 
         Parameters
@@ -642,21 +655,22 @@ class S5Pmsm:
         """
         if data_sel is None:
             if self.error is not None:
-                self.error = np.nanmedian(self.error,
-                                          axis=axis, keepdims=keepdims)
+                self.error = np.nanmedian(self.error, axis=axis, keepdims=keepdims)
             else:
-                self.error = np.nanstd(self.value, ddof=1,
-                                       axis=axis, keepdims=keepdims)
+                self.error = np.nanstd(self.value, ddof=1, axis=axis, keepdims=keepdims)
             self.value = np.nanmedian(self.value, axis=axis, keepdims=keepdims)
         else:
             if self.error is not None:
-                self.error = np.nanmedian(self.error[data_sel],
-                                          axis=axis, keepdims=keepdims)
+                self.error = np.nanmedian(
+                    self.error[data_sel], axis=axis, keepdims=keepdims
+                )
             else:
-                self.error = np.nanstd(self.value[data_sel], ddof=1,
-                                       axis=axis, keepdims=keepdims)
-            self.value = np.nanmedian(self.value[data_sel],
-                                      axis=axis, keepdims=keepdims)
+                self.error = np.nanstd(
+                    self.value[data_sel], ddof=1, axis=axis, keepdims=keepdims
+                )
+            self.value = np.nanmedian(
+                self.value[data_sel], axis=axis, keepdims=keepdims
+            )
 
         # adjust the coordinates
         if keepdims:
@@ -669,17 +683,21 @@ class S5Pmsm:
         else:
             keys = []
             dims = []
-            for ii in range(self.value.ndim+1):
+            for ii in range(self.value.ndim + 1):
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple('Coords', keys)
+            coords_namedtuple = namedtuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
 
-    def nanmean(self, data_sel: tuple[slice | int] | None = None,
-                axis: int = 0, keepdims: bool = False) -> S5Pmsm:
+    def nanmean(
+        self,
+        data_sel: tuple[slice | int] | None = None,
+        axis: int = 0,
+        keepdims: bool = False,
+    ) -> S5Pmsm:
         r"""Reduce this S5Pmsm data by applying mean along some dimension.
 
         Parameters
@@ -703,21 +721,20 @@ class S5Pmsm:
         """
         if data_sel is None:
             if self.error is not None:
-                self.error = np.nanmean(self.error,
-                                        axis=axis, keepdims=keepdims)
+                self.error = np.nanmean(self.error, axis=axis, keepdims=keepdims)
             else:
-                self.error = np.nanstd(self.value, ddof=1,
-                                       axis=axis, keepdims=keepdims)
+                self.error = np.nanstd(self.value, ddof=1, axis=axis, keepdims=keepdims)
             self.value = np.nanmean(self.value, axis=axis, keepdims=keepdims)
         else:
             if self.error is not None:
-                self.error = np.nanmean(self.error[data_sel],
-                                        axis=axis, keepdims=keepdims)
+                self.error = np.nanmean(
+                    self.error[data_sel], axis=axis, keepdims=keepdims
+                )
             else:
-                self.error = np.nanstd(self.value[data_sel], ddof=1,
-                                       axis=axis, keepdims=keepdims)
-            self.value = np.nanmean(self.value[data_sel],
-                                    axis=axis, keepdims=keepdims)
+                self.error = np.nanstd(
+                    self.value[data_sel], ddof=1, axis=axis, keepdims=keepdims
+                )
+            self.value = np.nanmean(self.value[data_sel], axis=axis, keepdims=keepdims)
 
         # adjust the coordinates
         if keepdims:
@@ -730,11 +747,11 @@ class S5Pmsm:
         else:
             keys = []
             dims = []
-            for ii in range(self.value.ndim+1):
+            for ii in range(self.value.ndim + 1):
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple('Coords', keys)
+            coords_namedtuple = namedtuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
@@ -759,7 +776,7 @@ class S5Pmsm:
         tmp = dims[1]
         dims[1] = dims[0]
         dims[0] = tmp
-        coords_namedtuple = namedtuple('Coords', keys)
+        coords_namedtuple = namedtuple("Coords", keys)
         self.coords = coords_namedtuple._make(dims)
 
         return self

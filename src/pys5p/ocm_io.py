@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-__all__ = ['OCMio']
+__all__ = ["OCMio"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -25,8 +25,9 @@ from moniplot.biweight import Biweight
 
 
 # - local functions --------------------------------
-def band2channel(dict_a: dict, dict_b: dict,
-                 mode: bool = None) -> np.ndarray | tuple[Any, Any]:
+def band2channel(
+    dict_a: dict, dict_b: dict, mode: bool = None
+) -> np.ndarray | tuple[Any, Any]:
     """Store data from a dictionary as returned by get_msm_data to a ndarray.
 
     Parameters
@@ -69,11 +70,11 @@ def band2channel(dict_a: dict, dict_b: dict,
         data_a = buff if data_a is None else np.vstack((data_a, buff))
 
     if data_a is not None:
-        if 'mean' in mode:
+        if "mean" in mode:
             data_a = np.nanmean(data_a, axis=0)
-        elif 'median' in mode:
+        elif "median" in mode:
             data_a = np.nanmedian(data_a, axis=0)
-        elif 'biweight' in mode:
+        elif "biweight" in mode:
             data_a = Biweight(data_a, axis=0).median
 
     if dict_b is None:
@@ -86,15 +87,15 @@ def band2channel(dict_a: dict, dict_b: dict,
         data_b = buff if data_b is None else np.vstack((data_b, buff))
 
     if data_b is not None:
-        if 'mean' in mode:
+        if "mean" in mode:
             data_b = np.nanmean(data_b, axis=0)
-        elif 'median' in mode:
+        elif "median" in mode:
             data_b = np.nanmedian(data_b, axis=0)
-        elif 'biweight' in mode:
+        elif "biweight" in mode:
             data_b = Biweight(data_b, axis=0).median
 
-    if 'combined' in mode:
-        return np.concatenate((data_a, data_b), axis=data_a.ndim-1)
+    if "combined" in mode:
+        return np.concatenate((data_a, data_b), axis=data_a.ndim - 1)
 
     return data_a, data_b
 
@@ -113,7 +114,7 @@ class OCMio:
     def __init__(self, ocm_product: Path):
         """Initialize access to an OCAL Lx product."""
         if not ocm_product.is_file():
-            raise FileNotFoundError(f'{ocm_product.name} does not exist')
+            raise FileNotFoundError(f"{ocm_product.name} does not exist")
 
         # initialize class-attributes
         self.__msm_path = None
@@ -121,12 +122,12 @@ class OCMio:
         self.filename = ocm_product
 
         # open OCM product as HDF5 file
-        self.fid = h5py.File(ocm_product, 'r')
+        self.fid = h5py.File(ocm_product, "r")
 
     def __iter__(self):
         """Allow iteration."""
         for attr in sorted(self.__dict__):
-            if not attr.startswith('__'):
+            if not attr.startswith("__"):
                 yield attr
 
     # def __del__(self):
@@ -155,23 +156,23 @@ class OCMio:
     # ---------- Functions that work before MSM selection ----------
     def get_processor_version(self) -> str:
         """Return version of the L01b processor."""
-        res = self.fid.attrs['processor_version']
+        res = self.fid.attrs["processor_version"]
         if isinstance(res, bytes):
             # pylint: disable=no-member
-            res = res.decode('ascii')
+            res = res.decode("ascii")
         return res
 
     def get_coverage_time(self) -> tuple[str, str]:
         """Return start and end of the measurement coverage time."""
-        t_bgn = self.fid.attrs['time_coverage_start']
+        t_bgn = self.fid.attrs["time_coverage_start"]
         if isinstance(t_bgn, bytes):
             # pylint: disable=no-member
-            t_bgn = t_bgn.decode('ascii')
+            t_bgn = t_bgn.decode("ascii")
 
-        t_end = self.fid.attrs['time_coverage_end']
+        t_end = self.fid.attrs["time_coverage_end"]
         if isinstance(t_end, bytes):
             # pylint: disable=no-member
-            t_end = t_end.decode('ascii')
+            t_end = t_end.decode("ascii")
         return t_bgn, t_end
 
     def get_attr(self, attr_name) -> np.ndarray | None:
@@ -194,12 +195,12 @@ class OCMio:
         if not self.__msm_path:
             return {}
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
+            sgrp = grp[str(PurePosixPath(msm, "GEODATA"))]
             res[msm] = datetime(2010, 1, 1, 0, 0, 0)
-            res[msm] += timedelta(seconds=int(sgrp['time'][0]))
+            res[msm] += timedelta(seconds=int(sgrp["time"][0]))
 
         return res
 
@@ -208,11 +209,11 @@ class OCMio:
         if not self.__msm_path:
             return {}
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(PurePosixPath(msm, 'GEODATA'))]
-            res[msm] = sgrp['delta_time'][:].astype(int)
+            sgrp = grp[str(PurePosixPath(msm, "GEODATA"))]
+            res[msm] = sgrp["delta_time"][:].astype(int)
 
         return res
 
@@ -221,11 +222,11 @@ class OCMio:
         if not self.__msm_path:
             return {}
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
-            res[msm] = np.squeeze(sgrp['instrument_settings'])
+            sgrp = grp[str(PurePosixPath(msm, "INSTRUMENT"))]
+            res[msm] = np.squeeze(sgrp["instrument_settings"])
 
         return res
 
@@ -234,11 +235,11 @@ class OCMio:
         if not self.__msm_path:
             return {}
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
-            res[msm] = np.squeeze(sgrp['gse_stimuli'])
+            sgrp = grp[str(PurePosixPath(msm, "INSTRUMENT"))]
+            res[msm] = np.squeeze(sgrp["gse_stimuli"])
 
         return res
 
@@ -247,32 +248,31 @@ class OCMio:
         if not self.__msm_path:
             return None
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         msm = self.__msm_path[0]  # all measurement sets have the same ICID
-        sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
-        instr = np.squeeze(sgrp['instrument_settings'])
+        sgrp = grp[str(PurePosixPath(msm, "INSTRUMENT"))]
+        instr = np.squeeze(sgrp["instrument_settings"])
 
         if int(self.band) > 6:
-            return 1.25e-6 * (65540 - instr['int_delay'] + instr['int_hold'])
+            return 1.25e-6 * (65540 - instr["int_delay"] + instr["int_hold"])
 
-        return instr['exposure_time']
+        return instr["exposure_time"]
 
     def get_housekeeping_data(self) -> np.ndarray | None:
         """Return housekeeping data of measurements."""
         if not self.__msm_path:
             return {}
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         res = {}
         for msm in sorted(self.__msm_path):
-            sgrp = grp[str(PurePosixPath(msm, 'INSTRUMENT'))]
-            res[msm] = np.squeeze(sgrp['housekeeping_data'])
+            sgrp = grp[str(PurePosixPath(msm, "INSTRUMENT"))]
+            res[msm] = np.squeeze(sgrp["housekeeping_data"])
 
         return res
 
     # -------------------------
-    def select(self, ic_id: int = None, *,
-               msm_grp: str | None = None) -> int:
+    def select(self, ic_id: int = None, *, msm_grp: str | None = None) -> int:
         """Select a measurement as BAND%/ICID_<ic_id>_GROUP_%.
 
         Parameters
@@ -295,24 +295,24 @@ class OCMio:
           - bands               : available spectral bands
 
         """
-        self.band = ''
+        self.band = ""
         self.__msm_path = []
-        for ii in '87654321':
-            if f'BAND{ii}' in self.fid:
+        for ii in "87654321":
+            if f"BAND{ii}" in self.fid:
                 self.band = ii
                 break
 
         if self.band:
-            gid = self.fid[f'BAND{self.band}']
+            gid = self.fid[f"BAND{self.band}"]
             if msm_grp is not None and msm_grp in gid:
                 self.__msm_path = [msm_grp]
             elif ic_id is None:
-                grp_name = 'ICID_'
+                grp_name = "ICID_"
                 for kk in gid:
                     if kk.startswith(grp_name):
                         print(kk)
             else:
-                grp_name = f'ICID_{ic_id:05}_GROUP'
+                grp_name = f"ICID_{ic_id:05}_GROUP"
                 self.__msm_path = [s for s in gid if s.startswith(grp_name)]
 
         return len(self.__msm_path)
@@ -335,25 +335,29 @@ class OCMio:
 
         """
         if not self.__msm_path:
-            return ''
+            return ""
 
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         for msm_path in self.__msm_path:
-            ds_path = str(PurePosixPath(msm_path, 'OBSERVATIONS', msm_dset))
+            ds_path = str(PurePosixPath(msm_path, "OBSERVATIONS", msm_dset))
 
             if attr_name in grp[ds_path].attrs:
                 attr = grp[ds_path].attrs[attr_name]
                 if isinstance(attr, bytes):
-                    return attr.decode('ascii')
+                    return attr.decode("ascii")
 
                 return attr
 
         return None
 
     # -------------------------
-    def get_msm_data(self, msm_dset: str, fill_as_nan: bool = True,
-                     frames: list[int, int] | None = None,
-                     columns: list[int, int] | None = None) -> dict:
+    def get_msm_data(
+        self,
+        msm_dset: str,
+        fill_as_nan: bool = True,
+        frames: list[int, int] | None = None,
+        columns: list[int, int] | None = None,
+    ) -> dict:
         """Return data of measurement dataset `msm_dset`.
 
         Parameters
@@ -377,42 +381,42 @@ class OCMio:
            Python dictionary with names of msm_groups as keys
 
         """
-        fillvalue = float.fromhex('0x1.ep+122')
+        fillvalue = float.fromhex("0x1.ep+122")
 
         if not self.__msm_path:
             return {}
 
         # show HDF5 dataset names and return
-        grp = self.fid[f'BAND{self.band}']
+        grp = self.fid[f"BAND{self.band}"]
         if msm_dset is None:
-            ds_path = str(PurePosixPath(self.__msm_path[0], 'OBSERVATIONS'))
+            ds_path = str(PurePosixPath(self.__msm_path[0], "OBSERVATIONS"))
             for kk in grp[ds_path]:
                 print(kk)
             return {}
 
         # skip row257 from the SWIR detector
         rows = None
-        if self.band in ('7', '8'):
+        if self.band in ("7", "8"):
             rows = [0, -1]
 
         # combine data of all measurement groups in dictionary
         res = {}
         for msm_grp in sorted(self.__msm_path):
-            dset = grp[str(PurePosixPath(msm_grp, 'OBSERVATIONS', msm_dset))]
+            dset = grp[str(PurePosixPath(msm_grp, "OBSERVATIONS", msm_dset))]
             data_sel = ()
             for ii in range(dset.ndim):
                 dim_name = PurePosixPath(dset.dims[ii][0].name).name
-                if dim_name == 'msmt_time':
+                if dim_name == "msmt_time":
                     if frames is None:
                         data_sel += (slice(None),)
                     else:
                         data_sel += (slice(*frames),)
-                elif dim_name == 'row':
+                elif dim_name == "row":
                     if rows is None:
                         data_sel += (slice(None),)
                     else:
                         data_sel += (slice(*rows),)
-                elif dim_name == 'column':
+                elif dim_name == "column":
                     if columns is None:
                         data_sel += (slice(None),)
                     else:
@@ -426,7 +430,7 @@ class OCMio:
             else:
                 data = np.squeeze(dset[data_sel])
 
-            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+            if fill_as_nan and dset.attrs["_FillValue"] == fillvalue:
                 data[(data == fillvalue)] = np.nan
 
             # add data to dictionary
@@ -435,10 +439,13 @@ class OCMio:
         return res
 
     # -------------------------
-    def read_direct_msm(self, msm_dset: str,
-                        dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: type[Any] | None = None,
-                        fill_as_nan: bool = False) -> dict | None:
+    def read_direct_msm(
+        self,
+        msm_dset: str,
+        dest_sel: tuple[slice | int] | None = None,
+        dest_dtype: type[Any] | None = None,
+        fill_as_nan: bool = False,
+    ) -> dict | None:
         """Return data of measurement dataset `msm_dset` (fast implementation).
 
         Parameters
@@ -458,7 +465,7 @@ class OCMio:
            Python dictionary with names of msm_groups as keys
 
         """
-        fillvalue = float.fromhex('0x1.ep+122')
+        fillvalue = float.fromhex("0x1.ep+122")
 
         if not self.__msm_path:
             return None
@@ -469,16 +476,18 @@ class OCMio:
         # combine data of all measurement groups in dictionary
         res = {}
         for msm_grp in sorted(self.__msm_path):
-            dset = self.fid[str(PurePosixPath(
-                f'BAND{self.band}', msm_grp,
-                'OBSERVATIONS', msm_dset))]
+            dset = self.fid[
+                str(
+                    PurePosixPath(f"BAND{self.band}", msm_grp, "OBSERVATIONS", msm_dset)
+                )
+            ]
 
             if dest_dtype is None:
                 buff = dset[dest_sel]
             else:
                 buff = dset.astype(dest_dtype)[dest_sel]
 
-            if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+            if fill_as_nan and dset.attrs["_FillValue"] == fillvalue:
                 buff[(buff == fillvalue)] = np.nan
 
             # add data to dictionary

@@ -34,20 +34,19 @@ def get_data_dir():
      - ICM which contain at least one in-flight calibration product.
     """
     try:
-        user = environ['USER']
+        user = environ["USER"]
     except KeyError:
-        print('*** Fatal: environment variable USER not set')
+        print("*** Fatal: environment variable USER not set")
         return None
 
-    guesses_data_dir = [f'/data/{user}/pys5p-data',
-                        f'/Users/{user}/pys5p-data']
+    guesses_data_dir = [f"/data/{user}/pys5p-data", f"/Users/{user}/pys5p-data"]
 
     try:
-        _ = environ['PYS5P_DATA_DIR']
+        _ = environ["PYS5P_DATA_DIR"]
     except KeyError:
         pass
     else:
-        guesses_data_dir.append(environ['PYS5P_DATA_DIR'])
+        guesses_data_dir.append(environ["PYS5P_DATA_DIR"])
 
     for key in guesses_data_dir:
         if Path(key).is_dir():

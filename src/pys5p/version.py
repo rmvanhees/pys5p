@@ -8,7 +8,7 @@
 # License:  BSD-3-Clause
 """Provide access to the software version as obtained from git."""
 
-__all__ = ['pys5p_version']
+__all__ = ["pys5p_version"]
 
 from . import __version__
 
@@ -29,6 +29,6 @@ def pys5p_version(full=False, githash=False) -> str:
         return __version__
 
     if githash:
-        return __version__.split('+g')[1].split('.')[0]
+        return __version__.split("+g")[1].split(".")[0]
 
-    return __version__.split('+')[0]
+    return __version__.split("+")[0]

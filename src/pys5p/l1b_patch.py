@@ -11,9 +11,10 @@
 
 .. warning:: Depreciated, this module is no longer maintained.
 """
+
 from __future__ import annotations
 
-__all__ = ['L1Bpatch']
+__all__ = ["L1Bpatch"]
 
 import shutil
 from datetime import datetime
@@ -27,7 +28,7 @@ from . import swir_region
 from .l1b_io import L1BioRAD
 
 # - global variables --------------------------------
-_MSG_ERR_IO_BAND_ = 'spectral band of input and output products do not match'
+_MSG_ERR_IO_BAND_ = "spectral band of input and output products do not match"
 
 
 # - local functions --------------------------------
@@ -48,13 +49,15 @@ class L1Bpatch:
 
     """
 
-    def __init__(self, l1b_product: str, data_dir='/tmp',
-                 ckd_dir='/nfs/Tropomi/share/ckd') -> None:
+    def __init__(
+        self, l1b_product: str, data_dir="/tmp", ckd_dir="/nfs/Tropomi/share/ckd"
+    ) -> None:
         """Initialize access to a Tropomi offline L1b product."""
         prod_type = Path(l1b_product).name[0:15]
-        if prod_type not in ('S5P_OFFL_L1B_RA', 'S5P_RPRO_L1B_RA'):
+        if prod_type not in ("S5P_OFFL_L1B_RA", "S5P_RPRO_L1B_RA"):
             raise TypeError(
-                'Warning: only implemented for Tropomi L1b radiance products')
+                "Warning: only implemented for Tropomi L1b radiance products"
+            )
 
         # initialize private class-attributes
         self.data_dir = Path(data_dir)
@@ -62,8 +65,7 @@ class L1Bpatch:
             self.data_dir.mkdir(mode=0o755)
         self.ckd_dir = Path(ckd_dir)
         self.l1b_product: Path = Path(l1b_product)
-        self.l1b_patched = \
-            self.data_dir / self.l1b_product.name.replace('_01_', '_99_')
+        self.l1b_patched = self.data_dir / self.l1b_product.name.replace("_01_", "_99_")
         if self.l1b_patched.is_file():
             self.l1b_patched.unlink()
         self.__patched_msm = []
@@ -99,21 +101,23 @@ class L1Bpatch:
         if not self.__patched_msm:
             return
 
-        with h5py.File(self.l1b_patched, 'r+') as fid:
-            sgrp = fid.require_group('/METADATA/SRON_METADATA')
-            sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = get_version(root='..',
-                                                relative_to=__file__)
-            if 'patched_datasets' not in sgrp:
+        with h5py.File(self.l1b_patched, "r+") as fid:
+            sgrp = fid.require_group("/METADATA/SRON_METADATA")
+            sgrp.attrs["dateStamp"] = datetime.utcnow().isoformat()
+            sgrp.attrs["git_tag"] = get_version(root="..", relative_to=__file__)
+            if "patched_datasets" not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
-                dset = sgrp.create_dataset('patched_datasets',
-                                           (len(self.__patched_msm),),
-                                           maxshape=(None,), dtype=dtype)
+                dset = sgrp.create_dataset(
+                    "patched_datasets",
+                    (len(self.__patched_msm),),
+                    maxshape=(None,),
+                    dtype=dtype,
+                )
                 dset[:] = np.asarray(self.__patched_msm)
             else:
-                dset = sgrp['patched_datasets']
+                dset = sgrp["patched_datasets"]
                 dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
-                dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
+                dset[dset.shape[0] - 1 :] = np.asarray(self.__patched_msm)
 
     # --------------------------------------------------
     def pixel_quality(self, dpqm, threshold=0.8) -> None:
@@ -146,32 +150,32 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            quality_level = l1b.get_msm_data('quality_level')
-            print('quality_level', quality_level.dtype)
-            chan_quality = l1b.get_msm_data('spectral_channel_quality')
-            print('chan_quality', chan_quality.dtype)
+            band = l1b.select("STANDARD_MODE")
+            quality_level = l1b.get_msm_data("quality_level")
+            print("quality_level", quality_level.dtype)
+            chan_quality = l1b.get_msm_data("spectral_channel_quality")
+            print("chan_quality", chan_quality.dtype)
 
-        if band in ('7', '8'):
-            l2_dpqm = dpqm[swir_region.coords(mode='level2', band=band)]
+        if band in ("7", "8"):
+            l2_dpqm = dpqm[swir_region.coords(mode="level2", band=band)]
         else:
-            raise ValueError('only implemented for band 7 or 8')
+            raise ValueError("only implemented for band 7 or 8")
 
         # patch dataset 'quality_level'
         quality_level[...] = (100 * l2_dpqm).astype(np.uint8)  # broadcasting
 
         # patch dataset 'spectral_channel_quality'
-        buff = chan_quality & ~2          # set second bit to zero (all good)
-        buff[:, l2_dpqm < threshold] += 2                   # flag bad pixels
+        buff = chan_quality & ~2  # set second bit to zero (all good)
+        buff[:, l2_dpqm < threshold] += 2  # flag bad pixels
         chan_quality = buff.astype(np.uint8)
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('quality_level', quality_level)
-            l1b.set_msm_data('spectral_channel_quality', chan_quality)
+            l1b.set_msm_data("quality_level", quality_level)
+            l1b.set_msm_data("spectral_channel_quality", chan_quality)
 
     def offset(self) -> None:
         """Patch SWIR offset correction.
@@ -201,8 +205,8 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            data = l1b.get_msm_data('radiance')
+            band = l1b.select("STANDARD_MODE")
+            data = l1b.get_msm_data("radiance")
 
         # read required CKD's
 
@@ -210,10 +214,10 @@ class L1Bpatch:
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('radiance', data)
+            l1b.set_msm_data("radiance", data)
 
     def darkflux(self) -> None:
         """Patch SWIR dark-flux correction.
@@ -241,8 +245,8 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            data = l1b.get_msm_data('radiance')
+            band = l1b.select("STANDARD_MODE")
+            data = l1b.get_msm_data("radiance")
 
         # read required CKD's
 
@@ -250,10 +254,10 @@ class L1Bpatch:
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('radiance', data)
+            l1b.set_msm_data("radiance", data)
 
     def prnu(self) -> None:
         """Patch pixel response non-uniformity correction.
@@ -287,8 +291,8 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            data = l1b.get_msm_data('radiance')
+            band = l1b.select("STANDARD_MODE")
+            data = l1b.get_msm_data("radiance")
 
         # read required CKD's
 
@@ -296,10 +300,10 @@ class L1Bpatch:
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('radiance', data)
+            l1b.set_msm_data("radiance", data)
 
     def relrad(self) -> None:
         """Patch relative radiance calibration.
@@ -321,8 +325,8 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            data = l1b.get_msm_data('radiance')
+            band = l1b.select("STANDARD_MODE")
+            data = l1b.get_msm_data("radiance")
 
         # read required CKD's
 
@@ -330,10 +334,10 @@ class L1Bpatch:
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('radiance', data)
+            l1b.set_msm_data("radiance", data)
 
     def absrad(self) -> None:
         """Patch absolute radiance calibration.
@@ -355,8 +359,8 @@ class L1Bpatch:
 
         # read original data
         with L1BioRAD(self.l1b_product) as l1b:
-            band = l1b.select('STANDARD_MODE')
-            data = l1b.get_msm_data('radiance')
+            band = l1b.select("STANDARD_MODE")
+            data = l1b.get_msm_data("radiance")
 
         # read required CKD's
 
@@ -364,39 +368,41 @@ class L1Bpatch:
 
         # write patched dataset to new product
         with L1BioRAD(self.l1b_patched, readwrite=True) as l1b:
-            res = l1b.select('STANDARD_MODE')
+            res = l1b.select("STANDARD_MODE")
             if res != band:
                 raise ValueError(_MSG_ERR_IO_BAND_)
-            l1b.set_msm_data('radiance', data)
+            l1b.set_msm_data("radiance", data)
 
     def check(self) -> None:
         """Check patched dataset in L1B product."""
         if not self.l1b_patched.is_file():
-            raise ValueError('patched product not found')
+            raise ValueError("patched product not found")
 
-        with h5py.File(self.l1b_patched, 'r+') as fid:
-            if 'SRON_METADATA' not in fid['/METADATA']:
-                raise ValueError('no SRON metadata defined in L1B product')
-            sgrp = fid['/METADATA/SRON_METADATA']
-            if 'patched_datasets' not in sgrp:
-                raise ValueError('no patched datasets in L1B prduct')
-            patched_datasets = sgrp['patched_datasets'][:]
+        with h5py.File(self.l1b_patched, "r+") as fid:
+            if "SRON_METADATA" not in fid["/METADATA"]:
+                raise ValueError("no SRON metadata defined in L1B product")
+            sgrp = fid["/METADATA/SRON_METADATA"]
+            if "patched_datasets" not in sgrp:
+                raise ValueError("no patched datasets in L1B prduct")
+            patched_datasets = sgrp["patched_datasets"][:]
 
         for ds_name in patched_datasets:
             with L1BioRAD(self.l1b_product) as l1b:
-                l1b.select('STANDARD_MODE')
-                orig = l1b.get_msm_data(ds_name.split('/')[-1])
+                l1b.select("STANDARD_MODE")
+                orig = l1b.get_msm_data(ds_name.split("/")[-1])
 
             with L1BioRAD(self.l1b_patched) as l1b:
-                l1b.select('STANDARD_MODE')
-                patch = l1b.get_msm_data(ds_name.split('/')[-1])
+                l1b.select("STANDARD_MODE")
+                patch = l1b.get_msm_data(ds_name.split("/")[-1])
 
             if np.issubdtype(orig.dtype, np.integer):
                 if np.array_equiv(orig, patch):
-                    print(ds_name.split('/')[-1], ' equal True')
+                    print(ds_name.split("/")[-1], " equal True")
                 else:
-                    print(f'{ds_name.split("/")[-1]}'
-                          f' equal {np.sum(orig == patch)}'
-                          f' differ {np.sum(orig != patch)}')
+                    print(
+                        f'{ds_name.split("/")[-1]}'
+                        f' equal {np.sum(orig == patch)}'
+                        f' differ {np.sum(orig != patch)}'
+                    )
             else:
-                print('test not yet defined')
+                print("test not yet defined")

@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-__all__ = ['ICMio']
+__all__ = ["ICMio"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -46,7 +46,7 @@ class ICMio:
         """Initialize access to an ICM product."""
         icm_product = Path(icm_product)
         if not icm_product.is_file():
-            raise FileNotFoundError(f'{icm_product.name} does not exist')
+            raise FileNotFoundError(f"{icm_product.name} does not exist")
 
         # initialize class-attributes
         self.__rw = readwrite
@@ -57,14 +57,14 @@ class ICMio:
 
         # open ICM product as HDF5 file
         if readwrite:
-            self.fid = h5py.File(icm_product, 'r+')
+            self.fid = h5py.File(icm_product, "r+")
         else:
-            self.fid = h5py.File(icm_product, 'r')
+            self.fid = h5py.File(icm_product, "r")
 
     def __iter__(self):
         """Allow iteration."""
         for attr in sorted(self.__dict__):
-            if not attr.startswith('__'):
+            if not attr.startswith("__"):
                 yield attr
 
     # def __del__(self):
@@ -103,20 +103,22 @@ class ICMio:
         self.bands = None
         if self.__patched_msm:
             # pylint: disable=no-member
-            sgrp = self.fid.require_group('METADATA/SRON_METADATA')
-            sgrp.attrs['dateStamp'] = datetime.utcnow().isoformat()
-            sgrp.attrs['git_tag'] = get_version(root='..',
-                                                relative_to=__file__)
-            if 'patched_datasets' not in sgrp:
+            sgrp = self.fid.require_group("METADATA/SRON_METADATA")
+            sgrp.attrs["dateStamp"] = datetime.utcnow().isoformat()
+            sgrp.attrs["git_tag"] = get_version(root="..", relative_to=__file__)
+            if "patched_datasets" not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
-                dset = sgrp.create_dataset('patched_datasets',
-                                           (len(self.__patched_msm),),
-                                           maxshape=(None,), dtype=dtype)
+                dset = sgrp.create_dataset(
+                    "patched_datasets",
+                    (len(self.__patched_msm),),
+                    maxshape=(None,),
+                    dtype=dtype,
+                )
                 dset[:] = np.asarray(self.__patched_msm)
             else:
-                dset = sgrp['patched_datasets']
+                dset = sgrp["patched_datasets"]
                 dset.resize(dset.shape[0] + len(self.__patched_msm), axis=0)
-                dset[dset.shape[0]-1:] = np.asarray(self.__patched_msm)
+                dset[dset.shape[0] - 1 :] = np.asarray(self.__patched_msm)
 
         self.fid.close()
         self.fid = None
@@ -138,10 +140,10 @@ class ICMio:
         """
         res = []
 
-        grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
-        for ii in '12345678':
+        grp_list = ["ANALYSIS", "CALIBRATION", "IRRADIANCE", "RADIANCE"]
+        for ii in "12345678":
             for name in grp_list:
-                grp_name = f'BAND{ii}_{name}'
+                grp_name = f"BAND{ii}_{name}"
                 if grp_name in self.fid:
                     gid = self.fid[grp_name]
                     res += [s for s in gid if s.startswith(msm_class)]
@@ -166,25 +168,25 @@ class ICMio:
            String with spectral bands found in product or empty
 
         """
-        self.bands = ''
+        self.bands = ""
         self.__msm_path = None
 
         # if path is given, then only determine available spectral bands
         # else determine path and available spectral bands
         if msm_path is None:
-            grp_list = ['ANALYSIS', 'CALIBRATION', 'IRRADIANCE', 'RADIANCE']
-            for ii in '12345678':
+            grp_list = ["ANALYSIS", "CALIBRATION", "IRRADIANCE", "RADIANCE"]
+            for ii in "12345678":
                 for name in grp_list:
-                    grp_path = PurePosixPath(f'BAND{ii}_{name}', msm_type)
+                    grp_path = PurePosixPath(f"BAND{ii}_{name}", msm_type)
                     if str(grp_path) in self.fid:
-                        msm_path = f'BAND%_{name}'
+                        msm_path = f"BAND%_{name}"
                         self.bands += ii
         else:
-            if not msm_path.startswith('BAND%'):
-                raise ValueError('msm_path should start with BAND%')
+            if not msm_path.startswith("BAND%"):
+                raise ValueError("msm_path should start with BAND%")
 
-            for ii in '12345678':
-                grp_path = PurePosixPath(msm_path.replace('%', ii), msm_type)
+            for ii in "12345678":
+                grp_path = PurePosixPath(msm_path.replace("%", ii), msm_type)
                 if str(grp_path) in self.fid:
                     self.bands += ii
 
@@ -198,49 +200,51 @@ class ICMio:
     @property
     def orbit(self) -> int | None:
         """Return reference orbit number."""
-        if 'reference_orbit' in self.fid.attrs:
-            return int(self.fid.attrs['reference_orbit'])
+        if "reference_orbit" in self.fid.attrs:
+            return int(self.fid.attrs["reference_orbit"])
 
         return None
 
     @property
     def processor_version(self) -> str | None:
         """Return version of the L01b processor."""
-        if 'processor_version' not in self.fid.attrs:
+        if "processor_version" not in self.fid.attrs:
             return None
 
-        res = self.fid.attrs['processor_version']
+        res = self.fid.attrs["processor_version"]
         if isinstance(res, bytes):
             # pylint: disable=no-member
-            return res.decode('ascii')
+            return res.decode("ascii")
 
         return res
 
     @property
     def coverage_time(self) -> tuple[str, str] | None:
         """Return start and end of the measurement coverage time."""
-        if 'time_coverage_start' not in self.fid.attrs \
-           or 'time_coverage_end' not in self.fid.attrs:
+        if (
+            "time_coverage_start" not in self.fid.attrs
+            or "time_coverage_end" not in self.fid.attrs
+        ):
             return None
 
-        res1 = self.fid.attrs['time_coverage_start']
+        res1 = self.fid.attrs["time_coverage_start"]
         if isinstance(res1, bytes):
             # pylint: disable=no-member
-            res1 = res1.decode('ascii')
+            res1 = res1.decode("ascii")
 
-        res2 = self.fid.attrs['time_coverage_end']
+        res2 = self.fid.attrs["time_coverage_end"]
         if isinstance(res2, bytes):
             # pylint: disable=no-member
-            res2 = res2.decode('ascii')
+            res2 = res2.decode("ascii")
 
         return res1, res2
 
     @property
     def creation_time(self) -> str:
         """Return version of the L01b processor."""
-        grp = self.fid['/METADATA/ESA_METADATA/earth_explorer_header']
-        dset = grp['fixed_header/source']
-        return dset.attrs['Creation_Date'].split(b'=')[1].decode('ascii')
+        grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
+        dset = grp["fixed_header/source"]
+        return dset.attrs["Creation_Date"].split(b"=")[1].decode("ascii")
 
     def get_attr(self, attr_name: str) -> str | None:
         """Obtain value of an HDF5 file attribute.
@@ -256,7 +260,7 @@ class ICMio:
 
         res = self.fid.attrs[attr_name]
         if isinstance(res, bytes):
-            return res.decode('ascii')
+            return res.decode("ascii")
 
         return res
 
@@ -278,36 +282,36 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp[msm_type.lower() + "_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'OBSERVATIONS')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                )
                 grp = self.fid[str(grp_path)]
-                ref_time += timedelta(seconds=int(grp['time'][0]))
-        elif msm_type in ['DPQF_MAP', 'NOISE']:
-            grp_path = PurePosixPath(msm_path).parent / 'ANALOG_OFFSET_SWIR'
+                ref_time += timedelta(seconds=int(grp["time"][0]))
+        elif msm_type in ["DPQF_MAP", "NOISE"]:
+            grp_path = PurePosixPath(msm_path).parent / "ANALOG_OFFSET_SWIR"
             grp = self.fid[str(grp_path)]
-            dset = grp['analog_offset_swir_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp["analog_offset_swir_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'OBSERVATIONS')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                )
                 grp = self.fid[str(grp_path)]
-                ref_time += timedelta(seconds=int(grp['time'][0]))
+                ref_time += timedelta(seconds=int(grp["time"][0]))
         else:
-            grp_path = PurePosixPath(msm_path, 'OBSERVATIONS')
+            grp_path = PurePosixPath(msm_path, "OBSERVATIONS")
             grp = self.fid[str(grp_path)]
-            ref_time += timedelta(seconds=int(grp['time'][0]))
+            ref_time += timedelta(seconds=int(grp["time"][0]))
 
         return ref_time
 
@@ -327,48 +331,47 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp[msm_type.lower() + "_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'OBSERVATIONS')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                )
                 grp = self.fid[str(grp_path)]
                 if res is None:
-                    res = grp['delta_time'][0, :].astype(int)
+                    res = grp["delta_time"][0, :].astype(int)
                 else:
-                    res = np.append(res, grp['delta_time'][0, :].astype(int))
-        elif msm_type in ['DPQF_MAP', 'NOISE']:
-            grp_path = PurePosixPath(msm_path).parent / 'ANALOG_OFFSET_SWIR'
+                    res = np.append(res, grp["delta_time"][0, :].astype(int))
+        elif msm_type in ["DPQF_MAP", "NOISE"]:
+            grp_path = PurePosixPath(msm_path).parent / "ANALOG_OFFSET_SWIR"
             grp = self.fid[str(grp_path)]
-            dset = grp['analog_offset_swir_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp["analog_offset_swir_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'OBSERVATIONS')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                )
                 grp = self.fid[grp_path]
                 if res is None:
-                    res = grp['delta_time'][0, :].astype(int)
+                    res = grp["delta_time"][0, :].astype(int)
                 else:
-                    res = np.append(res, grp['delta_time'][0, :].astype(int))
+                    res = np.append(res, grp["delta_time"][0, :].astype(int))
         else:
-            grp_path = PurePosixPath(msm_path, 'OBSERVATIONS')
+            grp_path = PurePosixPath(msm_path, "OBSERVATIONS")
             grp = self.fid[str(grp_path)]
-            res = grp['delta_time'][0, :].astype(int)
+            res = grp["delta_time"][0, :].astype(int)
 
         return res
 
-    def get_instrument_settings(self,
-                                band: str | None = None) -> np.ndarray | None:
+    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
         """Return instrument settings of measurement.
 
         Parameters
@@ -384,52 +387,54 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp[msm_type.lower() + "_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'INSTRUMENT')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                )
                 grp = self.fid[str(grp_path)]
                 if res is None:
-                    res = grp['instrument_settings'][:]
+                    res = grp["instrument_settings"][:]
                 else:
-                    res = np.append(res, grp['instrument_settings'][:])
-        elif msm_type == 'DPQF_MAP':
-            grp_path = PurePosixPath(msm_path).parent / 'ANALOG_OFFSET_SWIR'
+                    res = np.append(res, grp["instrument_settings"][:])
+        elif msm_type == "DPQF_MAP":
+            grp_path = PurePosixPath(msm_path).parent / "ANALOG_OFFSET_SWIR"
             grp = self.fid[str(grp_path)]
-            dset = grp['analog_offset_swir_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp["analog_offset_swir_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'INSTRUMENT')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                )
                 grp = self.fid[grp_path]
                 if res is None:
-                    res = grp['instrument_settings'][:]
+                    res = grp["instrument_settings"][:]
                 else:
-                    res = np.append(res, grp['instrument_settings'][:])
-        elif msm_type == 'NOISE':
+                    res = np.append(res, grp["instrument_settings"][:])
+        elif msm_type == "NOISE":
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_msmt_keys']
-            icid = dset['icid'][dset.size // 2]
-            grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                     f'BACKGROUND_RADIANCE_MODE_{icid:04d}',
-                                     'INSTRUMENT')
+            dset = grp[msm_type.lower() + "_msmt_keys"]
+            icid = dset["icid"][dset.size // 2]
+            grp_path = PurePosixPath(
+                f"BAND{band}_CALIBRATION",
+                f"BACKGROUND_RADIANCE_MODE_{icid:04d}",
+                "INSTRUMENT",
+            )
             grp = self.fid[str(grp_path)]
-            res = grp['instrument_settings'][:]
+            res = grp["instrument_settings"][:]
         else:
-            grp_path = PurePosixPath(msm_path, 'INSTRUMENT')
+            grp_path = PurePosixPath(msm_path, "INSTRUMENT")
             grp = self.fid[str(grp_path)]
-            res = grp['instrument_settings'][:]
+            res = grp["instrument_settings"][:]
 
         return res
 
@@ -449,7 +454,7 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
         # obtain instrument settings
         instr_arr = self.get_instrument_settings(band)
@@ -461,16 +466,14 @@ class ICMio:
         for instr in instr_arr:
             if int(band) > 6:
                 res.append(
-                    1.25e-6 *
-                    (65540 - int(instr['int_delay']) + int(instr['int_hold']))
+                    1.25e-6 * (65540 - int(instr["int_delay"]) + int(instr["int_hold"]))
                 )
             else:
-                res.append(instr['exposure_time'])
+                res.append(instr["exposure_time"])
 
         return res
 
-    def get_housekeeping_data(self,
-                              band: str | None = None) -> np.ndarray | None:
+    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
         """Return housekeeping data of measurements.
 
         Parameters
@@ -486,43 +489,43 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
         res = None
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp[msm_type.lower() + "_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'INSTRUMENT')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                )
                 grp = self.fid[str(grp_path)]
                 if res is None:
-                    res = np.squeeze(grp['housekeeping_data'])
+                    res = np.squeeze(grp["housekeeping_data"])
                 else:
-                    res = np.append(res, np.squeeze(grp['housekeeping_data']))
-        elif msm_type in ['DPQF_MAP', 'NOISE']:
-            grp_path = PurePosixPath(msm_path).parent / 'ANALOG_OFFSET_SWIR'
+                    res = np.append(res, np.squeeze(grp["housekeeping_data"]))
+        elif msm_type in ["DPQF_MAP", "NOISE"]:
+            grp_path = PurePosixPath(msm_path).parent / "ANALOG_OFFSET_SWIR"
             grp = self.fid[str(grp_path)]
-            dset = grp['analog_offset_swir_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp["analog_offset_swir_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath('BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'INSTRUMENT')
+                grp_path = PurePosixPath(
+                    "BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                )
                 grp = self.fid[str(grp_path)]
                 if res is None:
-                    res = np.squeeze(grp['housekeeping_data'])
+                    res = np.squeeze(grp["housekeeping_data"])
                 else:
-                    res = np.append(res, np.squeeze(grp['housekeeping_data']))
+                    res = np.append(res, np.squeeze(grp["housekeeping_data"]))
         else:
-            grp_path = PurePosixPath(msm_path, 'INSTRUMENT')
+            grp_path = PurePosixPath(msm_path, "INSTRUMENT")
             grp = self.fid[str(grp_path)]
-            res = np.squeeze(grp['housekeeping_data'])
+            res = np.squeeze(grp["housekeeping_data"])
 
         return res
 
@@ -554,24 +557,25 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            return np.squeeze(grp[msm_type.lower() + '_group_keys'])
+            return np.squeeze(grp[msm_type.lower() + "_group_keys"])
 
-        if msm_type == 'NOISE':
+        if msm_type == "NOISE":
             grp = self.fid[msm_path]
-            return np.squeeze(grp[msm_type.lower() + '_msmt_keys'])
+            return np.squeeze(grp[msm_type.lower() + "_msmt_keys"])
 
         return None
 
     # -------------------------
-    def get_msm_attr(self, msm_dset: str, attr_name: str,
-                     band: str | None = None) -> np.ndarray | None:
+    def get_msm_attr(
+        self, msm_dset: str, attr_name: str, band: str | None = None
+    ) -> np.ndarray | None:
         """Return attribute of measurement dataset "msm_dset".
 
         Parameters
@@ -596,25 +600,27 @@ class ICMio:
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-            ds_path = PurePosixPath(str(self.__msm_path).replace('%', band),
-                                    dset_grp, msm_dset)
+        for dset_grp in ["OBSERVATIONS", "ANALYSIS", ""]:
+            ds_path = PurePosixPath(
+                str(self.__msm_path).replace("%", band), dset_grp, msm_dset
+            )
             if str(ds_path) not in self.fid:
                 continue
 
             if attr_name in self.fid[str(ds_path)].attrs:
                 attr = self.fid[str(ds_path)].attrs[attr_name]
                 if isinstance(attr, bytes):
-                    return attr.decode('ascii')
+                    return attr.decode("ascii")
 
                 return attr
 
         return None
 
-    def get_geo_data(self, band: str | None = None,
-                     geo_dset: str | None = None) -> np.ndarray | None:
+    def get_geo_data(
+        self, band: str | None = None, geo_dset: str | None = None
+    ) -> np.ndarray | None:
         """Return data of selected datasets from the GEODATA group.
 
         Parameters
@@ -639,50 +645,55 @@ class ICMio:
         if band is None:
             band = str(self.bands[0])
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
         if geo_dset is None:
-            geo_dset = 'satellite_latitude,satellite_longitude'
+            geo_dset = "satellite_latitude,satellite_longitude"
 
-        msm_path = str(self.__msm_path).replace('%', band)
+        msm_path = str(self.__msm_path).replace("%", band)
         msm_type = self.__msm_path.name
 
         res = {}
-        if msm_type in ['ANALOG_OFFSET_SWIR', 'LONG_TERM_SWIR']:
+        if msm_type in ["ANALOG_OFFSET_SWIR", "LONG_TERM_SWIR"]:
             grp = self.fid[msm_path]
-            dset = grp[msm_type.lower() + '_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp[msm_type.lower() + "_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'GEODATA')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "GEODATA"
+                )
                 grp = self.fid[str(grp_path)]
-                for key in geo_dset.split(','):
+                for key in geo_dset.split(","):
                     res[key] = np.squeeze(grp[key])
-        elif msm_type in ['DPQF_MAP', 'NOISE']:
-            grp_path = PurePosixPath(msm_path).parent / 'ANALOG_OFFSET_SWIR'
+        elif msm_type in ["DPQF_MAP", "NOISE"]:
+            grp_path = PurePosixPath(msm_path).parent / "ANALOG_OFFSET_SWIR"
             grp = self.fid[str(grp_path)]
-            dset = grp['analog_offset_swir_group_keys']
-            group_keys = dset['group'][:]
+            dset = grp["analog_offset_swir_group_keys"]
+            group_keys = dset["group"][:]
             for name in group_keys:
-                grp_path = PurePosixPath(f'BAND{band}_CALIBRATION',
-                                         name.decode('ascii'),
-                                         'GEODATA')
+                grp_path = PurePosixPath(
+                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "GEODATA"
+                )
                 grp = self.fid[str(grp_path)]
-                for key in geo_dset.split(','):
+                for key in geo_dset.split(","):
                     res[key] = np.squeeze(grp[key])
         else:
-            grp_path = PurePosixPath(msm_path, 'GEODATA')
+            grp_path = PurePosixPath(msm_path, "GEODATA")
             grp = self.fid[str(grp_path)]
-            for key in geo_dset.split(','):
+            for key in geo_dset.split(","):
                 res[key] = np.squeeze(grp[key])
 
         return res
 
-    def get_msm_data(self, msm_dset: str, band: str = '78', *,
-                     read_raw: bool = False,
-                     columns: list[int, int] | None = None,
-                     fill_as_nan: bool = True) -> np.ndarray | None:
+    def get_msm_data(
+        self,
+        msm_dset: str,
+        band: str = "78",
+        *,
+        read_raw: bool = False,
+        columns: list[int, int] | None = None,
+        fill_as_nan: bool = True,
+    ) -> np.ndarray | None:
         """Read datasets from a measurement selected by class-method "select".
 
         Parameters
@@ -720,22 +731,22 @@ class ICMio:
            data of measurement dataset "msm_dset"
 
         """
-        fillvalue = float.fromhex('0x1.ep+122')
+        fillvalue = float.fromhex("0x1.ep+122")
 
         if not self.__msm_path:
             return None
 
         if not isinstance(band, str):
-            raise TypeError('band must be a string')
+            raise TypeError("band must be a string")
 
         if band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
         data = []
         if read_raw:
             for ii in band:
-                for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                    msm_path = str(self.__msm_path).replace('%', ii)
+                for dset_grp in ["OBSERVATIONS", "ANALYSIS", ""]:
+                    msm_path = str(self.__msm_path).replace("%", ii)
                     ds_path = PurePosixPath(msm_path, dset_grp, msm_dset)
                     if str(ds_path) not in self.fid:
                         continue
@@ -750,14 +761,14 @@ class ICMio:
             rows = [0, -1]
 
         # list potential names of the dataset dimensions
-        time_list = ['time', 'scanline']
-        row_list = ['width', 'pixel', 'pixel_window', 'ground_pixel']
-        column_list = ['height', 'spectral_channel', 'spectral_channel_window']
+        time_list = ["time", "scanline"]
+        row_list = ["width", "pixel", "pixel_window", "ground_pixel"]
+        column_list = ["height", "spectral_channel", "spectral_channel_window"]
 
-        column_dim = None   # column dimension is unknown
+        column_dim = None  # column dimension is unknown
         for ii in band:
-            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                msm_path = str(self.__msm_path).replace('%', ii)
+            for dset_grp in ["OBSERVATIONS", "ANALYSIS", ""]:
+                msm_path = str(self.__msm_path).replace("%", ii)
                 ds_path = PurePosixPath(msm_path, dset_grp, msm_dset)
                 if str(ds_path) not in self.fid:
                     continue
@@ -791,7 +802,7 @@ class ICMio:
                 else:
                     res = np.squeeze(dset[data_sel])
 
-                if fill_as_nan and dset.attrs['_FillValue'] == fillvalue:
+                if fill_as_nan and dset.attrs["_FillValue"] == fillvalue:
                     res[(res == fillvalue)] = np.nan
                 data.append(res)
 
@@ -807,14 +818,17 @@ class ICMio:
             return data[0]
         # return bands stacked
         if column_dim is None:
-            return data        # np.stack(data)
+            return data  # np.stack(data)
         # return band in detector layout
         return np.concatenate(data, axis=column_dim)
 
-    def read_direct_msm(self, msm_dset: str,
-                        dest_sel: tuple[slice | int] | None = None,
-                        dest_dtype: type[Any] | None = None,
-                        fill_as_nan: bool = False) -> list[np.ndarray] | None:
+    def read_direct_msm(
+        self,
+        msm_dset: str,
+        dest_sel: tuple[slice | int] | None = None,
+        dest_dtype: type[Any] | None = None,
+        fill_as_nan: bool = False,
+    ) -> list[np.ndarray] | None:
         """Read datasets from a measurement selected by class-method `select`.
 
         Parameters
@@ -848,7 +862,7 @@ class ICMio:
            data of all available bands
 
         """
-        fillvalue = float.fromhex('0x1.ep+122')
+        fillvalue = float.fromhex("0x1.ep+122")
 
         if not self.__msm_path:
             return None
@@ -858,8 +872,8 @@ class ICMio:
 
         data = []
         for ii in self.bands:
-            msm_path = str(self.__msm_path).replace('%', ii)
-            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
+            msm_path = str(self.__msm_path).replace("%", ii)
+            for dset_grp in ["OBSERVATIONS", "ANALYSIS", ""]:
                 ds_path = str(PurePosixPath(msm_path, dset_grp, msm_dset))
                 if ds_path not in self.fid:
                     continue
@@ -867,16 +881,20 @@ class ICMio:
                 dset = self.fid[ds_path]
                 if dest_dtype is None:
                     buff = dset[dest_sel]
-                    if (fill_as_nan
-                        and '_FillValue' in dset.attrs
-                        and np.issubdtype(buff.dtype, np.floating)):
-                        fillvalue = dset.attrs['_FillValue'][0]
+                    if (
+                        fill_as_nan
+                        and "_FillValue" in dset.attrs
+                        and np.issubdtype(buff.dtype, np.floating)
+                    ):
+                        fillvalue = dset.attrs["_FillValue"][0]
                         buff[(buff == fillvalue)] = np.nan
                 else:
                     buff = dset.astype(dest_dtype)[dest_sel]
-                    if (fill_as_nan
-                        and '_FillValue' in dset.attrs
-                        and np.issubdtype(buff.dtype, np.floating)):
+                    if (
+                        fill_as_nan
+                        and "_FillValue" in dset.attrs
+                        and np.issubdtype(buff.dtype, np.floating)
+                    ):
                         buff[(buff == fillvalue)] = np.nan
 
                 data.append(buff)
@@ -884,8 +902,7 @@ class ICMio:
         return data
 
     # -------------------------
-    def set_housekeeping_data(self, data: np.ndarray,
-                              band: str | None = None) -> None:
+    def set_housekeeping_data(self, data: np.ndarray, band: str | None = None) -> None:
         """Return housekeeping data of measurements.
 
         Parameters
@@ -898,27 +915,29 @@ class ICMio:
 
         """
         if not self.__rw:
-            raise PermissionError('read/write access required')
+            raise PermissionError("read/write access required")
 
-        if (not self.__msm_path
-            or self.__msm_path.name in ['ANALOG_OFFSET_SWIR',
-                                        'LONG_TERM_SWIR',
-                                        'DPQF_MAP',
-                                        'NOISE']):
+        if not self.__msm_path or self.__msm_path.name in [
+            "ANALOG_OFFSET_SWIR",
+            "LONG_TERM_SWIR",
+            "DPQF_MAP",
+            "NOISE",
+        ]:
             return
 
         if band is None:
             band = self.bands[0]
         elif band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
-        msm_path = str(self.__msm_path).replace('%', band)
-        ds_path = PurePosixPath(msm_path, 'INSTRUMENT', 'housekeeping_data')
+        msm_path = str(self.__msm_path).replace("%", band)
+        ds_path = PurePosixPath(msm_path, "INSTRUMENT", "housekeeping_data")
         self.fid[str(ds_path)][0, :] = data
         self.__patched_msm.append(str(ds_path))
 
-    def set_msm_data(self, msm_dset: str, data: np.ndarray | Iterable,
-                     band: str = '78') -> None:
+    def set_msm_data(
+        self, msm_dset: str, data: np.ndarray | Iterable, band: str = "78"
+    ) -> None:
         """Alter dataset from a measurement selected using function "select".
 
         Parameters
@@ -932,19 +951,19 @@ class ICMio:
             data to be written with same dimensions as dataset 'msm_dset'
 
         """
-        fillvalue = float.fromhex('0x1.ep+122')
+        fillvalue = float.fromhex("0x1.ep+122")
 
         if not self.__rw:
-            raise PermissionError('read/write access required')
+            raise PermissionError("read/write access required")
 
         if not self.__msm_path:
             return
 
         if not isinstance(band, str):
-            raise TypeError('band must be a string')
+            raise TypeError("band must be a string")
 
         if band not in self.bands:
-            raise ValueError('band not found in product')
+            raise ValueError("band not found in product")
 
         # skip row257 from the SWIR detector
         rows = None
@@ -952,14 +971,14 @@ class ICMio:
             rows = [0, -1]
 
         # list potential names of the dataset dimensions
-        time_list = ['time', 'scanline']
-        row_list = ['width', 'pixel', 'ground_pixel']
-        column_list = ['height', 'spectral_channel']
+        time_list = ["time", "scanline"]
+        row_list = ["width", "pixel", "ground_pixel"]
+        column_list = ["height", "spectral_channel"]
 
         indx = 0
         for ii in band:
-            for dset_grp in ['OBSERVATIONS', 'ANALYSIS', '']:
-                msm_path = str(self.__msm_path).replace('%', ii)
+            for dset_grp in ["OBSERVATIONS", "ANALYSIS", ""]:
+                msm_path = str(self.__msm_path).replace("%", ii)
                 ds_path = PurePosixPath(msm_path, dset_grp, msm_dset)
                 if str(ds_path) not in self.fid:
                     continue
@@ -980,19 +999,19 @@ class ICMio:
                             data_sel += (slice(*rows),)
                     elif dim_name in column_list:
                         if len(band) == 2:
-                            jj = data.ndim-1
+                            jj = data.ndim - 1
                             data = np.stack(np.split(data, 2, axis=jj))
                         data_sel += (slice(None),)
                     else:
                         raise ValueError
 
                 if len(band) == 2:
-                    if dset.attrs['_FillValue'] == fillvalue:
+                    if dset.attrs["_FillValue"] == fillvalue:
                         data[indx, np.isnan(data[indx, ...])] = fillvalue
                     dset[data_sel] = data[indx, ...]
                     indx += 1
                 else:
-                    if dset.attrs['_FillValue'] == fillvalue:
+                    if dset.attrs["_FillValue"] == fillvalue:
                         data[np.isnan(data)] = fillvalue
                     dset[data_sel] = data
 
