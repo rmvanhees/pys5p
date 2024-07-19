@@ -19,47 +19,57 @@ def read_lv2(l2_product):
     """Read Tropomi level 2 product."""
     with LV2io(l2_product) as lv2:
         # Class properties
-        print('science_product: ', lv2.science_product)
-        print('orbit: ', lv2.orbit)
-        print('algorithm_version: ', lv2.algorithm_version)
-        print('processor_version: ', lv2.processor_version)
-        print('product_version: ', lv2.product_version)
+        print("science_product: ", lv2.science_product)
+        print("orbit: ", lv2.orbit)
+        print("algorithm_version: ", lv2.algorithm_version)
+        print("processor_version: ", lv2.processor_version)
+        print("product_version: ", lv2.product_version)
         if not lv2.science_product:
-            print('coverage_time: ', lv2.coverage_time)
-        print('creation_time: ', lv2.creation_time)
+            print("coverage_time: ", lv2.coverage_time)
+        print("creation_time: ", lv2.creation_time)
         # Attributes
-        print('get_attr: ', lv2.get_attr('title'))
-        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
-        print('get_attr: ', lv2.get_attr('long_name', ds_name))
+        print("get_attr: ", lv2.get_attr("title"))
+        ds_name = "h2o_column" if lv2.science_product else "methane_mixing_ratio"
+        print("get_attr: ", lv2.get_attr("long_name", ds_name))
 
         # Time information
-        print('ref_time: ', lv2.ref_time)
-        print('get_time: ', lv2.get_time())
+        print("ref_time: ", lv2.ref_time)
+        print("get_time: ", lv2.get_time())
         # Geolocation
-        geo_var = 'latitude_center' if lv2.science_product else 'latitude'
-        print('get_geo_data: ', lv2.get_geo_data()[geo_var].shape)
+        geo_var = "latitude_center" if lv2.science_product else "latitude"
+        print("get_geo_data: ", lv2.get_geo_data()[geo_var].shape)
         # Footprints
-        geo_var = 'latitude'
-        print('get_geo_bounds: ', lv2.get_geo_bounds()[geo_var].shape)
-        print('get_geo_bounds: ', lv2.get_geo_bounds(
-            data_sel=np.s_[250:300, 100:110])[geo_var].shape)
+        geo_var = "latitude"
+        print("get_geo_bounds: ", lv2.get_geo_bounds()[geo_var].shape)
+        print(
+            "get_geo_bounds: ",
+            lv2.get_geo_bounds(data_sel=np.s_[250:300, 100:110])[geo_var].shape,
+        )
         # Datasets (numpy)
-        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
-        print('get_dataset: ', lv2.get_dataset(ds_name).shape)
-        print('get_dataset: ', lv2.get_dataset(
-            ds_name, data_sel=np.s_[250:300, 100:110]).shape)
+        ds_name = "h2o_column" if lv2.science_product else "methane_mixing_ratio"
+        print("get_dataset: ", lv2.get_dataset(ds_name).shape)
+        print(
+            "get_dataset: ",
+            lv2.get_dataset(ds_name, data_sel=np.s_[250:300, 100:110]).shape,
+        )
         # Datasets (xarray)
-        ds_name = 'h2o_column' if lv2.science_product else 'methane_mixing_ratio'
-        print('get_data_as_xds: ', lv2.get_data_as_xds(ds_name))
+        ds_name = "h2o_column" if lv2.science_product else "methane_mixing_ratio"
+        print("get_data_as_xds: ", lv2.get_data_as_xds(ds_name))
 
 
 def main():
     """Perform unit testing on SWIR Level-2 products."""
     # parse command-line parameters
     parser = argparse.ArgumentParser(
-        description=f'{Path(__file__).name}: run units-test on class LV2io')
-    parser.add_argument('lv2_product', nargs=1, type=str, default=None,
-                        help='use this Tropomi level2 product')
+        description=f"{Path(__file__).name}: run units-test on class LV2io"
+    )
+    parser.add_argument(
+        "lv2_product",
+        nargs=1,
+        type=str,
+        default=None,
+        help="use this Tropomi level2 product",
+    )
     args = parser.parse_args()
     print(args)
 
@@ -67,5 +77,5 @@ def main():
 
 
 # - main code --------------------------------------
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
