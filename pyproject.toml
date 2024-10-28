@@ -2,11 +2,10 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-   "setuptools>=65",
+   "setuptools>=70",
    "setuptools_scm[toml]>=8.0",
    'tomli>=1; python_version < "3.11"',
    'typing-extensions; python_version < "3.11"',
-   "wheel",
 ]
 
 [project]
@@ -31,15 +30,19 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
-dependencies = [
-  "h5py>=3.8",
-  "moniplot>=0.5.8",
-  "numpy>=1.22",
-  "netCDF4>=1.6",
-  "xarray>=2023.2",
+keywords = [
+  "Sentinel-5p",
+  "Tropomi",
 ]
 dynamic = [
   "version"
+]
+dependencies = [
+  "h5py>=3.11",
+  "moniplot>=1.0",
+  "numpy>=1.26",
+  "netCDF4>=1.7",
+  "xarray>=2023.2",
 ]
 
 [project.scripts]
@@ -52,9 +55,11 @@ documentation = "https://pys5p.readthedocs.io/en/latest/"
 "Issue tracker" = "https://github.com/rmvanhees/pys5p/issues"
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["src"]
 
 [tool.setuptools_scm]
+# can be empty if no extra settings are needed, presence enables setuptools_scm
 
 [tool.ruff]
 line-length = 88
@@ -78,7 +83,7 @@ select = [
   "TCH", # flake8-type-checking
   "NPY", # NumPy-specific rules
 ]
-ignore = ["D203", "D213", "Q000", "Q003"]
+ignore = ["D203", "D213"]
 
 [lint.pydocstyle]
 convention = "pep257"
