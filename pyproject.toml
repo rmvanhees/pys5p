@@ -1,12 +1,10 @@
 # pyproject.toml
 [build-system]
-build-backend = "setuptools.build_meta"
 requires = [
-   "setuptools>=70",
-   "setuptools_scm[toml]>=8.0",
-   'tomli>=1; python_version < "3.11"',
-   'typing-extensions; python_version < "3.11"',
+   "hatchling",
+   "versioningit",
 ]
+build-backend = "hatchling.build"
 
 [project]
 name = "pys5p"
@@ -54,12 +52,23 @@ documentation = "https://pys5p.readthedocs.io/en/latest/"
 # Changelog = "https://github.com/rmvanhees/pys5p/HISTORY.rst"
 "Issue tracker" = "https://github.com/rmvanhees/pys5p/issues"
 
-[tool.setuptools.packages.find]
-namespaces = true
-where = ["src"]
+[tool.hatch.version]
+source = "versioningit"
 
-[tool.setuptools_scm]
-# can be empty if no extra settings are needed, presence enables setuptools_scm
+[tool.versioningit]
+
+[tool.versioningit.next-version]
+method = "smallest"
+
+[tool.versioningit.format]
+distance = "{next_version}.dev{distance}+{vcs}{rev}"
+# Example formatted version: 1.2.4.dev42+ge174a1f
+
+dirty = "{base_version}+d{build_date:%Y%m%d}"
+# Example formatted version: 1.2.3+d20230922
+
+distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+# Example formatted version: 1.2.4.dev42+ge174a1f.d20230922
 
 [tool.ruff]
 line-length = 88
