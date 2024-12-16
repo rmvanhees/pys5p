@@ -51,7 +51,7 @@ class LV2io:
 
     """
 
-    def __init__(self, lv2_product: Path):
+    def __init__(self: LV2io, lv2_product: Path) -> None:
         """Initialize access to an S5P_L2 product."""
         if not lv2_product.is_file():
             raise FileNotFoundError(f"{lv2_product.name} does not exist")
@@ -74,29 +74,29 @@ class LV2io:
             self.ground_pixel = self.fid["/PRODUCT/ground_pixel"].size
             self.scanline = self.fid["/PRODUCT/scanline"].size
 
-    def __iter__(self):
+    def __iter__(self: LV2io) -> None:
         """Allow itertion."""
         for attr in sorted(self.__dict__):
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self):
+    def __enter__(self: LV2io) -> LV2io:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self: LV2io, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self: LV2io) -> None:
         """Close the product."""
         if self.fid is not None:
             self.fid.close()
 
     # ----- Class properties --------------------
     @property
-    def science_product(self) -> bool:
+    def science_product(self: LV2io) -> bool:
         """Check if product is a science product."""
         science_inst = b"SRON Netherlands Institute for Space Research"
 
@@ -108,7 +108,7 @@ class LV2io:
         return res
 
     @property
-    def orbit(self) -> int:
+    def orbit(self: LV2io) -> int:
         """Return reference orbit number."""
         if self.science_product:
             return int(self.__nc_attr("orbit", "l1b_file"))
@@ -116,28 +116,28 @@ class LV2io:
         return int(self.__h5_attr("orbit", None)[0])
 
     @property
-    def algorithm_version(self) -> str | None:
+    def algorithm_version(self: LV2io) -> str | None:
         """Return version of the level 2 algorithm."""
         res = self.get_attr("algorithm_version")
 
         return res if res is not None else self.get_attr("version")
 
     @property
-    def processor_version(self) -> str | None:
+    def processor_version(self: LV2io) -> str | None:
         """Return version of the level 2 processor."""
         res = self.get_attr("processor_version")
 
         return res if res is not None else self.get_attr("version")
 
     @property
-    def product_version(self) -> str:
+    def product_version(self: LV2io) -> str:
         """Return version of the level 2 product."""
         res = self.get_attr("product_version")
 
         return res if res is not None else self.get_attr("version")
 
     @property
-    def coverage_time(self) -> tuple:
+    def coverage_time(self: LV2io) -> tuple[str, str]:
         """Return start and end of the measurement coverage time."""
         return (
             self.get_attr("time_coverage_start"),
@@ -145,12 +145,14 @@ class LV2io:
         )
 
     @property
-    def creation_time(self) -> str:
+    def creation_time(self: LV2io) -> str:
         """Return creation date/time of the level 2 product."""
         return self.get_attr("date_created")
 
     # ----- Attributes --------------------
-    def __h5_attr(self, attr_name: str, ds_name: str | None) -> np.ndarray | None:
+    def __h5_attr(
+        self: LV2io, attr_name: str, ds_name: str | None
+    ) -> np.ndarray | None:
         """Read attributes from operational products using hdf5."""
         if ds_name is not None:
             dset = self.fid[f"/PRODUCT/{ds_name}"]
@@ -169,7 +171,7 @@ class LV2io:
 
         return attr
 
-    def __nc_attr(self, attr_name: str, ds_name: str) -> np.ndarray | None:
+    def __nc_attr(self: LV2io, attr_name: str, ds_name: str) -> np.ndarray | None:
         """Read attributes from science products using netCDF4."""
         if ds_name is not None:
             for grp_name in ["target_product", "side_product", "instrument"]:
@@ -190,7 +192,9 @@ class LV2io:
 
         return self.fid.getncattr(attr_name)
 
-    def get_attr(self, attr_name: str, ds_name: str | None = None) -> np.ndarray | None:
+    def get_attr(
+        self: LV2io, attr_name: str, ds_name: str | None = None
+    ) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute or dataset attribute.
 
         Parameters
@@ -208,7 +212,7 @@ class LV2io:
 
     # ----- Time information ---------------
     @property
-    def ref_time(self) -> datetime | None:
+    def ref_time(self: LV2io) -> datetime | None:
         """Return reference start time of measurements."""
         if self.science_product:
             return None
@@ -217,7 +221,7 @@ class LV2io:
             seconds=int(self.fid["/PRODUCT/time"][0])
         )
 
-    def get_time(self) -> np.ndarray | None:
+    def get_time(self: LV2io) -> np.ndarray | None:
         """Return start time of measurement per scan-line."""
         if self.science_product:
             buff = self.get_dataset("time")[:: self.ground_pixel, :]
@@ -227,7 +231,7 @@ class LV2io:
         return np.array([self.ref_time + timedelta(seconds=x / 1e3) for x in buff])
 
     # ----- Geolocation --------------------
-    def __h5_geo_data(self, geo_dsets: str) -> dict:
+    def __h5_geo_data(self: LV2io, geo_dsets: str) -> dict:
         """Read geolocation datasets from operational products using HDF5."""
         res = {}
         if geo_dsets is None:
@@ -241,7 +245,7 @@ class LV2io:
 
         return res
 
-    def __nc_geo_data(self, geo_dsets: str) -> dict:
+    def __nc_geo_data(self: LV2io, geo_dsets: str) -> dict:
         """Read geolocation datasets from science products using netCDF4."""
         res = {}
         if geo_dsets is None:
@@ -256,7 +260,7 @@ class LV2io:
 
         return res
 
-    def get_geo_data(self, geo_dsets: str | None = None) -> dict:
+    def get_geo_data(self: LV2io, geo_dsets: str | None = None) -> dict:
         """Return data of selected datasets from the GEOLOCATIONS group.
 
         Parameters
@@ -280,7 +284,9 @@ class LV2io:
 
     # ----- Footprints --------------------
     def __h5_geo_bounds(
-        self, extent: list[float, float, float, float], data_sel: tuple[slice | int]
+        self: LV2io,
+        extent: list[float, float, float, float],
+        data_sel: tuple[slice | int],
     ) -> tuple:
         """Read latitude/longitude bounding box [HDF5]."""
         if extent is not None:
@@ -305,14 +311,16 @@ class LV2io:
             lat_bounds = gid["latitude_bounds"][0, ...]
             lon_bounds = gid["longitude_bounds"][0, ...]
         else:
-            data_sel0 = (0,) + data_sel + (slice(None),)
+            data_sel0 = (0, *data_sel, slice(None))
             lat_bounds = gid["latitude_bounds"][data_sel0]
             lon_bounds = gid["longitude_bounds"][data_sel0]
 
         return data_sel, lon_bounds, lat_bounds
 
     def __nc_geo_bounds(
-        self, extent: list[float, float, float, float], data_sel: tuple[slice | int]
+        self: LV2io,
+        extent: list[float, float, float, float],
+        data_sel: tuple[slice | int],
     ) -> tuple:
         """Read latitude/longitude bounding box [netCDF4]."""
         if extent is not None:
@@ -344,13 +352,13 @@ class LV2io:
             self.scanline, self.ground_pixel, 4
         )
         if data_sel is not None:
-            lat_bounds = lat_bounds[data_sel + (slice(None),)]
-            lon_bounds = lon_bounds[data_sel + (slice(None),)]
+            lat_bounds = lat_bounds[(*data_sel, slice(None))]
+            lon_bounds = lon_bounds[(*data_sel, slice(None))]
 
         return data_sel, lon_bounds, lat_bounds
 
     def get_geo_bounds(
-        self,
+        self: LV2io,
         extent: list[float, float, float, float] | None,
         data_sel: tuple[slice | int] | None,
     ) -> np.ndarray | tuple:
@@ -401,7 +409,7 @@ class LV2io:
 
     # ----- Datasets (numpy) --------------------
     def __h5_dataset(
-        self, name: str, data_sel: tuple[slice | int], fill_as_nan: bool
+        self: LV2io, name: str, data_sel: tuple[slice | int], fill_as_nan: bool
     ) -> np.ndarray:
         """Read dataset from operational products using HDF5."""
         fillvalue = float.fromhex("0x1.ep+122")
@@ -417,9 +425,9 @@ class LV2io:
                 res = dset[0, ...]
         else:
             if dset.dtype == np.float32:
-                res = dset.astype(float)[(0,) + data_sel]
+                res = dset.astype(float)[(0, *data_sel)]
             else:
-                res = dset[(0,) + data_sel]
+                res = dset[(0, *data_sel)]
 
         if fill_as_nan and dset.attrs["_FillValue"] == fillvalue:
             res[(res == fillvalue)] = np.nan
@@ -427,7 +435,7 @@ class LV2io:
         return res
 
     def __nc_dataset(
-        self, name: str, data_sel: tuple[slice | int], fill_as_nan: bool
+        self: LV2io, name: str, data_sel: tuple[slice | int], fill_as_nan: bool
     ) -> np.ndarray:
         """Read dataset from science products using netCDF4."""
         if name in self.fid["/target_product"].variables:
@@ -451,7 +459,7 @@ class LV2io:
         return res.data
 
     def get_dataset(
-        self,
+        self: LV2io,
         name: str,
         data_sel: tuple[slice | int] | slice | None = None,
         fill_as_nan: bool = True,
@@ -478,7 +486,9 @@ class LV2io:
         return self.__h5_dataset(name, data_sel, fill_as_nan)
 
     # ----- Dataset (xarray) --------------------
-    def __h5_data_as_xds(self, name: str, data_sel: tuple[slice | int]) -> xr.DataArray:
+    def __h5_data_as_xds(
+        self: LV2io, name: str, data_sel: tuple[slice | int]
+    ) -> xr.DataArray:
         """Read dataset from group target_product using HDF5.
 
         Input: operational product
@@ -490,9 +500,11 @@ class LV2io:
         dset = self.fid[f"/PRODUCT/{name}"]
 
         # ToDo handle parameter mol_m2
-        return h5_to_xr(dset, (0,) + data_sel).squeeze()
+        return h5_to_xr(dset, (0, *data_sel)).squeeze()
 
-    def __nc_data_as_xds(self, name: str, data_sel: tuple[slice | int]) -> xr.DataArray:
+    def __nc_data_as_xds(
+        self: LV2io, name: str, data_sel: tuple[slice | int]
+    ) -> xr.DataArray:
         """Read dataset from group PRODUCT using netCDF4.
 
         Input: science product
@@ -515,7 +527,7 @@ class LV2io:
         )
 
     def get_data_as_xds(
-        self, name: str, data_sel: tuple[slice | int] | None = None
+        self: LV2io, name: str, data_sel: tuple[slice | int] | None = None
     ) -> xr.DataArray:
         """Read dataset from group PRODUCT/target_product group.
 

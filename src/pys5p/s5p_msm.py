@@ -90,11 +90,11 @@ class S5Pmsm:
     """
 
     def __init__(
-        self,
+        self: S5Pmsm,
         dset: Dataset | np.ndarray,
         data_sel: tuple[slice | int] | None = None,
         datapoint: bool = False,
-    ):
+    ) -> None:
         """Read measurement data from a Tropomi OCAL, ICM, of L1B product."""
         # initialize object
         self.name = "value"
@@ -111,7 +111,7 @@ class S5Pmsm:
         else:
             self.__from_ndarray(dset, data_sel)
 
-    def __repr__(self) -> str:
+    def __repr__(self: S5Pmsm) -> str:
         """Display info on the S5Pmsm object."""
         res = []
         for key, value in self.__dict__.items():
@@ -124,17 +124,20 @@ class S5Pmsm:
 
         return "\n".join(res)
 
-    def coord_name(self, axis: int):
+    def coord_name(self: S5Pmsm, axis: int) -> str:
         """Return name of coordinate."""
         return self.coords._fields[axis]
 
-    def coord_replace(self, key: str, dims: np.ndarray):
+    def coord_replace(self: S5Pmsm, key: str, dims: np.ndarray) -> namedtuple:
         """Change values of a coordinate."""
         return self.coords._replace(**{key: dims})
 
     def __from_h5_dset(
-        self, h5_dset: Dataset, data_sel: tuple[slice | int] | None, datapoint: bool
-    ):
+        self: S5Pmsm,
+        h5_dset: Dataset,
+        data_sel: tuple[slice | int] | None,
+        datapoint: bool,
+    ) -> None:
         """Initialize S5Pmsm object from h5py dataset."""
         self.name = PurePath(h5_dset.name).name
 
@@ -256,7 +259,9 @@ class S5Pmsm:
             else:
                 self.long_name = h5_dset.attrs["long_name"]
 
-    def __from_ndarray(self, data: np.ndarray, data_sel: tuple[slice | int] | None):
+    def __from_ndarray(
+        self: S5Pmsm, data: np.ndarray, data_sel: tuple[slice | int] | None
+    ) -> None:
         """Initialize S5Pmsm object from a ndarray."""
         # copy dataset values (and error) to object
         if data_sel is None:
@@ -271,13 +276,15 @@ class S5Pmsm:
         except Exception as exc:
             raise RuntimeError("failed to set the coordinates") from exc
 
-    def copy(self):
+    def copy(self: S5Pmsm) -> S5Pmsm:
         """Return a deep copy of the current object."""
         return deepcopy(self)
 
     def set_coords(
-        self, coords_data: list[np.ndarray], coords_name: list[str] | None = None
-    ):
+        self: S5Pmsm,
+        coords_data: list[np.ndarray],
+        coords_name: list[str] | None = None,
+    ) -> None:
         """Set coordinates of data.
 
         Parameters
@@ -304,7 +311,9 @@ class S5Pmsm:
         coords_namedtuple = namedtuple("Coords", keys)
         self.coords = coords_namedtuple._make(coords_data)
 
-    def set_coverage(self, coverage: tuple[str, str], force: bool = False):
+    def set_coverage(
+        self: S5Pmsm, coverage: tuple[str, str], force: bool = False
+    ) -> None:
         """Set the coverage attribute, as (coverageStart, coverageEnd).
 
         Parameters
@@ -322,26 +331,24 @@ class S5Pmsm:
         if self.coverage is None or force:
             self.coverage = coverage
 
-    def set_units(self, units: str | None, force: bool = False):
+    def set_units(self: S5Pmsm, units: str | None, force: bool = False) -> None:
         """Set the units attribute, overwrite when force is true."""
         if self.units is None or force:
             self.units = units
 
-    def set_fillvalue(self):
+    def set_fillvalue(self: S5Pmsm) -> None:
         """Set fillvalue to KNMI undefined."""
         if (
-            np.issubdtype(self.value.dtype, np.floating)
-            and self.fillvalue is None
-            or self.fillvalue == 0.0
-        ):
+            np.issubdtype(self.value.dtype, np.floating) and self.fillvalue is None
+        ) or self.fillvalue == 0.0:
             self.fillvalue = float.fromhex("0x1.ep+122")
 
-    def set_long_name(self, name: str, force: bool = False):
+    def set_long_name(self: S5Pmsm, name: str, force: bool = False) -> None:
         """Set the long_name attribute, overwrite when force is true."""
         if force or not self.long_name:
             self.long_name = name
 
-    def fill_as_nan(self):
+    def fill_as_nan(self: S5Pmsm) -> None:
         """Replace fillvalues in data with NaN's.
 
         Works only on datasets with HDF5 datatype 'float' or 'datapoints'
@@ -351,7 +358,7 @@ class S5Pmsm:
             if self.error is not None:
                 self.error[(self.error == self.fillvalue)] = np.nan
 
-    def sort(self, axis: int = 0):
+    def sort(self: S5Pmsm, axis: int = 0) -> None:
         """Sort data and its coordinate along a given axis.
 
         Parameters
@@ -392,7 +399,7 @@ class S5Pmsm:
         else:
             raise ValueError("S5Pmsm: implemented for ndim <= 3")
 
-    def concatenate(self, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
+    def concatenate(self: S5Pmsm, msm: S5Pmsm, axis: int = 0) -> S5Pmsm:
         """Concatenate two measurement datasets, the current with another.
 
         Parameters
@@ -471,7 +478,7 @@ class S5Pmsm:
         return self
 
     def nanpercentile(
-        self,
+        self: S5Pmsm,
         vperc: int | list[float],
         data_sel: tuple[slice | int] | None = None,
         axis: int = 0,
@@ -561,7 +568,7 @@ class S5Pmsm:
         return self
 
     def biweight(
-        self,
+        self: S5Pmsm,
         data_sel: tuple[slice | int] | None = None,
         axis: int = 0,
         keepdims: bool = False,
@@ -627,7 +634,7 @@ class S5Pmsm:
         return self
 
     def nanmedian(
-        self,
+        self: S5Pmsm,
         data_sel: tuple[slice | int] | None = None,
         axis: int = 0,
         keepdims: bool = False,
@@ -693,7 +700,7 @@ class S5Pmsm:
         return self
 
     def nanmean(
-        self,
+        self: S5Pmsm,
         data_sel: tuple[slice | int] | None = None,
         axis: int = 0,
         keepdims: bool = False,
@@ -756,7 +763,7 @@ class S5Pmsm:
 
         return self
 
-    def transpose(self) -> S5Pmsm:
+    def transpose(self: S5Pmsm) -> S5Pmsm:
         """Transpose data and coordinates of an S5Pmsm object."""
         if self.value.ndim <= 1:
             return self

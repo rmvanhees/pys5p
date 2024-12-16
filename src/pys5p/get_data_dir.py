@@ -15,7 +15,7 @@ from os import environ
 from pathlib import Path
 
 
-def get_data_dir():
+def get_data_dir() -> str:
     """Obtain directory with test datasets.
 
     Limited to UNIX/Linux/macOS operating systems

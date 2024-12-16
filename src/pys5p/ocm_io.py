@@ -26,7 +26,7 @@ from moniplot.biweight import Biweight
 
 # - local functions --------------------------------
 def band2channel(
-    dict_a: dict, dict_b: dict, mode: bool = None
+    dict_a: dict, dict_b: dict, mode: bool | None = None
 ) -> np.ndarray | tuple[Any, Any]:
     """Store data from a dictionary as returned by get_msm_data to a ndarray.
 
@@ -111,7 +111,7 @@ class OCMio:
 
     """
 
-    def __init__(self, ocm_product: Path):
+    def __init__(self: OCMio, ocm_product: Path) -> None:
         """Initialize access to an OCAL Lx product."""
         if not ocm_product.is_file():
             raise FileNotFoundError(f"{ocm_product.name} does not exist")
@@ -124,7 +124,7 @@ class OCMio:
         # open OCM product as HDF5 file
         self.fid = h5py.File(ocm_product, "r")
 
-    def __iter__(self):
+    def __iter__(self: OCMio) -> None:
         """Allow iteration."""
         for attr in sorted(self.__dict__):
             if not attr.startswith("__"):
@@ -136,16 +136,16 @@ class OCMio:
     #    """
     #    self.close()
 
-    def __enter__(self):
+    def __enter__(self: OCMio) -> OCMio:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self: OCMio, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self: OCMio) -> None:
         """Close resources."""
         self.band = None
         if self.fid is not None:
@@ -154,7 +154,7 @@ class OCMio:
 
     # ---------- RETURN VERSION of the S/W ----------
     # ---------- Functions that work before MSM selection ----------
-    def get_processor_version(self) -> str:
+    def get_processor_version(self: OCMio) -> str:
         """Return version of the L01b processor."""
         res = self.fid.attrs["processor_version"]
         if isinstance(res, bytes):
@@ -162,7 +162,7 @@ class OCMio:
             res = res.decode("ascii")
         return res
 
-    def get_coverage_time(self) -> tuple[str, str]:
+    def get_coverage_time(self: OCMio) -> tuple[str, str]:
         """Return start and end of the measurement coverage time."""
         t_bgn = self.fid.attrs["time_coverage_start"]
         if isinstance(t_bgn, bytes):
@@ -175,7 +175,7 @@ class OCMio:
             t_end = t_end.decode("ascii")
         return t_bgn, t_end
 
-    def get_attr(self, attr_name) -> np.ndarray | None:
+    def get_attr(self: OCMio, attr_name: str) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -190,7 +190,7 @@ class OCMio:
         return None
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time(self) -> np.ndarray | None:
+    def get_ref_time(self: OCMio) -> np.ndarray | None:
         """Return reference start time of measurements."""
         if not self.__msm_path:
             return {}
@@ -204,7 +204,7 @@ class OCMio:
 
         return res
 
-    def get_delta_time(self) -> np.ndarray | None:
+    def get_delta_time(self: OCMio) -> np.ndarray | None:
         """Return offset from the reference start time of measurement."""
         if not self.__msm_path:
             return {}
@@ -217,7 +217,7 @@ class OCMio:
 
         return res
 
-    def get_instrument_settings(self) -> np.ndarray | None:
+    def get_instrument_settings(self: OCMio) -> np.ndarray | None:
         """Return instrument settings of measurement."""
         if not self.__msm_path:
             return {}
@@ -230,7 +230,7 @@ class OCMio:
 
         return res
 
-    def get_gse_stimuli(self) -> np.ndarray | None:
+    def get_gse_stimuli(self: OCMio) -> np.ndarray | None:
         """Return GSE stimuli parameters."""
         if not self.__msm_path:
             return {}
@@ -243,7 +243,7 @@ class OCMio:
 
         return res
 
-    def get_exposure_time(self) -> np.ndarray | None:
+    def get_exposure_time(self: OCMio) -> np.ndarray | None:
         """Return the exact pixel exposure time of the measurements."""
         if not self.__msm_path:
             return None
@@ -258,7 +258,7 @@ class OCMio:
 
         return instr["exposure_time"]
 
-    def get_housekeeping_data(self) -> np.ndarray | None:
+    def get_housekeeping_data(self: OCMio) -> np.ndarray | None:
         """Return housekeeping data of measurements."""
         if not self.__msm_path:
             return {}
@@ -272,7 +272,9 @@ class OCMio:
         return res
 
     # -------------------------
-    def select(self, ic_id: int = None, *, msm_grp: str | None = None) -> int:
+    def select(
+        self: OCMio, ic_id: int | None = None, *, msm_grp: str | None = None
+    ) -> int:
         """Select a measurement as BAND%/ICID_<ic_id>_GROUP_%.
 
         Parameters
@@ -318,7 +320,7 @@ class OCMio:
         return len(self.__msm_path)
 
     # -------------------------
-    def get_msm_attr(self, msm_dset: str, attr_name: str) -> str | None:
+    def get_msm_attr(self: OCMio, msm_dset: str, attr_name: str) -> str | None:
         """Return attribute of measurement dataset "msm_dset".
 
         Parameters
@@ -352,7 +354,7 @@ class OCMio:
 
     # -------------------------
     def get_msm_data(
-        self,
+        self: OCMio,
         msm_dset: str,
         fill_as_nan: bool = True,
         frames: list[int, int] | None = None,
@@ -440,7 +442,7 @@ class OCMio:
 
     # -------------------------
     def read_direct_msm(
-        self,
+        self: OCMio,
         msm_dset: str,
         dest_sel: tuple[slice | int] | None = None,
         dest_dtype: type[Any] | None = None,

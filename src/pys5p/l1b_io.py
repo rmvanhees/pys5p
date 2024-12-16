@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-__all__ = ["L1Bio", "L1BioIRR", "L1BioRAD", "L1BioENG"]
+__all__ = ["L1Bio", "L1BioENG", "L1BioIRR", "L1BioRAD"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -80,7 +80,10 @@ class L1Bio:
     msm_type = None
 
     def __init__(
-        self, l1b_product: Path | str, readwrite: bool = False, verbose: bool = False
+        self: L1Bio,
+        l1b_product: Path | str,
+        readwrite: bool = False,
+        verbose: bool = False,
     ) -> None:
         """Initialize access to a Tropomi offline L1b product."""
         # open L1b product as HDF5 file
@@ -101,22 +104,22 @@ class L1Bio:
         else:
             self.fid = h5py.File(l1b_product, "r")
 
-    def __iter__(self):
+    def __iter__(self: L1Bio) -> None:
         """Allow iteration."""
         for attr in sorted(self.__dict__):
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self):
+    def __enter__(self: L1Bio) -> L1Bio:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self: L1Bio, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self: L1Bio) -> None:
         """Close resources.
 
         Notes
@@ -160,7 +163,7 @@ class L1Bio:
         self.fid = None
 
     # ---------- PUBLIC FUNCTIONS ----------
-    def get_attr(self, attr_name: str) -> np.ndarray | None:
+    def get_attr(self: L1Bio, attr_name: str) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -178,7 +181,7 @@ class L1Bio:
 
         return attr
 
-    def get_orbit(self) -> int | None:
+    def get_orbit(self: L1Bio) -> int | None:
         """Return absolute orbit number."""
         res = self.get_attr("orbit")
         if res is None:
@@ -186,7 +189,7 @@ class L1Bio:
 
         return int(res)
 
-    def get_processor_version(self) -> str | None:
+    def get_processor_version(self: L1Bio) -> str | None:
         """Return version of the L01b processor."""
         attr = self.get_attr("processor_version")
         if attr is None:
@@ -195,7 +198,7 @@ class L1Bio:
         # pylint: disable=no-member
         return attr.decode("ascii")
 
-    def get_coverage_time(self) -> tuple[str, str] | None:
+    def get_coverage_time(self: L1Bio) -> tuple[str, str] | None:
         """Return start and end of the measurement coverage time."""
         attr_start = self.get_attr("time_coverage_start")
         if attr_start is None:
@@ -208,7 +211,7 @@ class L1Bio:
         # pylint: disable=no-member
         return (attr_start.decode("ascii"), attr_end.decode("ascii"))
 
-    def get_creation_time(self) -> str | None:
+    def get_creation_time(self: L1Bio) -> str | None:
         """Return datetime when the L1b product was created."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
@@ -221,7 +224,7 @@ class L1Bio:
 
         return None
 
-    def select(self, msm_type: str | None = None) -> str | None:
+    def select(self: L1Bio, msm_type: str | None = None) -> str | None:
         """Select a calibration measurement as <processing class>_<ic_id>.
 
         Parameters
@@ -258,7 +261,7 @@ class L1Bio:
 
         return self.bands
 
-    def sequence(self, band: str | None = None) -> np.ndarray | None:
+    def sequence(self: L1Bio, band: str | None = None) -> np.ndarray | None:
         """Return sequence number, ICID and delta_time for each measurement.
 
         Parameters
@@ -328,7 +331,7 @@ class L1Bio:
 
         return res
 
-    def get_ref_time(self, band: str | None = None) -> datetime | None:
+    def get_ref_time(self: L1Bio, band: str | None = None) -> datetime | None:
         """Return reference start time of measurements.
 
         Parameters
@@ -349,7 +352,7 @@ class L1Bio:
 
         return datetime(2010, 1, 1, 0, 0, 0) + timedelta(seconds=int(grp["time"][0]))
 
-    def get_delta_time(self, band: str | None = None) -> np.ndarray | None:
+    def get_delta_time(self: L1Bio, band: str | None = None) -> np.ndarray | None:
         """Return offset from the reference start time of measurement.
 
         Parameters
@@ -370,7 +373,9 @@ class L1Bio:
 
         return grp["delta_time"][0, :].astype(int)
 
-    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
+    def get_instrument_settings(
+        self: L1Bio, band: str | None = None
+    ) -> np.ndarray | None:
         """Return instrument settings of measurement.
 
         Parameters
@@ -403,7 +408,7 @@ class L1Bio:
 
         return instr
 
-    def get_exposure_time(self, band: str | None = None) -> np.ndarray | None:
+    def get_exposure_time(self: L1Bio, band: str | None = None) -> np.ndarray | None:
         """Return pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters `int_delay` and
@@ -429,7 +434,9 @@ class L1Bio:
             swir_exp_time(instr["int_delay"], instr["int_hold"]) for instr in instr_arr
         ]
 
-    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
+    def get_housekeeping_data(
+        self: L1Bio, band: str | None = None
+    ) -> np.ndarray | None:
         """Return housekeeping data of measurements.
 
         Parameters
@@ -451,7 +458,7 @@ class L1Bio:
         return np.squeeze(grp["housekeeping_data"])
 
     def get_geo_data(
-        self, band: str | None = None, geo_dset: str | None = None
+        self: L1Bio, band: str | None = None, geo_dset: str | None = None
     ) -> dict | None:
         """Return data of selected datasets from the GEODATA group.
 
@@ -489,7 +496,7 @@ class L1Bio:
         return res
 
     def get_msm_attr(
-        self, msm_dset: str, attr_name: str, band: str | None = None
+        self: L1Bio, msm_dset: str, attr_name: str, band: str | None = None
     ) -> np.ndarray | float | None:
         """Return value attribute of measurement dataset "msm_dset".
 
@@ -527,11 +534,11 @@ class L1Bio:
         return None
 
     def get_msm_data(
-        self,
+        self: L1Bio,
         msm_dset: str,
         band: str | None = None,
         fill_as_nan: bool = False,
-        msm_to_row: bool = None,
+        msm_to_row: bool | None = None,
     ) -> np.ndarray | None:
         """Read data from dataset "msm_dset".
 
@@ -596,7 +603,9 @@ class L1Bio:
 
         return np.concatenate(data, axis=data[0].ndim - 1)
 
-    def set_msm_data(self, msm_dset: str, new_data: np.ndarray | Iterable):
+    def set_msm_data(
+        self: L1Bio, msm_dset: str, new_data: np.ndarray | Iterable
+    ) -> None:
         """Replace data of dataset "msm_dset" with new_data.
 
         Parameters
@@ -663,7 +672,7 @@ class L1BioENG:
 
     """
 
-    def __init__(self, l1b_product: Path | str):
+    def __init__(self: L1BioENG, l1b_product: Path | str) -> None:
         """Initialize access to a Tropomi offline L1b product."""
         # open L1b product as HDF5 file
         l1b_product = Path(l1b_product)
@@ -674,22 +683,22 @@ class L1BioENG:
         self.filename = l1b_product
         self.fid = h5py.File(l1b_product, "r")
 
-    def __iter__(self):
+    def __iter__(self: L1BioENG) -> None:
         """Allow iteration."""
         for attr in sorted(self.__dict__):
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self):
+    def __enter__(self: L1BioENG) -> L1BioENG:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self: L1BioENG, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self: L1BioENG) -> None:
         """Close access to product."""
         if self.fid is None:
             return
@@ -698,7 +707,7 @@ class L1BioENG:
         self.fid = None
 
     # ---------- PUBLIC FUNCTIONS ----------
-    def get_attr(self, attr_name: str) -> np.ndarray | None:
+    def get_attr(self: L1BioENG, attr_name: str) -> np.ndarray | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -716,7 +725,7 @@ class L1BioENG:
 
         return attr
 
-    def get_orbit(self) -> int | None:
+    def get_orbit(self: L1BioENG) -> int | None:
         """Return absolute orbit number."""
         res = self.get_attr("orbit")
         if res is None:
@@ -724,7 +733,7 @@ class L1BioENG:
 
         return int(res)
 
-    def get_processor_version(self) -> str | None:
+    def get_processor_version(self: L1BioENG) -> str | None:
         """Return version of the L01b processor."""
         attr = self.get_attr("processor_version")
         if attr is None:
@@ -733,7 +742,7 @@ class L1BioENG:
         # pylint: disable=no-member
         return attr.decode("ascii")
 
-    def get_coverage_time(self) -> tuple[str, str] | None:
+    def get_coverage_time(self: L1BioENG) -> tuple[str, str] | None:
         """Return start and end of the measurement coverage time."""
         attr_start = self.get_attr("time_coverage_start")
         if attr_start is None:
@@ -746,7 +755,7 @@ class L1BioENG:
         # pylint: disable=no-member
         return (attr_start.decode("ascii"), attr_end.decode("ascii"))
 
-    def get_creation_time(self) -> str | None:
+    def get_creation_time(self: L1BioENG) -> str | None:
         """Return datetime when the L1b product was created."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
@@ -759,19 +768,19 @@ class L1BioENG:
 
         return None
 
-    def get_ref_time(self) -> int:
+    def get_ref_time(self: L1BioENG) -> int:
         """Return reference start time of measurements."""
         return int(self.fid["reference_time"][0])
 
-    def get_delta_time(self) -> np.ndarray:
+    def get_delta_time(self: L1BioENG) -> np.ndarray:
         """Return offset from the reference start time of measurement."""
         return self.fid["/MSMTSET/msmtset"]["delta_time"][:].astype(int)
 
-    def get_msmtset(self) -> np.ndarray:
+    def get_msmtset(self: L1BioENG) -> np.ndarray:
         """Return L1B_ENG_DB/SATELLITE_INFO/satellite_pos."""
         return self.fid["/SATELLITE_INFO/satellite_pos"][:]
 
-    def get_msmtset_db(self) -> np.ndarray:
+    def get_msmtset_db(self: L1BioENG) -> np.ndarray:
         """Return compressed msmtset from L1B_ENG_DB/MSMTSET/msmtset.
 
         Notes
@@ -828,7 +837,7 @@ class L1BioENG:
         return msmt
 
     def get_swir_hk_db(
-        self, stats: str | None = None, fill_as_nan: bool | None = False
+        self: L1BioENG, stats: str | None = None, fill_as_nan: bool | None = False
     ) -> np.ndarray | tuple[np.ndarray, np.ndarray] | None:
         """Return the most important SWIR housekeeping parameters.
 

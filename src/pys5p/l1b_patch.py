@@ -50,7 +50,10 @@ class L1Bpatch:
     """
 
     def __init__(
-        self, l1b_product: str, data_dir="/tmp", ckd_dir="/nfs/Tropomi/share/ckd"
+        self: L1Bpatch,
+        l1b_product: str,
+        data_dir: str = "/tmp",
+        ckd_dir: str = "/nfs/Tropomi/share/ckd",
     ) -> None:
         """Initialize access to a Tropomi offline L1b product."""
         prod_type = Path(l1b_product).name[0:15]
@@ -70,16 +73,16 @@ class L1Bpatch:
             self.l1b_patched.unlink()
         self.__patched_msm = []
 
-    def __enter__(self):
+    def __enter__(self: L1Bpatch) -> L1Bpatch:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+    def __exit__(self: L1Bpatch, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self) -> None:
+    def close(self: L1Bpatch) -> None:
         """Close L1B product.
 
         Before closing the product, we make sure that the output product
@@ -120,7 +123,7 @@ class L1Bpatch:
                 dset[dset.shape[0] - 1 :] = np.asarray(self.__patched_msm)
 
     # --------------------------------------------------
-    def pixel_quality(self, dpqm, threshold=0.8) -> None:
+    def pixel_quality(self: L1Bpatch, dpqm: np.ndarray, threshold: float = 0.8) -> None:
         """Patch SWIR pixel_quality.
 
         Patched dataset: 'quality_level' and 'spectral_channel_quality'
@@ -177,7 +180,7 @@ class L1Bpatch:
             l1b.set_msm_data("quality_level", quality_level)
             l1b.set_msm_data("spectral_channel_quality", chan_quality)
 
-    def offset(self) -> None:
+    def offset(self: L1Bpatch) -> None:
         """Patch SWIR offset correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
@@ -219,7 +222,7 @@ class L1Bpatch:
                 raise ValueError(_MSG_ERR_IO_BAND_)
             l1b.set_msm_data("radiance", data)
 
-    def darkflux(self) -> None:
+    def darkflux(self: L1Bpatch) -> None:
         """Patch SWIR dark-flux correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
@@ -259,7 +262,7 @@ class L1Bpatch:
                 raise ValueError(_MSG_ERR_IO_BAND_)
             l1b.set_msm_data("radiance", data)
 
-    def prnu(self) -> None:
+    def prnu(self: L1Bpatch) -> None:
         """Patch pixel response non-uniformity correction.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
@@ -305,7 +308,7 @@ class L1Bpatch:
                 raise ValueError(_MSG_ERR_IO_BAND_)
             l1b.set_msm_data("radiance", data)
 
-    def relrad(self) -> None:
+    def relrad(self: L1Bpatch) -> None:
         """Patch relative radiance calibration.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
@@ -339,7 +342,7 @@ class L1Bpatch:
                 raise ValueError(_MSG_ERR_IO_BAND_)
             l1b.set_msm_data("radiance", data)
 
-    def absrad(self) -> None:
+    def absrad(self: L1Bpatch) -> None:
         """Patch absolute radiance calibration.
 
         Patched dataset: 'radiance' ('radiance_error' and 'radiance_noise'?)
@@ -373,7 +376,7 @@ class L1Bpatch:
                 raise ValueError(_MSG_ERR_IO_BAND_)
             l1b.set_msm_data("radiance", data)
 
-    def check(self) -> None:
+    def check(self: L1Bpatch) -> None:
         """Check patched dataset in L1B product."""
         if not self.l1b_patched.is_file():
             raise ValueError("patched product not found")

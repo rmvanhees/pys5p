@@ -13,7 +13,7 @@ __all__ = ["pys5p_version"]
 from . import __version__
 
 
-def pys5p_version(full=False, githash=False) -> str:
+def pys5p_version(full: bool = False, githash: bool = False) -> str:
     """Return the software version as obtained from git.
 
     Examples

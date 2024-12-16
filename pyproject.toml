@@ -26,6 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 keywords = [
@@ -72,27 +73,31 @@ distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 # exclude = ["pilots"]
 
 [tool.ruff.lint]
 select = [
-  "F",   # pyflakes
-  "D",   # pydocstyle
-  "E",   # pycodestyle
-  "W",   # pycodestyle
-  "I",   # isort
-  "N",   # pep8-naming
-  "UP",  # pyupgrade
-  # "ANN", # flake8-annotations
-  "B",   # flake8-bugbear
-  "Q",   # flake8-quotes
-  "SIM", # flake8-simplify
-  "TID", # flake8-tidy-imports
-  "TCH", # flake8-type-checking
-  "NPY", # NumPy-specific rules
+  "D",    # pydocstyle
+  "E",    # pycodestyle
+  "F",    # pyflakes
+  "I",    # isort
+  "N",    # pep8-naming
+  "W",    # pycodestyle
+  "ANN",  # flake8-annotations
+  "B",    # flake8-bugbear
+  "ISC",  # flake8-implicit-str-concat
+  "PGH",  # flake8-pie
+  "Q",    # flake8-quotes
+  "SIM",  # flake8-simplify
+  "TID",  # flake8-tidy-imports
+  "TCH",  # flake8-type-checking
+  "NPY",  # NumPy-specific
+  "PERF", # Perflint
+  "RUF",  # Ruff Specific
+  "UP",   # pyupgrade
 ]
-ignore = ["D203", "D213"]
+ignore = ["D203", "D213", "ISC001"]
 
 [lint.pydocstyle]
 convention = "pep257"

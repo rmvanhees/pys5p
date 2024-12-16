@@ -42,7 +42,7 @@ class ICMio:
 
     """
 
-    def __init__(self, icm_product: Path | str, readwrite: bool = False):
+    def __init__(self: ICMio, icm_product: Path | str, readwrite: bool = False) -> None:
         """Initialize access to an ICM product."""
         icm_product = Path(icm_product)
         if not icm_product.is_file():
@@ -61,7 +61,7 @@ class ICMio:
         else:
             self.fid = h5py.File(icm_product, "r")
 
-    def __iter__(self):
+    def __iter__(self: ICMio) -> None:
         """Allow iteration."""
         for attr in sorted(self.__dict__):
             if not attr.startswith("__"):
@@ -73,16 +73,16 @@ class ICMio:
     #    """
     #    self.close()
 
-    def __enter__(self):
+    def __enter__(self: ICMio) -> ICMio:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self: ICMio, *args: str) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
 
-    def close(self):
+    def close(self: ICMio) -> None:
         """Close a ICM product.
 
         Before closing the product, we make sure that the output product
@@ -124,7 +124,7 @@ class ICMio:
         self.fid = None
 
     # ---------- RETURN VERSION of the S/W ----------
-    def find(self, msm_class: str) -> list[str]:
+    def find(self: ICMio, msm_class: str) -> list[str]:
         """Find a measurement as <processing-class name>.
 
         Parameters
@@ -151,7 +151,7 @@ class ICMio:
         return list(set(res))
 
     # -------------------------
-    def select(self, msm_type: str, msm_path: str = None) -> str:
+    def select(self: ICMio, msm_type: str, msm_path: str | None = None) -> str:
         """Select a measurement as <processing class>_<ic_id>.
 
         Parameters
@@ -198,7 +198,7 @@ class ICMio:
 
     # ---------- Functions that work before MSM selection ----------
     @property
-    def orbit(self) -> int | None:
+    def orbit(self: ICMio) -> int | None:
         """Return reference orbit number."""
         if "reference_orbit" in self.fid.attrs:
             return int(self.fid.attrs["reference_orbit"])
@@ -206,7 +206,7 @@ class ICMio:
         return None
 
     @property
-    def processor_version(self) -> str | None:
+    def processor_version(self: ICMio) -> str | None:
         """Return version of the L01b processor."""
         if "processor_version" not in self.fid.attrs:
             return None
@@ -219,7 +219,7 @@ class ICMio:
         return res
 
     @property
-    def coverage_time(self) -> tuple[str, str] | None:
+    def coverage_time(self: ICMio) -> tuple[str, str] | None:
         """Return start and end of the measurement coverage time."""
         if (
             "time_coverage_start" not in self.fid.attrs
@@ -240,13 +240,13 @@ class ICMio:
         return res1, res2
 
     @property
-    def creation_time(self) -> str:
+    def creation_time(self: ICMio) -> str:
         """Return version of the L01b processor."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
         return dset.attrs["Creation_Date"].split(b"=")[1].decode("ascii")
 
-    def get_attr(self, attr_name: str) -> str | None:
+    def get_attr(self: ICMio, attr_name: str) -> str | None:
         """Obtain value of an HDF5 file attribute.
 
         Parameters
@@ -265,7 +265,7 @@ class ICMio:
         return res
 
     # ---------- Functions that only work after MSM selection ----------
-    def get_ref_time(self, band: str | None = None) -> datetime:
+    def get_ref_time(self: ICMio, band: str | None = None) -> datetime:
         """Return reference start time of measurements.
 
         Parameters
@@ -315,7 +315,7 @@ class ICMio:
 
         return ref_time
 
-    def get_delta_time(self, band: str | None = None) -> np.ndarray | None:
+    def get_delta_time(self: ICMio, band: str | None = None) -> np.ndarray | None:
         """Return offset from the reference start time of measurement.
 
         Parameters
@@ -371,7 +371,9 @@ class ICMio:
 
         return res
 
-    def get_instrument_settings(self, band: str | None = None) -> np.ndarray | None:
+    def get_instrument_settings(
+        self: ICMio, band: str | None = None
+    ) -> np.ndarray | None:
         """Return instrument settings of measurement.
 
         Parameters
@@ -438,7 +440,7 @@ class ICMio:
 
         return res
 
-    def get_exposure_time(self, band: str | None = None) -> list | None:
+    def get_exposure_time(self: ICMio, band: str | None = None) -> list | None:
         """Return pixel exposure time of the measurements.
 
         The exposure time is calculated from the parameters 'int_delay' and
@@ -473,7 +475,9 @@ class ICMio:
 
         return res
 
-    def get_housekeeping_data(self, band: str | None = None) -> np.ndarray | None:
+    def get_housekeeping_data(
+        self: ICMio, band: str | None = None
+    ) -> np.ndarray | None:
         """Return housekeeping data of measurements.
 
         Parameters
@@ -530,7 +534,7 @@ class ICMio:
         return res
 
     # -------------------------
-    def get_msmt_keys(self, band: str | None = None) -> np.ndarray | None:
+    def get_msmt_keys(self: ICMio, band: str | None = None) -> np.ndarray | None:
         """Read msmt_keys from an analysis groups.
 
         The msmt_keys are available for the following `analysis`:
@@ -574,7 +578,7 @@ class ICMio:
 
     # -------------------------
     def get_msm_attr(
-        self, msm_dset: str, attr_name: str, band: str | None = None
+        self: ICMio, msm_dset: str, attr_name: str, band: str | None = None
     ) -> np.ndarray | None:
         """Return attribute of measurement dataset "msm_dset".
 
@@ -619,7 +623,7 @@ class ICMio:
         return None
 
     def get_geo_data(
-        self, band: str | None = None, geo_dset: str | None = None
+        self: ICMio, band: str | None = None, geo_dset: str | None = None
     ) -> np.ndarray | None:
         """Return data of selected datasets from the GEODATA group.
 
@@ -686,7 +690,7 @@ class ICMio:
         return res
 
     def get_msm_data(
-        self,
+        self: ICMio,
         msm_dset: str,
         band: str = "78",
         *,
@@ -823,7 +827,7 @@ class ICMio:
         return np.concatenate(data, axis=column_dim)
 
     def read_direct_msm(
-        self,
+        self: ICMio,
         msm_dset: str,
         dest_sel: tuple[slice | int] | None = None,
         dest_dtype: type[Any] | None = None,
@@ -902,7 +906,9 @@ class ICMio:
         return data
 
     # -------------------------
-    def set_housekeeping_data(self, data: np.ndarray, band: str | None = None) -> None:
+    def set_housekeeping_data(
+        self: ICMio, data: np.ndarray, band: str | None = None
+    ) -> None:
         """Return housekeeping data of measurements.
 
         Parameters
@@ -936,7 +942,7 @@ class ICMio:
         self.__patched_msm.append(str(ds_path))
 
     def set_msm_data(
-        self, msm_dset: str, data: np.ndarray | Iterable, band: str = "78"
+        self: ICMio, msm_dset: str, data: np.ndarray | Iterable, band: str = "78"
     ) -> None:
         """Alter dataset from a measurement selected using function "select".
 
