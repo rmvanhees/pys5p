@@ -88,6 +88,7 @@ select = [
   "B",    # flake8-bugbear
   "ISC",  # flake8-implicit-str-concat
   "PGH",  # flake8-pie
+  "PYI",  # flake8-pyi
   "Q",    # flake8-quotes
   "SIM",  # flake8-simplify
   "TID",  # flake8-tidy-imports

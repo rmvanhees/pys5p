@@ -16,9 +16,9 @@ from __future__ import annotations
 
 __all__ = ["S5Pmsm"]
 
-from collections import namedtuple
 from copy import deepcopy
 from pathlib import PurePath
+from typing import NamedTuple
 
 import numpy as np
 from h5py import Dataset
@@ -128,7 +128,7 @@ class S5Pmsm:
         """Return name of coordinate."""
         return self.coords._fields[axis]
 
-    def coord_replace(self: S5Pmsm, key: str, dims: np.ndarray) -> namedtuple:
+    def coord_replace(self: S5Pmsm, key: str, dims: np.ndarray) -> NamedTuple:
         """Change values of a coordinate."""
         return self.coords._replace(**{key: dims})
 
@@ -222,7 +222,7 @@ class S5Pmsm:
                     dims.append(buff[data_sel[ii]])
 
         # add dimensions as a namedtuple
-        coords_namedtuple = namedtuple("Coords", keys)
+        coords_namedtuple = NamedTuple("Coords", keys)
         self.coords = coords_namedtuple._make(dims)
 
         # remove all dimensions with size equal 1 from value (and error)
@@ -308,7 +308,7 @@ class S5Pmsm:
             keys = [coords_name] if isinstance(coords_name, str) else coords_name
 
         # add dimensions as a namedtuple
-        coords_namedtuple = namedtuple("Coords", keys)
+        coords_namedtuple = NamedTuple("Coords", keys)
         self.coords = coords_namedtuple._make(coords_data)
 
     def set_coverage(
@@ -562,7 +562,7 @@ class S5Pmsm:
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple("Coords", keys)
+            coords_namedtuple = NamedTuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
@@ -628,7 +628,7 @@ class S5Pmsm:
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple("Coords", keys)
+            coords_namedtuple = NamedTuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
@@ -694,7 +694,7 @@ class S5Pmsm:
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple("Coords", keys)
+            coords_namedtuple = NamedTuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
@@ -758,7 +758,7 @@ class S5Pmsm:
                 if ii != axis:
                     keys.append(self.coord_name(ii))
                     dims.append(self.coords[ii][:])
-            coords_namedtuple = namedtuple("Coords", keys)
+            coords_namedtuple = NamedTuple("Coords", keys)
             self.coords = coords_namedtuple._make(dims)
 
         return self
@@ -783,7 +783,7 @@ class S5Pmsm:
         tmp = dims[1]
         dims[1] = dims[0]
         dims[0] = tmp
-        coords_namedtuple = namedtuple("Coords", keys)
+        coords_namedtuple = NamedTuple("Coords", keys)
         self.coords = coords_namedtuple._make(dims)
 
         return self

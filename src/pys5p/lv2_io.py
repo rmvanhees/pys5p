@@ -14,7 +14,7 @@ from __future__ import annotations
 __all__ = ["LV2io"]
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import h5py
 import numpy as np
@@ -80,11 +80,11 @@ class LV2io:
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self: LV2io) -> LV2io:
+    def __enter__(self: LV2io) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: LV2io, *args: str) -> bool:
+    def __exit__(self: LV2io, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.

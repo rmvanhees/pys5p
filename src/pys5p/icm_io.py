@@ -15,7 +15,7 @@ __all__ = ["ICMio"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 import h5py
 import numpy as np
@@ -73,11 +73,11 @@ class ICMio:
     #    """
     #    self.close()
 
-    def __enter__(self: ICMio) -> ICMio:
+    def __enter__(self: ICMio) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: ICMio, *args: str) -> bool:
+    def __exit__(self: ICMio, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.

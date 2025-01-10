@@ -15,7 +15,7 @@ __all__ = ["L1Bio", "L1BioENG", "L1BioIRR", "L1BioRAD"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import h5py
 import numpy as np
@@ -110,11 +110,11 @@ class L1Bio:
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self: L1Bio) -> L1Bio:
+    def __enter__(self: L1Bio) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: L1Bio, *args: str) -> bool:
+    def __exit__(self: L1Bio, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
@@ -689,11 +689,11 @@ class L1BioENG:
             if not attr.startswith("__"):
                 yield attr
 
-    def __enter__(self: L1BioENG) -> L1BioENG:
+    def __enter__(self: L1BioENG) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: L1BioENG, *args: str) -> bool:
+    def __exit__(self: L1BioENG, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.

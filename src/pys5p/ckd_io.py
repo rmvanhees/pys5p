@@ -14,6 +14,7 @@ from __future__ import annotations
 __all__ = ["CKDio"]
 
 from pathlib import Path, PosixPath
+from typing import Self
 
 import h5py
 import numpy as np
@@ -119,11 +120,11 @@ class CKDio:
         # open access to CKD product
         self.fid = h5py.File(self.ckd_file, "r")
 
-    def __enter__(self: CKDio) -> CKDio:
+    def __enter__(self: CKDio) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: CKDio, *args: str) -> bool:
+    def __exit__(self: CKDio, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.

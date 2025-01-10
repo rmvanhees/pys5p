@@ -15,7 +15,7 @@ __all__ = ["OCMio"]
 
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Self
 
 import h5py
 import numpy as np
@@ -136,11 +136,11 @@ class OCMio:
     #    """
     #    self.close()
 
-    def __enter__(self: OCMio) -> OCMio:
+    def __enter__(self: OCMio) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: OCMio, *args: str) -> bool:
+    def __exit__(self: OCMio, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.

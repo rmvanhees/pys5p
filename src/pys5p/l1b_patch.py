@@ -19,6 +19,7 @@ __all__ = ["L1Bpatch"]
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Self
 
 import h5py
 import numpy as np
@@ -73,11 +74,11 @@ class L1Bpatch:
             self.l1b_patched.unlink()
         self.__patched_msm = []
 
-    def __enter__(self: L1Bpatch) -> L1Bpatch:
+    def __enter__(self: L1Bpatch) -> Self:
         """Initiate the context manager."""
         return self
 
-    def __exit__(self: L1Bpatch, *args: str) -> bool:
+    def __exit__(self: L1Bpatch, *args: object) -> bool:
         """Exit the context manager."""
         self.close()
         return False  # any exception is raised by the with statement.
@@ -403,9 +404,9 @@ class L1Bpatch:
                     print(ds_name.split("/")[-1], " equal True")
                 else:
                     print(
-                        f'{ds_name.split("/")[-1]}'
-                        f' equal {np.sum(orig == patch)}'
-                        f' differ {np.sum(orig != patch)}'
+                        f"{ds_name.split('/')[-1]}"
+                        f" equal {np.sum(orig == patch)}"
+                        f" differ {np.sum(orig != patch)}"
                     )
             else:
                 print("test not yet defined")
