@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2025 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -98,7 +98,7 @@ class LV2io:
     @property
     def science_product(self: LV2io) -> bool:
         """Check if product is a science product."""
-        science_inst = b"SRON Netherlands Institute for Space Research"
+        science_inst = b"Space Research Organisation Netherlands"
 
         res = False
         with h5py.File(self.filename) as fid:

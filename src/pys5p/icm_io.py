@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2024 SRON - Netherlands Institute for Space Research
+# Copyright (c) 2017-2025 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
