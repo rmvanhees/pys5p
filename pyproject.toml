@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "pys5p"
 description = "Software package to access Sentinel-5p Tropomi data products"
 readme = "README.md"
-license.file = "LICENSE"
+license = "BSD-3-Clause"
 authors = [
   {name = "Richard van Hees", email = "r.m.van.hees@sron.nl"},
   {name = "Paul Tol", email = "P.J.J.Tol@sron.nl"}
