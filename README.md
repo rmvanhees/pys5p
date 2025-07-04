@@ -1,7 +1,8 @@
 # pyS5p
-[![Package Release](https://img.shields.io/pypi/v/pys5p.svg?label=version)](https://pypi.org/project/pys5p/)
-[![Package Status](https://img.shields.io/pypi/status/pys5p.svg?label=status)](https://pypi.org/project/pys5p/)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/pys5p.svg?label=PyPI%20downloads)](https://github.com/rmvanhees/pys5p/)
+[![image](https://img.shields.io/pypi/v/pys5p.svg?label=release)](https://github.com/rmvanhees/pys5p/)
+[![image](https://img.shields.io/pypi/l/pys5p.svg)](https://github.com/rmvanhees/pys5p/LICENSE)
+[![image](https://img.shields.io/pypi/dm/pys5p.svg)](https://pypi.org/project/pys5p/)
+[![image](https://img.shields.io/pypi/status/pys5p.svg?label=status)](https://pypi.org/project/pys5p/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5665827.svg)](https://doi.org/10.5281/zenodo.5665827)
 
 pyS5p provides a Python interface to S5p Tropomi Level-1B (and 2) products.
