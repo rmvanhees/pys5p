@@ -14,7 +14,7 @@ from pathlib import Path
 from pys5p.ckd_io import CKDio
 
 
-def main():
+def main() -> None:
     """Perform unit-tests on class CKDio (xarray version)."""
     parser = argparse.ArgumentParser(
         description=f"{Path(__file__).name}: run units-test on class CKDio"
@@ -24,7 +24,7 @@ def main():
         nargs=1,
         type=str,
         default=None,
-        help=("directory with CKD data with" " static CKD in a subdirectory static"),
+        help=("directory with CKD data with static CKD in a subdirectory static"),
     )
     args = parser.parse_args()
 

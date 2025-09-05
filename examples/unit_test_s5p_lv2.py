@@ -12,10 +12,11 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+
 from pys5p.lv2_io import LV2io
 
 
-def read_lv2(l2_product):
+def read_lv2(l2_product: str | Path) -> None:
     """Read Tropomi level 2 product."""
     with LV2io(l2_product) as lv2:
         # Class properties
@@ -57,7 +58,7 @@ def read_lv2(l2_product):
         print("get_data_as_xds: ", lv2.get_data_as_xds(ds_name))
 
 
-def main():
+def main() -> None:
     """Perform unit testing on SWIR Level-2 products."""
     # parse command-line parameters
     parser = argparse.ArgumentParser(
