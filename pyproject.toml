@@ -26,6 +26,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 keywords = [
@@ -38,7 +39,7 @@ dynamic = [
 dependencies = [
   "h5py>=3.11",
   "moniplot>=1.0",
-  "numpy>=1.26",
+  "numpy>=1.26.4",
   "netCDF4>=1.7",
   "xarray>=2023.2",
 ]
@@ -97,7 +98,6 @@ select = [
   "RUF",  # Ruff Specific
   "UP",   # pyupgrade
 ]
-ignore = ["D203", "D213", "ISC001"]
 
-[lint.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "pep257"
