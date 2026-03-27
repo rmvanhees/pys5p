@@ -53,7 +53,7 @@ class L1Bpatch:
     def __init__(
         self: L1Bpatch,
         l1b_product: str,
-        data_dir: str = "/tmp",
+        data_dir: str = "/tmp",  # noqa: S108
         ckd_dir: str = "/nfs/Tropomi/share/ckd",
     ) -> None:
         """Initialize access to a Tropomi offline L1b product."""
