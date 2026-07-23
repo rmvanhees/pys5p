@@ -731,7 +731,7 @@ class L1BioENG:
         if res is None:
             return None
 
-        return int(res)
+        return int(res[0] if res.shape else res)
 
     def get_processor_version(self: L1BioENG) -> str | None:
         """Return version of the L01b processor."""
