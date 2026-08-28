@@ -31,11 +31,7 @@ def main() -> None:
     with CKDio(args.ckd_dir[0], ckd_version=1) as ckd:
         print(ckd.ckd_file)
         for meth in dir(ckd):
-            if (
-                meth.startswith("_")
-                or meth.startswith("ckd")
-                or meth in ("close", "fid", "get_param")
-            ):
+            if meth.startswith(("_", "ckd")) or meth in ("close", "fid", "get_param"):
                 continue
             print(
                 "-------------------------", meth, "[v1]", "-------------------------"
@@ -45,11 +41,7 @@ def main() -> None:
     with CKDio(args.ckd_dir[0], ckd_version=2) as ckd:
         print(ckd.ckd_file)
         for meth in dir(ckd):
-            if (
-                meth.startswith("_")
-                or meth.startswith("ckd")
-                or meth in ("close", "fid", "get_param")
-            ):
+            if meth.startswith(("_", "ckd")) or meth in ("close", "fid", "get_param"):
                 continue
             print(
                 "-------------------------", meth, "[v2]", "-------------------------"

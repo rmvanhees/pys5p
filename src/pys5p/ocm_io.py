@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2025 SRON
+# Copyright (c) 2017-2026 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 __all__ = ["OCMio"]
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import Any, Self
 
@@ -199,7 +199,7 @@ class OCMio:
         res = {}
         for msm in sorted(self.__msm_path):
             sgrp = grp[str(PurePosixPath(msm, "GEODATA"))]
-            res[msm] = datetime(2010, 1, 1, 0, 0, 0)
+            res[msm] = datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC)
             res[msm] += timedelta(seconds=int(sgrp["time"][0]))
 
         return res

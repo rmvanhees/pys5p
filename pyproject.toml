@@ -78,29 +78,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 preview = false
-select = [
-  "D",    # pydocstyle
-  "E",    # pycodestyle
-  "F",    # pyflakes
-  "I",    # isort
-  "N",    # pep8-naming
-  "W",    # pycodestyle
+extend-select = [
   "A",    # flake8-builtins
   "ANN",  # flake8-annotations
-  "B",    # flake8-bugbear
-  "C4",   # flake8-comprehensions
-  "ISC",  # flake8-implicit-str-concat
-  "PGH",  # flake8-pie
-  "PYI",  # flake8-pyi
   "Q",    # flake8-quotes
-  "S",    # flake8-bandit
-  "SIM",  # flake8-simplify
   "TID",  # flake8-tidy-imports
-  "TCH",  # flake8-type-checking
   "NPY",  # NumPy-specific
-  "PERF", # Perflint
-  "RUF",  # Ruff Specific
-  "UP",   # pyupgrade
 ]
 
 [tool.ruff.lint.pydocstyle]

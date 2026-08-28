@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2025 SRON
+# Copyright (c) 2017-2026 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -17,7 +17,7 @@ from __future__ import annotations
 __all__ = ["L1Bpatch"]
 
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
@@ -53,7 +53,7 @@ class L1Bpatch:
     def __init__(
         self: L1Bpatch,
         l1b_product: str,
-        data_dir: str = "/tmp",  # noqa: S108
+        data_dir: str = "/tmp",
         ckd_dir: str = "/nfs/Tropomi/share/ckd",
     ) -> None:
         """Initialize access to a Tropomi offline L1b product."""
@@ -107,7 +107,7 @@ class L1Bpatch:
 
         with h5py.File(self.l1b_patched, "r+") as fid:
             sgrp = fid.require_group("/METADATA/SRON_METADATA")
-            sgrp.attrs["dateStamp"] = datetime.utcnow().isoformat()
+            sgrp.attrs["dateStamp"] = datetime.now(tz=UTC).isoformat()
             sgrp.attrs["git_tag"] = get_version(root="..", relative_to=__file__)
             if "patched_datasets" not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)

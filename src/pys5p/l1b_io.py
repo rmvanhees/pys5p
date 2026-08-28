@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2025 SRON
+# Copyright (c) 2017-2026 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 __all__ = ["L1Bio", "L1BioENG", "L1BioIRR", "L1BioRAD"]
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Self
 
@@ -143,7 +143,7 @@ class L1Bio:
         if self.__patched_msm:
             # pylint: disable=no-member
             sgrp = self.fid.require_group("/METADATA/SRON_METADATA")
-            sgrp.attrs["dateStamp"] = datetime.utcnow().isoformat()
+            sgrp.attrs["dateStamp"] = datetime.now(tz=UTC).isoformat()
             sgrp.attrs["git_tag"] = get_version(root="..", relative_to=__file__)
             if "patched_datasets" not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
@@ -350,7 +350,9 @@ class L1Bio:
         msm_path = self.__msm_path.replace("%", band)
         grp = self.fid[str(PurePosixPath(msm_path, "OBSERVATIONS"))]
 
-        return datetime(2010, 1, 1, 0, 0, 0) + timedelta(seconds=int(grp["time"][0]))
+        return datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC) + timedelta(
+            seconds=int(grp["time"][0])
+        )
 
     def get_delta_time(self: L1Bio, band: str | None = None) -> np.ndarray | None:
         """Return offset from the reference start time of measurement.

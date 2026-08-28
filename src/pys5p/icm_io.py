@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2025 SRON
+# Copyright (c) 2017-2026 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 __all__ = ["ICMio"]
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, Self
 
@@ -104,7 +104,7 @@ class ICMio:
         if self.__patched_msm:
             # pylint: disable=no-member
             sgrp = self.fid.require_group("METADATA/SRON_METADATA")
-            sgrp.attrs["dateStamp"] = datetime.utcnow().isoformat()
+            sgrp.attrs["dateStamp"] = datetime.now(tz=UTC).isoformat()
             sgrp.attrs["git_tag"] = get_version(root="..", relative_to=__file__)
             if "patched_datasets" not in sgrp:
                 dtype = h5py.special_dtype(vlen=str)
@@ -275,7 +275,7 @@ class ICMio:
             Default is 'None' which returns the first available band
 
         """
-        ref_time = datetime(2010, 1, 1, 0, 0, 0)
+        ref_time = datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC)
         if not self.__msm_path:
             return ref_time
 

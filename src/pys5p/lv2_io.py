@@ -3,7 +3,7 @@
 #
 # https://github.com/rmvanhees/pys5p.git
 #
-# Copyright (c) 2017-2025 SRON
+# Copyright (c) 2017-2026 SRON
 #   All Rights Reserved
 #
 # License:  BSD-3-Clause
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 __all__ = ["LV2io"]
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Self
 
 import h5py
@@ -217,7 +217,7 @@ class LV2io:
         if self.science_product:
             return None
 
-        return datetime(2010, 1, 1, 0, 0, 0) + timedelta(
+        return datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC) + timedelta(
             seconds=int(self.fid["/PRODUCT/time"][0])
         )
 
@@ -225,7 +225,7 @@ class LV2io:
         """Return start time of measurement per scan-line."""
         if self.science_product:
             buff = self.get_dataset("time")[:: self.ground_pixel, :]
-            return np.array([datetime(*x) for x in buff])
+            return np.array([datetime(*x, tzinfo=UTC) for x in buff])
 
         buff = self.fid["/PRODUCT/delta_time"][0, :]
         return np.array([self.ref_time + timedelta(seconds=x / 1e3) for x in buff])
