@@ -211,15 +211,11 @@ class ICMio:
         if "processor_version" not in self.fid.attrs:
             return None
 
-        res = self.fid.attrs["processor_version"]
-        if isinstance(res, bytes):
-            # pylint: disable=no-member
-            return res.decode("ascii")
-
-        return res
+        # pylint: disable=no-member
+        return self.fid.attrs["processor_version"].decode()
 
     @property
-    def coverage_time(self: ICMio) -> tuple[str, str] | None:
+    def coverage_time(self: ICMio) -> tuple[datetime, datetime] | None:
         """Return start and end of the measurement coverage time."""
         if (
             "time_coverage_start" not in self.fid.attrs
@@ -227,24 +223,24 @@ class ICMio:
         ):
             return None
 
-        res1 = self.fid.attrs["time_coverage_start"]
-        if isinstance(res1, bytes):
-            # pylint: disable=no-member
-            res1 = res1.decode("ascii")
-
-        res2 = self.fid.attrs["time_coverage_end"]
-        if isinstance(res2, bytes):
-            # pylint: disable=no-member
-            res2 = res2.decode("ascii")
-
-        return res1, res2
+        # pylint: disable=no-member
+        return (
+            datetime.fromisoformat(self.fid.attrs["time_coverage_start"].decode()),
+            datetime.fromisoformat(self.fid.attrs["time_coverage_end"].decode()),
+        )
 
     @property
-    def creation_time(self: ICMio) -> str:
-        """Return version of the L01b processor."""
+    def creation_time(self: ICMio) -> datetime | None:
+        """Return file creation date."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
-        return dset.attrs["Creation_Date"].split(b"=")[1].decode("ascii")
+        if "Creation_Date" not in dset.attrs:
+            return None
+
+        # pylint: disable=no-member
+        return datetime.fromisoformat(
+            dset.attrs["Creation_Date"].split(b"=")[1].decode()
+        )
 
     def get_attr(self: ICMio, attr_name: str) -> str | None:
         """Obtain value of an HDF5 file attribute.
@@ -258,11 +254,7 @@ class ICMio:
         if attr_name not in self.fid.attrs:
             return None
 
-        res = self.fid.attrs[attr_name]
-        if isinstance(res, bytes):
-            return res.decode("ascii")
-
-        return res
+        return self.fid.attrs[attr_name].decode()
 
     # ---------- Functions that only work after MSM selection ----------
     def get_ref_time(self: ICMio, band: str | None = None) -> datetime:
@@ -293,7 +285,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                    f"BAND{band}_CALIBRATION", name.decode(), "OBSERVATIONS"
                 )
                 grp = self.fid[str(grp_path)]
                 ref_time += timedelta(seconds=int(grp["time"][0]))
@@ -304,7 +296,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                    f"BAND{band}_CALIBRATION", name.decode(), "OBSERVATIONS"
                 )
                 grp = self.fid[str(grp_path)]
                 ref_time += timedelta(seconds=int(grp["time"][0]))
@@ -343,7 +335,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                    f"BAND{band}_CALIBRATION", name.decode(), "OBSERVATIONS"
                 )
                 grp = self.fid[str(grp_path)]
                 if res is None:
@@ -357,7 +349,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "OBSERVATIONS"
+                    f"BAND{band}_CALIBRATION", name.decode(), "OBSERVATIONS"
                 )
                 grp = self.fid[grp_path]
                 if res is None:
@@ -401,7 +393,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                    f"BAND{band}_CALIBRATION", name.decode(), "INSTRUMENT"
                 )
                 grp = self.fid[str(grp_path)]
                 if res is None:
@@ -415,7 +407,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                    f"BAND{band}_CALIBRATION", name.decode(), "INSTRUMENT"
                 )
                 grp = self.fid[grp_path]
                 if res is None:
@@ -505,7 +497,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                    f"BAND{band}_CALIBRATION", name.decode(), "INSTRUMENT"
                 )
                 grp = self.fid[str(grp_path)]
                 if res is None:
@@ -519,7 +511,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    "BAND{band}_CALIBRATION", name.decode("ascii"), "INSTRUMENT"
+                    "BAND{band}_CALIBRATION", name.decode(), "INSTRUMENT"
                 )
                 grp = self.fid[str(grp_path)]
                 if res is None:
@@ -614,11 +606,7 @@ class ICMio:
                 continue
 
             if attr_name in self.fid[str(ds_path)].attrs:
-                attr = self.fid[str(ds_path)].attrs[attr_name]
-                if isinstance(attr, bytes):
-                    return attr.decode("ascii")
-
-                return attr
+                return self.fid[str(ds_path)].attrs[attr_name].decode()
 
         return None
 
@@ -664,7 +652,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "GEODATA"
+                    f"BAND{band}_CALIBRATION", name.decode(), "GEODATA"
                 )
                 grp = self.fid[str(grp_path)]
                 for key in geo_dset.split(","):
@@ -676,7 +664,7 @@ class ICMio:
             group_keys = dset["group"][:]
             for name in group_keys:
                 grp_path = PurePosixPath(
-                    f"BAND{band}_CALIBRATION", name.decode("ascii"), "GEODATA"
+                    f"BAND{band}_CALIBRATION", name.decode(), "GEODATA"
                 )
                 grp = self.fid[str(grp_path)]
                 for key in geo_dset.split(","):

@@ -181,48 +181,41 @@ class L1Bio:
 
         return attr
 
-    def get_orbit(self: L1Bio) -> int | None:
+    def get_orbit(self: L1Bio) -> int:
         """Return absolute orbit number."""
-        res = self.get_attr("orbit")
-        if res is None:
-            return None
+        return int(self.fid.attrs["orbit"])
 
-        return int(res)
-
-    def get_processor_version(self: L1Bio) -> str | None:
+    def get_processor_version(self: L1Bio) -> str:
         """Return version of the L01b processor."""
-        attr = self.get_attr("processor_version")
-        if attr is None:
-            return None
-
         # pylint: disable=no-member
-        return attr.decode("ascii")
+        return self.fid.attrs["processor_version"].decode()
 
-    def get_coverage_time(self: L1Bio) -> tuple[str, str] | None:
+    @property
+    def coverage_time(self: L1Bio) -> tuple[datetime, datetime] | None:
         """Return start and end of the measurement coverage time."""
-        attr_start = self.get_attr("time_coverage_start")
-        if attr_start is None:
-            return None
-
-        attr_end = self.get_attr("time_coverage_end")
-        if attr_end is None:
+        if (
+            "time_coverage_start" not in self.fid.attrs
+            or "time_coverage_end" not in self.fid.attrs
+        ):
             return None
 
         # pylint: disable=no-member
-        return (attr_start.decode("ascii"), attr_end.decode("ascii"))
+        return (
+            datetime.fromisoformat(self.fid.attrs["time_coverage_start"].decode()),
+            datetime.fromisoformat(self.fid.attrs["time_coverage_end"].decode()),
+        )
 
-    def get_creation_time(self: L1Bio) -> str | None:
-        """Return datetime when the L1b product was created."""
+    @property
+    def creation_time(self: L1Bio) -> datetime | None:
+        """Return file creation date."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
-        if "Creation_Date" in self.fid.attrs:
-            attr = dset.attrs["Creation_Date"]
-            if isinstance(attr, bytes):
-                return attr.decode("ascii")
+        if "Creation_Date" not in dset.attrs:
+            return None
 
-            return attr
-
-        return None
+        return datetime.fromisoformat(
+            dset.attrs["Creation_Date"].split(b"=")[1].decode()
+        )
 
     def select(self: L1Bio, msm_type: str | None = None) -> str | None:
         """Select a calibration measurement as <processing class>_<ic_id>.
@@ -527,11 +520,7 @@ class L1Bio:
         msm_path = self.__msm_path.replace("%", band)
         ds_path = str(PurePosixPath(msm_path, "OBSERVATIONS", msm_dset))
         if attr_name in self.fid[ds_path].attrs:
-            attr = self.fid[ds_path].attrs[attr_name]
-            if isinstance(attr, bytes):
-                return attr.decode("ascii")
-
-            return attr
+            return self.fid[ds_path].attrs[attr_name].decode()
 
         return None
 
@@ -727,48 +716,42 @@ class L1BioENG:
 
         return attr
 
-    def get_orbit(self: L1BioENG) -> int | None:
+    def get_orbit(self: L1BioENG) -> int:
         """Return absolute orbit number."""
-        res = self.get_attr("orbit")
-        if res is None:
-            return None
+        return int(self.fid.attrs["orbit"])
 
-        return int(res[0] if res.shape else res)
-
-    def get_processor_version(self: L1BioENG) -> str | None:
+    def get_processor_version(self: L1BioENG) -> str:
         """Return version of the L01b processor."""
-        attr = self.get_attr("processor_version")
-        if attr is None:
-            return None
-
         # pylint: disable=no-member
-        return attr.decode("ascii")
+        return self.fid.attrs["processor_version"].decode()
 
-    def get_coverage_time(self: L1BioENG) -> tuple[str, str] | None:
+    @property
+    def coverage_time(self: L1BioENG) -> tuple[datetime, datetime] | None:
         """Return start and end of the measurement coverage time."""
-        attr_start = self.get_attr("time_coverage_start")
-        if attr_start is None:
-            return None
-
-        attr_end = self.get_attr("time_coverage_end")
-        if attr_end is None:
+        if (
+            "time_coverage_start" not in self.fid.attrs
+            or "time_coverage_end" not in self.fid.attrs
+        ):
             return None
 
         # pylint: disable=no-member
-        return (attr_start.decode("ascii"), attr_end.decode("ascii"))
+        return (
+            datetime.fromisoformat(self.fid.attrs["time_coverage_start"].decode()),
+            datetime.fromisoformat(self.fid.attrs["time_coverage_end"].decode()),
+        )
 
-    def get_creation_time(self: L1BioENG) -> str | None:
-        """Return datetime when the L1b product was created."""
+    @property
+    def creation_time(self: L1BioENG) -> datetime | None:
+        """Return file creation date."""
         grp = self.fid["/METADATA/ESA_METADATA/earth_explorer_header"]
         dset = grp["fixed_header/source"]
-        if "Creation_Date" in self.fid.attrs:
-            attr = dset.attrs["Creation_Date"]
-            if isinstance(attr, bytes):
-                return attr.decode("ascii")
+        if "Creation_Date" not in dset.attrs:
+            return None
 
-            return attr
-
-        return None
+        # pylint: disable=no-member
+        return datetime.fromisoformat(
+            dset.attrs["Creation_Date"].split(b"=")[1].decode()
+        )
 
     def get_ref_time(self: L1BioENG) -> int:
         """Return reference start time of measurements."""
