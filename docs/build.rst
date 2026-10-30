@@ -54,4 +54,3 @@ and wheels. Then you can install `pys5p` as follows::
 
   python3 -m build
   pip3 install dist/pys5p-<version>.whl [--user]
-
